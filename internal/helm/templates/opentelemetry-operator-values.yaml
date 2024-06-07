@@ -1,0 +1,13 @@
+admissionWebhooks:
+  certManager:
+    enabled: false
+manager:
+  image:
+    repository: public.ecr.aws/p3k6k6h3/opentelemetry-operator
+    tag: latest
+  collectorImage:
+    tag: 0.101.0
+kubeRBACProxy:
+  enabled: false
+leaderElection:
+    enabled: false

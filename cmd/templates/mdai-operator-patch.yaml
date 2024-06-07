@@ -1,0 +1,20 @@
+apiVersion: mydecisive.ai/v1
+kind: MyDecisiveEngine
+metadata:
+  labels:
+    app.kubernetes.io/name: mydecisiveengine
+    app.kubernetes.io/instance: mydecisiveengine-sample
+    app.kubernetes.io/part-of: mydecisive-engine-operator
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: mydecisive-engine-operator
+  name: mydecisiveengine-sample-1
+spec:
+  telemetryModule:
+    attributes:
+      name: "telemetry"
+      version: "0.0.1"
+    collectors:
+      -
+        name: "test-collector"
+        measureVolumes: true
+        enabled: true
