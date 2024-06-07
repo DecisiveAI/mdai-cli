@@ -34,13 +34,13 @@ func init() {
 
 	chartSpecs["opentelemetry-operator"] = helmclient.ChartSpec{
 		ReleaseName: "opentelemetry-operator",
-		// ChartName:       "mydecisive/opentelemetry-operator",
+		// ChartName:   "mydecisive/opentelemetry-operator",
 		ChartName: "opentelemetry/opentelemetry-operator",
 		Namespace: "opentelemetry-operator-system",
-		// Version:         "0.43.1",
+		// Version:   "0.43.1",
 		Version:         "0.61.0",
 		UpgradeCRDs:     true,
-		Wait:            true,
+		Wait:            false,
 		ValuesYaml:      string(opentelemetryOperatorValuesYaml),
 		Replace:         true,
 		CreateNamespace: true,
