@@ -4,7 +4,6 @@ import (
 	"context"
 	"embed"
 	"os"
-	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
@@ -12,7 +11,7 @@ import (
 	mdaihelm "github.com/decisiveai/mdai-cli/internal/helm"
 	"github.com/decisiveai/mdai-cli/internal/kind"
 	"github.com/decisiveai/mdai-cli/internal/processmanager"
-	helmclient "github.com/mittwald/go-helm-client"
+	"github.com/pkg/errors"
 	"github.com/pytimer/k8sutil/apply"
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/discovery"
@@ -23,84 +22,63 @@ import (
 //go:embed templates/*
 var embedFS embed.FS
 
+var installationType string
+
 var installCommand = &cobra.Command{
 	Use:   "install",
 	Short: "install MyDecisive Engine",
 	Long:  "install MyDecisive Engine",
+	PreRun: func(cmd *cobra.Command, args []string) {
+		aws, _ := cmd.Flags().GetBool("aws")
+		local, _ := cmd.Flags().GetBool("local")
+		if aws {
+			installationType = "aws"
+		}
+		if local {
+			installationType = "kind"
+		}
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		helmCharts := []string{"cert-manager", "opentelemetry-operator", "prometheus", "mdai-api", "mdai-console", "datalyzer", "mdai-operator"}
+		if installationType == "" {
+			s := huh.NewSelect[string]().
+				Title("Installation Type").
+				Options(
+					huh.NewOption("Local Installation via kind", "kind"),
+					huh.NewOption("AWS Installation via eks", "aws"),
+				).
+				Value(&installationType)
 
-		var installationType string
-		s := huh.NewSelect[string]().
-			Title("Installation Type").
-			Options(
-				huh.NewOption("Local Installation via kind", "kind"),
-				huh.NewOption("AWS Installation via eks", "aws"),
-			).
-			Value(&installationType)
-
-		huh.NewForm(huh.NewGroup(s)).Run()
-		var kubeconfig string
+			huh.NewForm(huh.NewGroup(s)).Run()
+		}
 		switch installationType {
 		case "kind":
-			_ = spinner.New().Title(" creating kubernetes cluster via kind 🔧").Type(spinner.Meter).Action(func() { kubeconfig = kind.Install() }).Run()
+			_ = spinner.New().Title(" creating kubernetes cluster via kind 🔧").Type(spinner.Meter).Action(func() { kind.Install() }).Run()
 		}
-		opt := &helmclient.KubeConfClientOptions{
-			Options: &helmclient.Options{
-				RepositoryCache:  os.TempDir() + "/.helmcache",
-				RepositoryConfig: os.TempDir() + "/.helmrepo",
-				Debug:            false,
-				// DebugLog: func(format string, v ...interface{}) {
-				// Change this to your own logger. Default is 'log.Printf(format, v...)'.
-				// },
-			},
-			KubeContext: "",
-			KubeConfig:  []byte(kubeconfig),
-		}
-		opt.Options.DebugLog = func(_ string, _ ...interface{}) {}
 
-		helmClient, _ := helmclient.NewClientFromKubeConf(opt, helmclient.Timeout(time.Second*60))
-		for _, chartRepo := range mdaihelm.ChartRepos {
-			var err error
-			_ = spinner.New().Title(" adding " + chartRepo.Name + " helm chart repo 🔧").Type(spinner.Meter).Action(
-				func() {
-					err = helmClient.AddOrUpdateChartRepo(chartRepo)
-				},
-			).Run()
-			if err != nil {
-				return err
-			}
+		if err := mdaihelm.AddRepos(); err != nil {
+			return errors.Wrap(err, "failed to add repos")
 		}
 
 		action := func(helmChart string) error {
-			chartSpec := mdaihelm.GetChartSpec(helmChart)
-			opt := &helmclient.KubeConfClientOptions{
-				Options: &helmclient.Options{
-					Namespace:        chartSpec.Namespace,
-					RepositoryCache:  os.TempDir() + "/.helmcache",
-					RepositoryConfig: os.TempDir() + "/.helmrepo",
-					Debug:            false,
-					// DebugLog: func(format string, v ...interface{}) {
-					// Change this to your own logger. Default is 'log.Printf(format, v...)'.
-					// },
-				},
-				KubeContext: "",
-				KubeConfig:  []byte(kubeconfig),
-			}
-			opt.Options.DebugLog = func(_ string, _ ...interface{}) {}
-
-			helmClient, _ := helmclient.NewClientFromKubeConf(opt, helmclient.Timeout(time.Second*60))
-			_, err := helmClient.InstallOrUpgradeChart(context.Background(), &chartSpec, nil)
-			return err
+			return errors.Wrap(mdaihelm.InstallChart(helmChart), "failed to install "+helmChart)
 		}
+
 		if _, err := tea.NewProgram(processmanager.NewModel(helmCharts, action)).Run(); err != nil {
-			tea.Println("Error running program:", err)
+			tea.Println("error running program: ", err)
 			os.Exit(1)
 		}
 
 		cfg := config.GetConfigOrDie()
-		dynamicClient, _ := dynamic.NewForConfig(cfg)
-		discoveryClient, _ := discovery.NewDiscoveryClientForConfig(cfg)
+
+		dynamicClient, err := dynamic.NewForConfig(cfg)
+		if err != nil {
+			return err
+		}
+		discoveryClient, err := discovery.NewDiscoveryClientForConfig(cfg)
+		if err != nil {
+			return err
+		}
 		applyYaml, _ := embedFS.ReadFile("templates/mdai-operator.yaml")
 		applyOptions := apply.NewApplyOptions(dynamicClient, discoveryClient)
 		return applyOptions.Apply(context.TODO(), applyYaml)
@@ -109,4 +87,6 @@ var installCommand = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(installCommand)
+	installCommand.Flags().Bool("aws", false, "aws installation type")
+	installCommand.Flags().Bool("local", false, "local installation type")
 }
