@@ -1,12 +1,12 @@
 # build binary
-    go build -o mdai main.go
+    GOPRIVATE=github.com/decisiveai/opentelemetry-operator go build -o mdai main.go
 
 # build docker image
     docker build -t mdai-cli:latest .
 
 # local install
 ## go run
-    go run main.go install
+    GOPRIVATE=github.com/decisiveai/opentelemetry-operator go run main.go install
 
 ## binary
     ./mdai install
