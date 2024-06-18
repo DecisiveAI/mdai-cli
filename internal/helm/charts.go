@@ -24,6 +24,7 @@ func init() {
 	prometheusValuesYaml, _ := embedFS.ReadFile("templates/prometheus-values.yaml")
 	mdaiConsoleValuesYaml, _ := embedFS.ReadFile("templates/mdai-console-values.yaml")
 	mdaiOperatorValuesYaml, _ := embedFS.ReadFile("templates/mdai-operator-values.yaml")
+	mdaiApiValuesYaml, _ := embedFS.ReadFile("templates/mdai-api-values.yaml")
 
 	chartSpecs = make(map[string]mdaitypes.ChartSpec)
 
@@ -87,6 +88,7 @@ func init() {
 		Version:         "0.0.4",
 		UpgradeCRDs:     true,
 		Wait:            false,
+		ValuesYaml:      string(mdaiApiValuesYaml),
 		Replace:         true,
 		CreateNamespace: true,
 		Timeout:         60 * time.Second, // nolint: gomnd
