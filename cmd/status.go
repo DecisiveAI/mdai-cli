@@ -3,20 +3,17 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
 	"time"
 
-	"github.com/decisiveai/opentelemetry-operator/apis/v1alpha1"
+	//"github.com/decisiveai/opentelemetry-operator/apis/v1alpha1"
 	"github.com/spf13/cobra"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/registry"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 )
 
@@ -44,21 +41,22 @@ var statusCmd = &cobra.Command{
 	Short: "",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		cfg := config.GetConfigOrDie()
-		scheme := runtime.NewScheme()
-		v1alpha1.AddToScheme(scheme)
-		k8sClient, _ := client.New(cfg, client.Options{Scheme: scheme})
-		//"github.com/open-telemetry/opentelemetry-operator/apis/v1alpha1"
-		collectors := &v1alpha1.OpenTelemetryCollectorList{}
-		opts := client.MatchingLabels(map[string]string{
-			"app.kubernetes.io/managed-by": "opentelemetry-operator", // mydecisive-engine-operator",
-		})
-		err := k8sClient.List(context.TODO(), collectors, opts)
-		if err != nil {
-			fmt.Println(err.Error())
-		}
-		fmt.Printf("%+v\n", collectors)
-		os.Exit(0)
+		/*
+			cfg := config.GetConfigOrDie()
+			scheme := runtime.NewScheme()
+			v1alpha1.AddToScheme(scheme)
+			k8sClient, _ := client.New(cfg, client.Options{Scheme: scheme})
+			//"github.com/open-telemetry/opentelemetry-operator/apis/v1alpha1"
+			collectors := &v1alpha1.OpenTelemetryCollectorList{}
+			opts := client.MatchingLabels(map[string]string{
+				"app.kubernetes.io/managed-by": "opentelemetry-operator", // mydecisive-engine-operator",
+			})
+			err := k8sClient.List(context.TODO(), collectors, opts)
+			if err != nil {
+				fmt.Println(err.Error())
+			}
+			fmt.Printf("%+v\n", collectors)
+			os.Exit(0)*/
 		/*
 			configMapList := &corev1.ConfigMapList{}
 			cfg := config.GetConfigOrDie()
@@ -85,6 +83,7 @@ var statusCmd = &cobra.Command{
 		*/
 		//provider := cluster.NewProvider()
 		//kubeconfig, _ := provider.KubeConfig("mdai-local", false)
+		cfg := config.GetConfigOrDie()
 		actionConfig := new(action.Configuration)
 		settings := cli.New()
 		if err := actionConfig.Init(settings.RESTClientGetter(), "", "secrets", nil); err != nil {

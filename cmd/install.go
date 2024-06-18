@@ -22,7 +22,10 @@ import (
 //go:embed templates/*
 var embedFS embed.FS
 
-var installationType string
+var (
+	installationType string
+	clusterName      string
+)
 
 var installCommand = &cobra.Command{
 	Use:   "install",
@@ -53,7 +56,14 @@ var installCommand = &cobra.Command{
 		}
 		switch installationType {
 		case "kind":
-			_ = spinner.New().Title(" creating kubernetes cluster via kind 🔧").Type(spinner.Meter).Action(func() { kind.Install() }).Run()
+			if clusterName == "" {
+				i := huh.NewInput().
+					Prompt("cluster name: ").
+					Placeholder("mdai-local").
+					Value(&clusterName)
+				huh.NewForm(huh.NewGroup(i)).Run()
+			}
+			_ = spinner.New().Title(" creating kubernetes cluster `" + clusterName + "` via kind 🔧").Type(spinner.Meter).Action(func() { kind.Install(clusterName) }).Run()
 		}
 
 		if err := mdaihelm.AddRepos(); err != nil {
@@ -89,4 +99,5 @@ func init() {
 	rootCmd.AddCommand(installCommand)
 	installCommand.Flags().Bool("aws", false, "aws installation type")
 	installCommand.Flags().Bool("local", false, "local installation type")
+	installCommand.Flags().StringVar(&clusterName, "cluster-name", "", "kubernetes cluster name")
 }

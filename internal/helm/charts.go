@@ -22,6 +22,8 @@ func init() {
 	certManagerValuesYaml, _ := embedFS.ReadFile("templates/cert-manager-values.yaml")
 	opentelemetryOperatorValuesYaml, _ := embedFS.ReadFile("templates/opentelemetry-operator-values.yaml")
 	prometheusValuesYaml, _ := embedFS.ReadFile("templates/prometheus-values.yaml")
+	mdaiConsoleValuesYaml, _ := embedFS.ReadFile("templates/mdai-console-values.yaml")
+	mdaiOperatorValuesYaml, _ := embedFS.ReadFile("templates/mdai-operator-values.yaml")
 
 	chartSpecs = make(map[string]mdaitypes.ChartSpec)
 
@@ -42,7 +44,7 @@ func init() {
 		ReleaseName: "opentelemetry-operator",
 		ChartName:   "mydecisive/opentelemetry-operator",
 		// ChartName: "opentelemetry/opentelemetry-operator",
-		Namespace: "opentelemetry-operator-system",
+		Namespace: "mdai-otel-nucleus",
 		Version:   "0.43.1",
 		// Version:         "0.61.0",
 		UpgradeCRDs:     true,
@@ -56,7 +58,7 @@ func init() {
 	chartSpecs["prometheus"] = mdaitypes.ChartSpec{
 		ReleaseName:     "prometheus",
 		ChartName:       "prometheus-community/prometheus",
-		Namespace:       "default",
+		Namespace:       "mdai-otel-nucleus",
 		Version:         "25.21.0",
 		UpgradeCRDs:     true,
 		Wait:            false,
@@ -81,8 +83,8 @@ func init() {
 	chartSpecs["mdai-api"] = mdaitypes.ChartSpec{
 		ReleaseName:     "mdai-api",
 		ChartName:       "mydecisive/mdai-api",
-		Namespace:       "default",
-		Version:         "0.0.3",
+		Namespace:       "mdai-otel-nucleus",
+		Version:         "0.0.4",
 		UpgradeCRDs:     true,
 		Wait:            false,
 		Replace:         true,
@@ -91,24 +93,13 @@ func init() {
 	}
 
 	chartSpecs["mdai-console"] = mdaitypes.ChartSpec{
-		ReleaseName: "mdai-console",
-		ChartName:   "mydecisive/mdai-console",
-		Namespace:   "default",
-		Version:     "0.1.1",
-		UpgradeCRDs: true,
-		Wait:        false,
-		/*
-					      values: {
-			        'ingress': {
-			          'userPoolArn': mdaiUserPool.userPoolArn,
-			          'userPoolClientId': mdaiAppClient.userPoolClientId,
-			          'userPoolDomain': config.MDAI_COGNITO.USER_POOL_DOMAIN,
-			        },
-			        'env': {
-			          'MDAI_UI_ACM_ARN': process.env.MDAI_UI_ACM_ARN,
-			        }
-			      }
-		*/
+		ReleaseName:     "mdai-console",
+		ChartName:       "mydecisive/mdai-console",
+		Namespace:       "mdai-otel-nucleus",
+		Version:         "0.1.1",
+		UpgradeCRDs:     true,
+		Wait:            false,
+		ValuesYaml:      string(mdaiConsoleValuesYaml),
 		Replace:         true,
 		CreateNamespace: true,
 		Timeout:         60 * time.Second, // nolint: gomnd
@@ -117,8 +108,8 @@ func init() {
 	chartSpecs["datalyzer"] = mdaitypes.ChartSpec{
 		ReleaseName:     "datalyzer",
 		ChartName:       "mydecisive/datalyzer",
-		Namespace:       "default",
-		Version:         "0.0.1",
+		Namespace:       "mdai-otel-nucleus",
+		Version:         "0.0.4",
 		UpgradeCRDs:     true,
 		Wait:            false,
 		Replace:         true,
@@ -129,10 +120,11 @@ func init() {
 	chartSpecs["mdai-operator"] = mdaitypes.ChartSpec{
 		ReleaseName:     "mydecisive-engine-operator",
 		ChartName:       "mydecisive/mydecisive-engine-operator",
-		Namespace:       "mydecisive-engine-operator-system",
-		Version:         "0.0.1",
+		Namespace:       "mdai-otel-nucleus",
+		Version:         "0.0.3",
 		UpgradeCRDs:     true,
 		Wait:            true,
+		ValuesYaml:      string(mdaiOperatorValuesYaml),
 		Replace:         true,
 		CreateNamespace: true,
 		Timeout:         60 * time.Second, // nolint: gomnd

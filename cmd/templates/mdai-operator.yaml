@@ -1,6 +1,7 @@
 apiVersion: mydecisive.ai/v1
 kind: MyDecisiveEngine
 metadata:
+  namespace: mdai-otel-nucleus
   labels:
     app.kubernetes.io/name: mydecisiveengine
     app.kubernetes.io/instance: mydecisiveengine-sample
@@ -19,6 +20,27 @@ spec:
         enabled: true
         measureVolumes: true
         spec:
+          ingress:
+            annotations:
+              # MUST BE SPECIFIED!
+              # add certificate arn (or multiple certificates arn, comma separated) for the grpc endpoints
+              alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:012345678901:certificate/th15-15-@n-@ut0g3n3r@ted-numb3r # TODO: CHANGE ME TO A REAL ARN!!!
+              alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS": 443}]'
+              alb.ingress.kubernetes.io/load-balancer-name: mdai-grpc-endpoint
+              alb.ingress.kubernetes.io/backend-protocol-version: GRPC
+              alb.ingress.kubernetes.io/scheme: internet-facing
+              alb.ingress.kubernetes.io/target-type: ip
+              kubernetes.io/ingress.class: alb
+            # this section is required if collector has grpc endpoints (receivers).
+            # for each enabled grpc receiver receivername -> hostname mapping should be provided
+            # these hostnames must be CNAMEs for corresponding ALB public address and will be used
+            # for connectivity to the corresponding collector receiver
+            collectorEndpoints:
+              otlp: otlp.grpc.endpoint.collector.your-domain.io
+              jaeger: jaeger.grpc.endpoint.collector.your-domain.io
+            ingressClassName: alb
+            ruleType: path
+            type: aws
           replicas: 2
           ports:
             - name: promexporter
@@ -27,7 +49,7 @@ spec:
             - name: metrics
               port: 8888
               protocol: TCP
-            - name: metrics-1
+            - name: otlp-grpc
               port: 4317
           config: |
             receivers:
@@ -65,7 +87,7 @@ spec:
                   processors: [resource]
                   exporters: [debug]
                 metrics:
-                  receivers: [hostmetrics, otlp]
+                  receivers: [otlp]
                   processors: [resource]
                   exporters: [debug]
                 logs:
