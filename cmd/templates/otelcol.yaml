@@ -1,8 +1,6 @@
-apiVersion: opentelemetry.io/v1beta1
-kind: OpenTelemetryCollector
 metadata:
     name: test-collector
-    namespace: default
+    namespace: mdai-otel-nucleus
     annotations:
         # MUST BE SPECIFIED!
         # add certificate arn for non-grpc endpoint
@@ -27,12 +25,12 @@ spec:
         # for each enabled grpc receiver receivername -> hostname mapping should be provided
         # these hostnames must be CNAMEs for corresponding ALB public address and will be used
         # for connectivity to the corresponding collector receiver
-#        collectorEndpoints:
-#            otlp: otlp.grpc.endpoint.collector.your-domain.io
-#            jaeger: jaeger.grpc.endpoint.collector.your-domain.io
-#        ingressClassName: alb
-#        ruleType: path
-#        type: aws
+        collectorEndpoints:
+            otlp: otlp.grpc.endpoint.collector.your-domain.io
+            jaeger: jaeger.grpc.endpoint.collector.your-domain.io
+        ingressClassName: alb
+        ruleType: path
+        type: aws
     # 2 replicas recommnded
     replicas: 2
     # mandatory only when  autoscaler is enabled
@@ -44,37 +42,35 @@ spec:
             cpu: 250m
     upgradeStrategy: automatic
     mode: deployment
-    configVersions: 5
-    config:
+    config: |
         receivers:
           otlp:
             protocols:
               http:
                 endpoint: 0.0.0.0:4318
-              grpc: {}
+              grpc:
           jaeger:
             protocols:
-              grpc: {}
+              grpc:
           hostmetrics:
-            collection_interval: 13s
+            collection_interval: 23s
             scrapers:
-              load: {}
-              filesystem: {}
-              memory: {}
-              network: {}
-              paging: {}
-              process: {}
-              processes: {}
+              load:
+              filesystem:
+              memory:
+              network:
+              paging:
+              processes:
         processors:
           memory_limiter:
-            check_interval: 13s
+            check_interval: 23s
             limit_percentage: 75
             spike_limit_percentage: 15
           batch:
             send_batch_size: 10000
             timeout: 13s
         exporters:
-          debug: {}
+          debug:
         service:
           pipelines:
             traces:
@@ -89,3 +85,5 @@ spec:
               receivers: [otlp]
               processors: [batch]
               exporters: [debug]
+apiVersion: opentelemetry.io/v1alpha1
+kind: OpenTelemetryCollector

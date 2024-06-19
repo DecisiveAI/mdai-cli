@@ -93,7 +93,7 @@ func (m model) View() string {
 		return doneStyle.Render(fmt.Sprintf("Done! Installed %d helm charts.\n", n))
 	}
 
-	pkgCount := fmt.Sprintf(" %*d/%*d", w, m.index, w, n-1)
+	pkgCount := fmt.Sprintf(" %*d/%*d", w, m.index+1, w, n)
 
 	spin := m.spinner.View() + " "
 	prog := m.progress.View()
@@ -112,10 +112,8 @@ type installedPkgMsg string
 
 func install(pkg string, runfunc func(string) error) tea.Cmd {
 	return func() tea.Msg {
-		// return tea.Tick(d, func(t time.Time) tea.Msg {
-		err := runfunc(pkg)
-		if err != nil {
-			tea.Println(err)
+		if err := runfunc(pkg); err != nil {
+			tea.Printf("error: %s\n", err.Error())
 			return tea.Quit
 		}
 		return installedPkgMsg(pkg)
