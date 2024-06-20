@@ -95,9 +95,42 @@ var installCommand = &cobra.Command{
 	},
 }
 
+var demoCommand = &cobra.Command{
+	Use:   "demo",
+	Short: "install OpenTelemetry Demo",
+	Long:  "install OpenTelemetry Demo",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		helmCharts := []string{"opentelemetry-demo"}
+		if clusterName == "" {
+			i := huh.NewInput().
+				Prompt("cluster name: ").
+				Placeholder("mdai-local").
+				Value(&clusterName)
+			huh.NewForm(huh.NewGroup(i)).Run()
+		}
+		_ = spinner.New().Title(" creating kubernetes cluster `" + clusterName + "` via kind 🔧").Type(spinner.Meter).Action(func() { kind.Install(clusterName) }).Run()
+
+		if err := mdaihelm.AddRepos(); err != nil {
+			return errors.Wrap(err, "failed to add repos")
+		}
+
+		action := func(helmChart string) error {
+			return errors.Wrap(mdaihelm.InstallChart(helmChart), "failed to install "+helmChart)
+		}
+
+		if _, err := tea.NewProgram(processmanager.NewModel(helmCharts, action)).Run(); err != nil {
+			tea.Println("error running program: ", err)
+			os.Exit(1)
+		}
+		return nil
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(installCommand)
+	rootCmd.AddCommand(demoCommand)
 	installCommand.Flags().Bool("aws", false, "aws installation type")
 	installCommand.Flags().Bool("local", false, "local installation type")
 	installCommand.Flags().StringVar(&clusterName, "cluster-name", "", "kubernetes cluster name")
+	demoCommand.Flags().StringVar(&clusterName, "cluster-name", "", "kubernetes cluster name")
 }
