@@ -12,14 +12,16 @@ import (
 )
 
 type model struct {
-	items    []string
-	index    int
-	width    int
-	height   int
-	spinner  spinner.Model
-	progress progress.Model
-	done     bool
-	runfunc  func(string) error
+	items             []string
+	index             int
+	width             int
+	height            int
+	spinner           spinner.Model
+	progress          progress.Model
+	done              bool
+	runfunc           func(string) error
+	manifestapplyfunc func() error
+	addreposfunc      func() error
 }
 
 var (
@@ -28,7 +30,7 @@ var (
 	checkMark           = lipgloss.NewStyle().Foreground(lipgloss.Color("42")).SetString("✓")
 )
 
-func NewModel(items []string, runfunc func(string) error) tea.Model {
+func NewModel(items []string, runfunc func(string) error, manifestapplyfunc func() error, addreposfunc func() error) tea.Model {
 	p := progress.New(
 		progress.WithDefaultGradient(),
 		progress.WithWidth(40),
@@ -37,15 +39,17 @@ func NewModel(items []string, runfunc func(string) error) tea.Model {
 	s := spinner.New()
 	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("63"))
 	return model{
-		items:    items,
-		spinner:  s,
-		progress: p,
-		runfunc:  runfunc,
+		items:             items,
+		spinner:           s,
+		progress:          p,
+		runfunc:           runfunc,
+		manifestapplyfunc: manifestapplyfunc,
+		addreposfunc:      addreposfunc,
 	}
 }
 
 func (m model) Init() tea.Cmd {
-	return tea.Batch(install(m.items[m.index], m.runfunc), m.spinner.Tick)
+	return tea.Batch(tea.Sequence(m.addrepos(), install(m.items[m.index], m.runfunc), m.applymanifest()), m.spinner.Tick)
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -55,6 +59,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c", "esc", "q":
+			m.done = false
 			return m, tea.Quit
 		}
 	case installedPkgMsg:
@@ -117,6 +122,26 @@ func install(pkg string, runfunc func(string) error) tea.Cmd {
 			return tea.Quit
 		}
 		return installedPkgMsg(pkg)
+	}
+}
+
+func (m *model) addrepos() tea.Cmd {
+	return func() tea.Msg {
+		if err := m.addreposfunc(); err != nil {
+			tea.Printf("error: %s\n", err.Error())
+			return tea.Quit
+		}
+		return nil
+	}
+}
+
+func (m *model) applymanifest() tea.Cmd {
+	return func() tea.Msg {
+		if err := m.manifestapplyfunc(); err != nil {
+			tea.Printf("error: %s\n", err.Error())
+			return tea.Quit
+		}
+		return nil
 	}
 }
 
