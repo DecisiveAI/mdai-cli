@@ -1,0 +1,94 @@
+    default:
+      env:
+      - name: MY_POD_IP
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: status.podIP
+      - name: OTEL_COLLECTOR_NAME
+        value: 'gateway-collector.mdai-otel-nucleus.svc.cluster.local'
+      - name: OTEL_SERVICE_NAME
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: "metadata.labels['app.kubernetes.io/component']"
+      - name: OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
+        value: cumulative
+      - name: OTEL_RESOURCE_ATTRIBUTES
+        value: service.name=$(OTEL_SERVICE_NAME),service.namespace=opentelemetry-demo
+    opentelemetry-collector:
+      enabled: false
+    jaeger:
+        enabled: true
+    prometheus:
+        enabled: true
+    components:
+      accountingService:
+        enabled: false
+        initContainers: []
+      adService:
+        enabled: true
+      cartService:
+        enabled: true
+      checkoutService:
+        enabled: true
+        initContainers: []
+        env:
+          - name: CHECKOUT_SERVICE_PORT
+            value: "8080"
+          - name: FLAGD_HOST
+            value: '{{ include "otel-demo.name" . }}-flagd'
+          - name: FLAGD_PORT
+            value: "8013"
+          - name: CART_SERVICE_ADDR
+            value: '{{ include "otel-demo.name" . }}-cartservice:8080'
+          - name: CURRENCY_SERVICE_ADDR
+            value: '{{ include "otel-demo.name" . }}-currencyservice:8080'
+          - name: EMAIL_SERVICE_ADDR
+            value: 'http://{{ include "otel-demo.name" . }}-emailservice:8080'
+          - name: PAYMENT_SERVICE_ADDR
+            value: '{{ include "otel-demo.name" . }}-paymentservice:8080'
+          - name: PRODUCT_CATALOG_SERVICE_ADDR
+            value: '{{ include "otel-demo.name" . }}-productcatalogservice:8080'
+          - name: SHIPPING_SERVICE_ADDR
+            value: '{{ include "otel-demo.name" . }}-shippingservice:8080'
+          - name: KAFKA_SERVICE_ADDR
+            value: ''
+          - name: OTEL_EXPORTER_OTLP_ENDPOINT
+            value: http://$(OTEL_COLLECTOR_NAME):4317
+      emailService:
+        enabled: true
+      flagd:
+        enabled: true
+        resources:
+          limits:
+            memory: 175Mi
+      frauddetectionService:
+        enabled: false
+        initContainers: []
+      frontend:
+        enabled: true
+        resources:
+          limits:
+            memory: 275Mi
+      frontendProxy:
+        enabled: true
+        resources:
+          limits:
+            memory: 175Mi
+      loadgenerator:
+        enabled: false
+      paymentService:
+        enabled: true
+      productCatalogService:
+        enabled: true
+      quoteService:
+        enabled: true
+      recommendationService:
+        enabled: true
+      shippingService:
+        enabled: true
+      kafka:
+        enabled: false
+      redis:
+        enabled: true

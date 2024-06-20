@@ -25,6 +25,7 @@ func init() {
 	mdaiConsoleValuesYaml, _ := embedFS.ReadFile("templates/mdai-console-values.yaml")
 	mdaiOperatorValuesYaml, _ := embedFS.ReadFile("templates/mdai-operator-values.yaml")
 	mdaiApiValuesYaml, _ := embedFS.ReadFile("templates/mdai-api-values.yaml")
+	opentelemetryDemoValuesYaml, _ := embedFS.ReadFile("templates/opentelemetry-demo-values.yaml")
 
 	chartSpecs = make(map[string]mdaitypes.ChartSpec)
 
@@ -130,6 +131,19 @@ func init() {
 		Replace:         true,
 		CreateNamespace: true,
 		Timeout:         60 * time.Second, // nolint: gomnd
+	}
+
+	chartSpecs["opentelemetry-demo"] = mdaitypes.ChartSpec{
+		ReleaseName:     "otel-demo",
+		ChartName:       "open-telemetry/opentelemetry-demo",
+		Namespace:       "mdai-otel-demo",
+		Version:         "0.30.5",
+		UpgradeCRDs:     true,
+		Wait:            false,
+		ValuesYaml:      string(opentelemetryDemoValuesYaml),
+		Replace:         true,
+		CreateNamespace: true,
+		Timeout:         120 * time.Second, // nolint: gomnd
 	}
 }
 
