@@ -33,7 +33,7 @@ func init() {
 		ReleaseName:     "cert-manager",
 		ChartName:       "jetstack/cert-manager",
 		Namespace:       "cert-manager",
-		Version:         "1.13.1",
+		Version:         "1.15.0",
 		UpgradeCRDs:     true,
 		Wait:            true,
 		ValuesYaml:      string(certManagerValuesYaml),

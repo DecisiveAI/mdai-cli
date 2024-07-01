@@ -12,16 +12,16 @@ import (
 )
 
 type model struct {
-	items             []string
-	index             int
-	width             int
-	height            int
-	spinner           spinner.Model
-	progress          progress.Model
-	done              bool
-	runfunc           func(string) error
-	manifestapplyfunc func() error
-	addreposfunc      func() error
+	items                []string
+	index                int
+	width                int
+	height               int
+	spinner              spinner.Model
+	progress             progress.Model
+	helmchartinstalldone bool
+	runfunc              func(string) error
+	manifestapplyfunc    func() error
+	addreposfunc         func() error
 }
 
 var (
@@ -49,7 +49,10 @@ func NewModel(items []string, runfunc func(string) error, manifestapplyfunc func
 }
 
 func (m model) Init() tea.Cmd {
-	return tea.Batch(tea.Sequence(m.addrepos(), install(m.items[m.index], m.runfunc), m.applymanifest()), m.spinner.Tick)
+	return tea.Batch(
+		m.addrepos(),
+		m.spinner.Tick,
+	)
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -59,13 +62,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c", "esc", "q":
-			m.done = false
 			return m, tea.Quit
 		}
+	case helmReposAddedMsg:
+		return m, install(m.items[m.index], m.runfunc)
 	case installedPkgMsg:
 		if m.index >= len(m.items)-1 {
-			m.done = true
-			return m, tea.Quit
+			m.helmchartinstalldone = true
+			return m, tea.Batch(
+				m.progress.SetPercent(100),
+				tea.Printf("%s %s", checkMark, m.items[m.index]),
+				m.applymanifest(),
+			)
 		}
 
 		progressCmd := m.progress.SetPercent(float64(m.index) / float64(len(m.items)-1))
@@ -76,6 +84,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			tea.Printf("%s %s", checkMark, m.items[m.index]),
 			install(m.items[m.index], m.runfunc),
 		)
+	case manifestAppliedMsg:
+		return m, tea.Quit
 	case spinner.TickMsg:
 		var cmd tea.Cmd
 		m.spinner, cmd = m.spinner.Update(msg)
@@ -94,7 +104,7 @@ func (m model) View() string {
 	n := len(m.items)
 	w := lipgloss.Width(strconv.Itoa(n))
 
-	if m.done {
+	if m.helmchartinstalldone {
 		return doneStyle.Render(fmt.Sprintf("Done! Installed %d helm charts.\n", n))
 	}
 
@@ -113,7 +123,11 @@ func (m model) View() string {
 	return spin + info + gap + prog + pkgCount
 }
 
-type installedPkgMsg string
+type (
+	helmReposAddedMsg  string
+	installedPkgMsg    string
+	manifestAppliedMsg string
+)
 
 func install(pkg string, runfunc func(string) error) tea.Cmd {
 	return func() tea.Msg {
@@ -125,23 +139,23 @@ func install(pkg string, runfunc func(string) error) tea.Cmd {
 	}
 }
 
-func (m *model) addrepos() tea.Cmd {
+func (m model) addrepos() tea.Cmd {
 	return func() tea.Msg {
 		if err := m.addreposfunc(); err != nil {
 			tea.Printf("error: %s\n", err.Error())
 			return tea.Quit
 		}
-		return nil
+		return helmReposAddedMsg("helm repos added")
 	}
 }
 
-func (m *model) applymanifest() tea.Cmd {
+func (m model) applymanifest() tea.Cmd {
 	return func() tea.Msg {
 		if err := m.manifestapplyfunc(); err != nil {
 			tea.Printf("error: %s\n", err.Error())
 			return tea.Quit
 		}
-		return nil
+		return manifestAppliedMsg("mdai-operator")
 	}
 }
 
