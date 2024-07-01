@@ -56,42 +56,38 @@ var installCommand = &cobra.Command{
 		}
 		switch installationType {
 		case "kind":
-			if clusterName == "" {
-				i := huh.NewInput().
-					Prompt("cluster name: ").
-					Placeholder("mdai-local").
-					Value(&clusterName)
-				huh.NewForm(huh.NewGroup(i)).Run()
-			}
 			_ = spinner.New().Title(" creating kubernetes cluster `" + clusterName + "` via kind 🔧").Type(spinner.Meter).Action(func() { kind.Install(clusterName) }).Run()
 		}
 
-		if err := mdaihelm.AddRepos(); err != nil {
-			return errors.Wrap(err, "failed to add repos")
+		addReposFunc := func() error {
+			return errors.Wrap(mdaihelm.AddRepos(), "failed to add repos")
 		}
 
 		action := func(helmChart string) error {
 			return errors.Wrap(mdaihelm.InstallChart(helmChart), "failed to install "+helmChart)
 		}
+		mdaiOperatorManifestApply := func() error {
+			cfg := config.GetConfigOrDie()
 
-		if _, err := tea.NewProgram(processmanager.NewModel(helmCharts, action)).Run(); err != nil {
+			dynamicClient, err := dynamic.NewForConfig(cfg)
+			if err != nil {
+				return err
+			}
+			discoveryClient, err := discovery.NewDiscoveryClientForConfig(cfg)
+			if err != nil {
+				return err
+			}
+
+			applyOptions := apply.NewApplyOptions(dynamicClient, discoveryClient)
+			applyYaml, _ := embedFS.ReadFile("templates/mdai-operator.yaml")
+			return applyOptions.WithServerSide(true).Apply(context.TODO(), applyYaml)
+		}
+
+		if _, err := tea.NewProgram(processmanager.NewModel(helmCharts, action, mdaiOperatorManifestApply, addReposFunc)).Run(); err != nil {
 			tea.Println("error running program: ", err)
 			os.Exit(1)
 		}
-
-		cfg := config.GetConfigOrDie()
-
-		dynamicClient, err := dynamic.NewForConfig(cfg)
-		if err != nil {
-			return err
-		}
-		discoveryClient, err := discovery.NewDiscoveryClientForConfig(cfg)
-		if err != nil {
-			return err
-		}
-		applyYaml, _ := embedFS.ReadFile("templates/mdai-operator.yaml")
-		applyOptions := apply.NewApplyOptions(dynamicClient, discoveryClient)
-		return applyOptions.Apply(context.TODO(), applyYaml)
+		return nil
 	},
 }
 
@@ -101,13 +97,6 @@ var demoCommand = &cobra.Command{
 	Long:  "install OpenTelemetry Demo",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		helmCharts := []string{"opentelemetry-demo"}
-		if clusterName == "" {
-			i := huh.NewInput().
-				Prompt("cluster name: ").
-				Placeholder("mdai-local").
-				Value(&clusterName)
-			huh.NewForm(huh.NewGroup(i)).Run()
-		}
 		_ = spinner.New().Title(" creating kubernetes cluster `" + clusterName + "` via kind 🔧").Type(spinner.Meter).Action(func() { kind.Install(clusterName) }).Run()
 
 		if err := mdaihelm.AddRepos(); err != nil {
@@ -118,7 +107,7 @@ var demoCommand = &cobra.Command{
 			return errors.Wrap(mdaihelm.InstallChart(helmChart), "failed to install "+helmChart)
 		}
 
-		if _, err := tea.NewProgram(processmanager.NewModel(helmCharts, action)).Run(); err != nil {
+		if _, err := tea.NewProgram(processmanager.NewModel(helmCharts, action, nil, nil)).Run(); err != nil {
 			tea.Println("error running program: ", err)
 			os.Exit(1)
 		}
@@ -131,6 +120,6 @@ func init() {
 	rootCmd.AddCommand(demoCommand)
 	installCommand.Flags().Bool("aws", false, "aws installation type")
 	installCommand.Flags().Bool("local", false, "local installation type")
-	installCommand.Flags().StringVar(&clusterName, "cluster-name", "", "kubernetes cluster name")
-	demoCommand.Flags().StringVar(&clusterName, "cluster-name", "", "kubernetes cluster name")
+	installCommand.Flags().StringVar(&clusterName, "cluster-name", "mdai-local", "kubernetes cluster name")
+	demoCommand.Flags().StringVar(&clusterName, "cluster-name", "mdai-local", "kubernetes cluster name")
 }

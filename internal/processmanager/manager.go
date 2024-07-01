@@ -12,14 +12,16 @@ import (
 )
 
 type model struct {
-	items    []string
-	index    int
-	width    int
-	height   int
-	spinner  spinner.Model
-	progress progress.Model
-	done     bool
-	runfunc  func(string) error
+	items                []string
+	index                int
+	width                int
+	height               int
+	spinner              spinner.Model
+	progress             progress.Model
+	helmchartinstalldone bool
+	runfunc              func(string) error
+	manifestapplyfunc    func() error
+	addreposfunc         func() error
 }
 
 var (
@@ -28,7 +30,7 @@ var (
 	checkMark           = lipgloss.NewStyle().Foreground(lipgloss.Color("42")).SetString("✓")
 )
 
-func NewModel(items []string, runfunc func(string) error) tea.Model {
+func NewModel(items []string, runfunc func(string) error, manifestapplyfunc func() error, addreposfunc func() error) tea.Model {
 	p := progress.New(
 		progress.WithDefaultGradient(),
 		progress.WithWidth(40),
@@ -37,15 +39,20 @@ func NewModel(items []string, runfunc func(string) error) tea.Model {
 	s := spinner.New()
 	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("63"))
 	return model{
-		items:    items,
-		spinner:  s,
-		progress: p,
-		runfunc:  runfunc,
+		items:             items,
+		spinner:           s,
+		progress:          p,
+		runfunc:           runfunc,
+		manifestapplyfunc: manifestapplyfunc,
+		addreposfunc:      addreposfunc,
 	}
 }
 
 func (m model) Init() tea.Cmd {
-	return tea.Batch(install(m.items[m.index], m.runfunc), m.spinner.Tick)
+	return tea.Batch(
+		m.addrepos(),
+		m.spinner.Tick,
+	)
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -57,10 +64,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+c", "esc", "q":
 			return m, tea.Quit
 		}
+	case helmReposAddedMsg:
+		return m, install(m.items[m.index], m.runfunc)
 	case installedPkgMsg:
 		if m.index >= len(m.items)-1 {
-			m.done = true
-			return m, tea.Quit
+			m.helmchartinstalldone = true
+			return m, tea.Batch(
+				m.progress.SetPercent(100),
+				tea.Printf("%s %s", checkMark, m.items[m.index]),
+				m.applymanifest(),
+			)
 		}
 
 		progressCmd := m.progress.SetPercent(float64(m.index) / float64(len(m.items)-1))
@@ -71,6 +84,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			tea.Printf("%s %s", checkMark, m.items[m.index]),
 			install(m.items[m.index], m.runfunc),
 		)
+	case manifestAppliedMsg:
+		return m, tea.Quit
 	case spinner.TickMsg:
 		var cmd tea.Cmd
 		m.spinner, cmd = m.spinner.Update(msg)
@@ -89,7 +104,7 @@ func (m model) View() string {
 	n := len(m.items)
 	w := lipgloss.Width(strconv.Itoa(n))
 
-	if m.done {
+	if m.helmchartinstalldone {
 		return doneStyle.Render(fmt.Sprintf("Done! Installed %d helm charts.\n", n))
 	}
 
@@ -108,7 +123,11 @@ func (m model) View() string {
 	return spin + info + gap + prog + pkgCount
 }
 
-type installedPkgMsg string
+type (
+	helmReposAddedMsg  string
+	installedPkgMsg    string
+	manifestAppliedMsg string
+)
 
 func install(pkg string, runfunc func(string) error) tea.Cmd {
 	return func() tea.Msg {
@@ -117,6 +136,26 @@ func install(pkg string, runfunc func(string) error) tea.Cmd {
 			return tea.Quit
 		}
 		return installedPkgMsg(pkg)
+	}
+}
+
+func (m model) addrepos() tea.Cmd {
+	return func() tea.Msg {
+		if err := m.addreposfunc(); err != nil {
+			tea.Printf("error: %s\n", err.Error())
+			return tea.Quit
+		}
+		return helmReposAddedMsg("helm repos added")
+	}
+}
+
+func (m model) applymanifest() tea.Cmd {
+	return func() tea.Msg {
+		if err := m.manifestapplyfunc(); err != nil {
+			tea.Printf("error: %s\n", err.Error())
+			return tea.Quit
+		}
+		return manifestAppliedMsg("mdai-operator")
 	}
 }
 

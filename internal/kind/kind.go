@@ -24,6 +24,9 @@ func Install(clusterName string) string {
 		cluster.CreateWithWaitForReady(30*time.Second),
 		cluster.CreateWithRawConfig(kindRawConfig),
 	); err != nil {
+		if err.Error() == `node(s) already exist for a cluster with the name \`+clusterName+`"` {
+			return ""
+		}
 		panic(err)
 	}
 	kubeconfig, _ := provider.KubeConfig(clusterName, false)
