@@ -2,7 +2,7 @@
     GOPRIVATE=github.com/decisiveai/opentelemetry-operator go build -o mdai main.go
 
 # build docker image
-    docker build -t mdai-cli:latest .
+    go mod vendor && docker build -t mdai-cli:latest .
 
 # local install
 ## go run
