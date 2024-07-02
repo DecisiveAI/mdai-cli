@@ -9,17 +9,29 @@ mdai:
 .PHONY: docker-build
 .SILENT: docker-build
 docker-build:
+	go mod vendor
 	docker build -t mdai-cli:latest .
+
+.PHONY: install
+.SILENT: install
+local: mdai
+	./mdai install
 
 .PHONY: demo
 .SILENT: demo
 local: mdai
-	./mdai install
+	./mdai demo
 
-.PHONY: docker-local
-.SILENT: docker-local
+.PHONY: docker-install
+.SILENT: docker-install
 docker-local: docker-build
-	docker run --network host -v /var/run/docker.sock:/var/run/docker.sock -it --rm mdai-cli:latest engine demo
+	docker run --network host -v /var/run/docker.sock:/var/run/docker.sock -it --rm mdai-cli:latest install
+
+.PHONY: docker-demo
+.SILENT: docker-demo
+docker-local: docker-build
+	docker run --network host -v /var/run/docker.sock:/var/run/docker.sock -it --rm mdai-cli:latest demo
+
 
 .PHONY: clean
 .SILENT: clean
