@@ -51,14 +51,16 @@ var getCmd = &cobra.Command{
 			fmt.Printf("namespace      : %+v\n", list.Items[0].Namespace)
 			fmt.Printf("measure volumes: %+v\n", list.Items[0].Spec.TelemetryModule.Collectors[0].MeasureVolumes)
 			fmt.Printf("enabled        : %+v\n", list.Items[0].Spec.TelemetryModule.Collectors[0].Enabled)
-			// fmt.Printf("config         : %+v\n", list.Items[0].Spec.TelemetryModule.Collectors[0].Spec.Config)
+			fmt.Printf("config         : %+v\n", list.Items[0].Spec.TelemetryModule.Collectors[0].Spec.Config)
 
-			get := mydecisivev1.MyDecisiveEngine{}
-			get.SetGroupVersionKind(gvk)
-			if err := k8sClient.Get(context.TODO(), client.ObjectKey{Namespace: "default", Name: "mydecisiveengine-sample-1"}, &get); err != nil {
-				fmt.Printf("error: %+v\n", err)
-			}
-			fmt.Printf("%+v\n", get)
+			/*
+				get := mydecisivev1.MyDecisiveEngine{}
+				get.SetGroupVersionKind(gvk)
+				if err := k8sClient.Get(context.TODO(), client.ObjectKey{Namespace: "mdai-otel-nucleus", Name: "mydecisiveengine-sample-1"}, &get); err != nil {
+					fmt.Printf("error: %+v\n", err)
+				}
+				fmt.Printf("%+v\n", get)
+			*/
 		} else if configType == "otel" {
 			config := oteloperator.GetConfig()
 			fmt.Println(config)

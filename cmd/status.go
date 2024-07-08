@@ -9,9 +9,7 @@ import (
 	//"github.com/decisiveai/opentelemetry-operator/apis/v1alpha1"
 	"github.com/spf13/cobra"
 	"helm.sh/helm/v3/pkg/action"
-	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/cli"
-	"helm.sh/helm/v3/pkg/registry"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
@@ -23,14 +21,14 @@ type deployment struct {
 }
 
 var deployments = []deployment{
-	{name: "datalyzer-deployment", namespace: "default"},
-	{name: "mdai-api", namespace: "default"},
-	{name: "mdai-console", namespace: "default"},
-	{name: "prometheus-server", namespace: "default"},
-	{name: "prometheus-kube-state-metrics", namespace: "default"},
-	{name: "test-collector-collector", namespace: "default"},
-	{name: "mydecisive-engine-operator-controller-manager", namespace: "mydecisive-engine-operator-system"},
-	{name: "opentelemetry-operator", namespace: "opentelemetry-operator-system"},
+	{name: "datalyzer-deployment", namespace: "mdai-otel-nucleus"},
+	{name: "mdai-api", namespace: "mdai-otel-nucleus"},
+	{name: "mdai-console", namespace: "mdai-otel-nucleus"},
+	{name: "prometheus-server", namespace: "mdai-otel-nucleus"},
+	{name: "prometheus-kube-state-metrics", namespace: "mdai-otel-nucleus"},
+	{name: "test-collector-collector", namespace: "mdai-otel-nucleus"},
+	{name: "mydecisive-engine-operator-controller-manager", namespace: "mdai-otel-nucleus"},
+	{name: "opentelemetry-operator", namespace: "mdai-otel-nucleus"},
 	{name: "cert-manager", namespace: "cert-manager"},
 	{name: "cert-manager-cainjector", namespace: "cert-manager"},
 	{name: "cert-manager-webhook", namespace: "cert-manager"},
@@ -41,48 +39,6 @@ var statusCmd = &cobra.Command{
 	Short: "",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		/*
-			cfg := config.GetConfigOrDie()
-			scheme := runtime.NewScheme()
-			v1alpha1.AddToScheme(scheme)
-			k8sClient, _ := client.New(cfg, client.Options{Scheme: scheme})
-			//"github.com/open-telemetry/opentelemetry-operator/apis/v1alpha1"
-			collectors := &v1alpha1.OpenTelemetryCollectorList{}
-			opts := client.MatchingLabels(map[string]string{
-				"app.kubernetes.io/managed-by": "opentelemetry-operator", // mydecisive-engine-operator",
-			})
-			err := k8sClient.List(context.TODO(), collectors, opts)
-			if err != nil {
-				fmt.Println(err.Error())
-			}
-			fmt.Printf("%+v\n", collectors)
-			os.Exit(0)*/
-		/*
-			configMapList := &corev1.ConfigMapList{}
-			cfg := config.GetConfigOrDie()
-			k8sClient, _ := client.New(cfg, client.Options{})
-			selectorLabels := map[string]string{
-				"app.kubernetes.io/managed-by": "opentelemetry-operator",
-				"app.kubernetes.io/instance":   "default.test-collector", //  naming.Truncate("%s.%s", 63, instance.Namespace, instance.Name),
-				"app.kubernetes.io/part-of":    "opentelemetry",
-				"app.kubernetes.io/component":  "opentelemetry-collector", // component,
-			}
-			listOps := &client.ListOptions{
-				Namespace:     "default",
-				LabelSelector: labels.SelectorFromSet(selectorLabels),
-				// LabelSelector: labels.SelectorFromSet(manifestutils.SelectorLabels(params.OtelCol.ObjectMeta, collector.ComponentOpenTelemetryCollector)),
-			}
-			err := k8sClient.List(context.TODO(), configMapList, listOps)
-			if err != nil {
-				fmt.Printf("error listing ConfigMaps: %v", err)
-			}
-			for i, item := range configMapList.Items {
-				fmt.Printf("config %d: %s\n", i, item.Data["collector.yaml"])
-			}
-			fmt.Printf("total configurations %d\n", len(configMapList.Items))
-		*/
-		//provider := cluster.NewProvider()
-		//kubeconfig, _ := provider.KubeConfig("mdai-local", false)
 		cfg := config.GetConfigOrDie()
 		actionConfig := new(action.Configuration)
 		settings := cli.New()
@@ -91,9 +47,6 @@ var statusCmd = &cobra.Command{
 		}
 		client := action.NewList(actionConfig)
 		client.AllNamespaces = true
-		registry.NewClient()
-		ch := chart.Chart{}
-		action.NewInstall(actionConfig).Run(&ch, nil)
 
 		releases, _ := client.Run()
 		for _, release := range releases {
@@ -107,9 +60,9 @@ var statusCmd = &cobra.Command{
 			labelSelector := metav1.FormatLabelSelector(d.Spec.Selector)
 			var release, version string
 			if _, ok := d.Labels["helm.sh/chart"]; ok {
-				helmInfo := strings.Split(d.Labels["helm.sh/chart"], "-")
-				release = helmInfo[0]
-				version = helmInfo[1]
+				lastIndex := strings.LastIndex(d.Labels["helm.sh/chart"], "-")
+				release = d.Labels["helm.sh/chart"][:lastIndex]
+				version = d.Labels["helm.sh/chart"][lastIndex+1:]
 			}
 			fmt.Printf("Deployment: %s (%s) [%s]\n", deployment.name, release, version)
 
@@ -126,6 +79,7 @@ var statusCmd = &cobra.Command{
 				}
 			}
 		}
+
 	},
 }
 

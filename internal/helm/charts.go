@@ -4,13 +4,7 @@ import (
 	"embed"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
 	mdaitypes "github.com/decisiveai/mdai-cli/internal/types"
-	"github.com/pkg/errors"
-	"gopkg.in/yaml.v3"
-	"helm.sh/helm/v3/pkg/action"
-	"helm.sh/helm/v3/pkg/chart/loader"
-	"helm.sh/helm/v3/pkg/cli"
 )
 
 //go:embed templates/*
@@ -50,7 +44,7 @@ func init() {
 		Version:   "0.43.1",
 		// Version:         "0.61.0",
 		UpgradeCRDs:     true,
-		Wait:            false,
+		Wait:            true,
 		ValuesYaml:      string(opentelemetryOperatorValuesYaml),
 		Replace:         true,
 		CreateNamespace: true,
@@ -88,7 +82,7 @@ func init() {
 		Namespace:       "mdai-otel-nucleus",
 		Version:         "0.0.4",
 		UpgradeCRDs:     true,
-		Wait:            false,
+		Wait:            true,
 		ValuesYaml:      string(mdaiApiValuesYaml),
 		Replace:         true,
 		CreateNamespace: true,
@@ -101,7 +95,7 @@ func init() {
 		Namespace:       "mdai-otel-nucleus",
 		Version:         "0.1.1",
 		UpgradeCRDs:     true,
-		Wait:            false,
+		Wait:            true,
 		ValuesYaml:      string(mdaiConsoleValuesYaml),
 		Replace:         true,
 		CreateNamespace: true,
@@ -114,7 +108,7 @@ func init() {
 		Namespace:       "mdai-otel-nucleus",
 		Version:         "0.0.4",
 		UpgradeCRDs:     true,
-		Wait:            false,
+		Wait:            true,
 		Replace:         true,
 		CreateNamespace: true,
 		Timeout:         60 * time.Second, // nolint: gomnd
@@ -149,41 +143,4 @@ func init() {
 
 func getChartSpec(name string) mdaitypes.ChartSpec {
 	return chartSpecs[name]
-}
-
-func InstallChart(helmChart string) error {
-	chartSpec := getChartSpec(helmChart)
-	settings := cli.New()
-	settings.SetNamespace(chartSpec.Namespace)
-	actionConfig := new(action.Configuration)
-	if err := actionConfig.Init(settings.RESTClientGetter(), chartSpec.Namespace, "", func(format string, v ...interface{}) { tea.Printf(format, v) }); err != nil {
-		return err
-	}
-
-	client := action.NewInstall(actionConfig)
-	client.ReleaseName = chartSpec.ReleaseName
-	client.Namespace = chartSpec.Namespace
-	client.CreateNamespace = chartSpec.CreateNamespace
-	client.Wait = chartSpec.Wait
-	client.Timeout = chartSpec.Timeout
-
-	chartPath, err := client.ChartPathOptions.LocateChart(chartSpec.ChartName, settings)
-	if err != nil {
-		return err
-	}
-
-	chart, err := loader.Load(chartPath)
-	if err != nil {
-		return err
-	}
-
-	values := map[string]interface{}{}
-	if chartSpec.ValuesYaml != "" {
-		if err := yaml.Unmarshal([]byte(chartSpec.ValuesYaml), &values); err != nil {
-			return errors.Wrap(err, "failed to parse ValuesYaml")
-		}
-	}
-
-	_, err = client.Run(chart, values)
-	return err
 }

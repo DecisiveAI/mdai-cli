@@ -1,11 +1,14 @@
 # build binary
+    go mod vendor
     GOPRIVATE=github.com/decisiveai/opentelemetry-operator go build -o mdai main.go
 
 # build docker image
-    go mod vendor && docker build -t mdai-cli:latest .
+    go mod vendor
+    docker build -t mdai-cli:latest .
 
 # local install
 ## go run
+    go mod vendor
     GOPRIVATE=github.com/decisiveai/opentelemetry-operator go run main.go install
 
 ## binary
