@@ -13,24 +13,24 @@ docker-build:
 	go mod vendor
 	docker build -t mdai-cli:latest .
 
-.PHONY: install
-.SILENT: install
+.PHONY: local
+.SILENT: local
 local: mdai
 	./mdai install
 
 .PHONY: demo
 .SILENT: demo
-local: mdai
+demo: mdai
 	./mdai demo
 
-.PHONY: docker-install
-.SILENT: docker-install
+.PHONY: docker-local
+.SILENT: docker-local
 docker-local: docker-build
 	docker run --network host -v /var/run/docker.sock:/var/run/docker.sock -it --rm mdai-cli:latest install
 
 .PHONY: docker-demo
 .SILENT: docker-demo
-docker-local: docker-build
+docker-demo: docker-build
 	docker run --network host -v /var/run/docker.sock:/var/run/docker.sock -it --rm mdai-cli:latest demo
 
 
