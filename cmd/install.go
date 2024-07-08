@@ -40,6 +40,7 @@ var installCommand = &cobra.Command{
 				installationType = "kind"
 			}
 		*/
+		installationType = "kind"
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		messages := make(chan string)
