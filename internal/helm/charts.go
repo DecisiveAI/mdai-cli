@@ -129,7 +129,7 @@ func init() {
 
 	chartSpecs["opentelemetry-demo"] = mdaitypes.ChartSpec{
 		ReleaseName:     "otel-demo",
-		ChartName:       "open-telemetry/opentelemetry-demo",
+		ChartName:       "opentelemetry/opentelemetry-demo",
 		Namespace:       "mdai-otel-demo",
 		Version:         "0.30.5",
 		UpgradeCRDs:     true,
