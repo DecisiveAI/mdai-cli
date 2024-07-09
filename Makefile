@@ -1,6 +1,9 @@
 .PHONY: build
 .SILENT: build
-build: mdai
+build:
+	rm mdai
+	go mod vendor
+	CGO_ENABLED=0 go build -o mdai main.go
 
 .SILENT: mdai
 mdai:
@@ -38,4 +41,4 @@ docker-demo: docker-build
 .SILENT: clean
 clean:
 	rm mdai
-	docker rmi -f mdai-cli:latest
+	docker rmi -f mdai-cli:latest &> /dev/null
