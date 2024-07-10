@@ -22,7 +22,7 @@ var enableCmd = &cobra.Command{
 	GroupID: "configuration",
 	Use:     "enable -m|--module MODULE",
 	Short:   "enable a module",
-	Long:    ``,
+	Long:    `enable one of the supported modules`,
 	Example: `  mdai enable --module datalyzer`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		module, _ := cmd.Flags().GetString("module")

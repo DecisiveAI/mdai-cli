@@ -44,7 +44,7 @@ var (
 var statusCmd = &cobra.Command{
 	Use:   "status",
 	Short: "show kubernetes deployment status",
-	Long:  ``,
+	Long:  `show installed helm charts, deployments with their statuses`,
 	Run: func(cmd *cobra.Command, args []string) {
 		cfg := config.GetConfigOrDie()
 		actionConfig := new(action.Configuration)

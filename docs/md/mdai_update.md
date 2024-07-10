@@ -2,6 +2,10 @@
 
 update a configuration
 
+### Synopsis
+
+update a configuration file or edit a configuration in an editor
+
 ```
 mdai update [-f FILE] [--config CONFIG-TYPE] [--phase PHASE] [--block BLOCK]
 ```

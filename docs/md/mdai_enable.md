@@ -2,6 +2,10 @@
 
 enable a module
 
+### Synopsis
+
+enable one of the supported modules
+
 ```
 mdai enable -m|--module MODULE
 ```

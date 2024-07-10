@@ -19,7 +19,7 @@ var getCmd = &cobra.Command{
 	GroupID: "configuration",
 	Use:     "get -c|--config MODULE-NAME",
 	Short:   "get a configuration",
-	Long:    "",
+	Long:    "get mdai or otel collector configuration",
 	Example: `  mdai get --config mdai # get mdai configuration
   mdai get --config otel # get otel configuration`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {

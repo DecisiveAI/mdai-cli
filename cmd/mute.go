@@ -23,7 +23,7 @@ var muteCmd = &cobra.Command{
 	GroupID: "configuration",
 	Use:     "mute -n|--name FILTER-NAME -p|--pipeline PIPELINE-NAME -d|--description DESCRIPTION",
 	Short:   "mute a telemetry pipeline",
-	Long:    ``,
+	Long:    `activate (add to pipeline configuration) a telemetry muting filter`,
 	Example: `  mdai mute --name test-filter --description "test filter muting" --pipeline "logs"
   mdai mute --name another-filter --description "metrics pipeline muting" --pipeline "metrics"`,
 	Run: func(cmd *cobra.Command, args []string) {

@@ -2,6 +2,10 @@
 
 unmute a telemetry muting filter
 
+### Synopsis
+
+deactivate (delete from pipeline configuration) a telemetry muting filter
+
 ```
 mdai unmute -n|--name FILTER-NAME
 ```

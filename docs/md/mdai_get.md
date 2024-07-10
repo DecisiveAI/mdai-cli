@@ -2,6 +2,10 @@
 
 get a configuration
 
+### Synopsis
+
+get mdai or otel collector configuration
+
 ```
 mdai get -c|--config MODULE-NAME
 ```

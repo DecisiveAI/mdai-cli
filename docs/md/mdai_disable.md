@@ -2,6 +2,10 @@
 
 disable a module
 
+### Synopsis
+
+disable a module
+
 ```
 mdai disable -m|--module MODULE
 ```

@@ -21,7 +21,7 @@ var disableCmd = &cobra.Command{
 	GroupID: "configuration",
 	Use:     "disable -m|--module MODULE",
 	Short:   "disable a module",
-	Long:    ``,
+	Long:    `disable a module`,
 	Example: `  mdai disable --module datalyzer`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		module, _ := cmd.Flags().GetString("module")

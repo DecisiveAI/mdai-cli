@@ -2,6 +2,10 @@
 
 mute a telemetry pipeline
 
+### Synopsis
+
+activate (add to pipeline configuration) a telemetry muting filter
+
 ```
 mdai mute -n|--name FILTER-NAME -p|--pipeline PIPELINE-NAME -d|--description DESCRIPTION
 ```

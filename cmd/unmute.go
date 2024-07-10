@@ -22,7 +22,7 @@ var unmuteCmd = &cobra.Command{
 	GroupID: "configuration",
 	Use:     "unmute -n|--name FILTER-NAME",
 	Short:   "unmute a telemetry muting filter",
-	Long:    ``,
+	Long:    `deactivate (delete from pipeline configuration) a telemetry muting filter`,
 	Example: `  mdai unmute --name test-filter # unmute the filter with name test-filter`,
 	Run: func(cmd *cobra.Command, args []string) {
 		var patchBytes []byte

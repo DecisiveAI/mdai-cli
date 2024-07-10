@@ -31,9 +31,9 @@ var (
 
 var updateCmd = &cobra.Command{
 	GroupID: "configuration",
-	Use:   "update [-f FILE] [--config CONFIG-TYPE] [--phase PHASE] [--block BLOCK]",
-	Short: "update a configuration",
-	Long:  "",
+	Use:     "update [-f FILE] [--config CONFIG-TYPE] [--phase PHASE] [--block BLOCK]",
+	Short:   "update a configuration",
+	Long:    "update a configuration file or edit a configuration in an editor",
 	Example: `	mdai update -f /path/to/mdai-operator.yaml  # update mdai-operator configuration from file
 	mdai update --config=otel                   # edit otel collector configuration in $EDITOR
 	mdai update --config=otel --phase=logs      # jump to logs block
