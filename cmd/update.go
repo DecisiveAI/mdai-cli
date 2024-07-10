@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -39,11 +40,19 @@ var updateCmd = &cobra.Command{
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		fileP, _ := cmd.Flags().GetString("file")
 		configP, _ := cmd.Flags().GetString("config")
-		// phaseP, _ := cmd.Flags().GetString("phase")
-		// blockP, _ := cmd.Flags().GetString("block")
+		phaseP, _ := cmd.Flags().GetString("phase")
+		blockP, _ := cmd.Flags().GetString("block")
 
 		if fileP != "" && configP != "" {
 			return errors.New("cannot specify both --file and --config")
+		}
+
+		if !slices.Contains(validPhases, phaseP) {
+			return fmt.Errorf("invalid phase: %s", phaseP)
+		}
+
+		if !slices.Contains(validBlocks, blockP) {
+			return fmt.Errorf("invalid block: %s", blockP)
 		}
 
 		/*if phaseP != "" {
@@ -85,7 +94,7 @@ var updateCmd = &cobra.Command{
 
 			m := editor.NewModel(f.Name(), blockP, phaseP)
 			if _, err := tea.NewProgram(m).Run(); err != nil {
-				fmt.Println("error running program:", err)
+				fmt.Println("error running program: ", err)
 				os.Exit(1)
 			}
 			var applyConfig bool

@@ -118,7 +118,7 @@ func init() {
 		ReleaseName:     "mydecisive-engine-operator",
 		ChartName:       "mydecisive/mydecisive-engine-operator",
 		Namespace:       "mdai-otel-nucleus",
-		Version:         "0.0.3",
+		Version:         "0.0.5",
 		UpgradeCRDs:     true,
 		Wait:            true,
 		ValuesYaml:      string(mdaiOperatorValuesYaml),

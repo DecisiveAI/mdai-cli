@@ -62,6 +62,8 @@ func (c *Client) Install() (string, error) {
 			c.errs <- errors.Wrap(err, "error creating cluster")
 			return "", errors.Wrap(err, "error creating cluster")
 		}
+	} else {
+		c.messages <- "cluster " + c.clusterName + " already exists"
 	}
 	c.messages <- "cluster " + c.clusterName + " is ready"
 	kubeconfig, _ := provider.KubeConfig(c.clusterName, false)

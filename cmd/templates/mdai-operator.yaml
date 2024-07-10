@@ -19,6 +19,18 @@ spec:
         name: "test-collector"
         enabled: true
         measureVolumes: true
+        telemetryFiltering:
+            filters:
+              - name: test-filter
+                enabled: false
+                description: Hello this is filter
+                mutedPipelines:
+                  - logs/foobar
+              - name: another-filter
+                enabled: true
+                description: WHOA two filters!?
+                mutedPipelines:
+                  - metrics
         spec:
           ingress:
             annotations:
@@ -91,6 +103,10 @@ spec:
                   processors: [resource]
                   exporters: [debug]
                 logs:
+                  receivers: [otlp]
+                  processors: [resource]
+                  exporters: [debug]
+                logs/foobar:
                   receivers: [otlp]
                   processors: [resource]
                   exporters: [debug]

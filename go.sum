@@ -92,8 +92,8 @@ github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSs
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc h1:U9qPSI2PIWSS1VwoXQT9A3Wy9MM3WgvqSxFWenqJduM=
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/decisiveai/mydecisive-engine-operator v0.0.0-20240523205724-9082151fd62e h1:S5Qdsnboof2D67txtPWFe2hh2YfqcuDNa+hjmCS9frA=
-github.com/decisiveai/mydecisive-engine-operator v0.0.0-20240523205724-9082151fd62e/go.mod h1:/Uf0z9l7Lou+cyuyO9J+y1uczoOOxa84MMpox2BSnc4=
+github.com/decisiveai/mydecisive-engine-operator v0.0.0-20240709150121-fe5ee3a3ae1b h1:YxciNKDmPg62rYzioUE5KE8lZDNKbnNoKDRBgfs4zfo=
+github.com/decisiveai/mydecisive-engine-operator v0.0.0-20240709150121-fe5ee3a3ae1b/go.mod h1:wU+3ZL7SbaKVOenbFN072Gl87ZRMnWyo5G8ifZdcU6c=
 github.com/decisiveai/opentelemetry-operator v0.93.0 h1:3Ee6yOZXDWuS6li41UJkCHQwGXNLS/jRyI5+qELuUcs=
 github.com/decisiveai/opentelemetry-operator v0.93.0/go.mod h1:pYhHkf0t1EkPwEsTblyj30gyKjbCzu8rC01iZazpZp4=
 github.com/distribution/distribution/v3 v3.0.0-20221208165359-362910506bc2 h1:aBfCb7iqHmDEIp6fBvC/hQUddQfg+3qdYjwzaiP9Hnc=

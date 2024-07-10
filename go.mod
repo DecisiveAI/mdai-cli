@@ -10,7 +10,6 @@ require (
 	github.com/charmbracelet/huh v0.4.2
 	github.com/charmbracelet/huh/spinner v0.0.0-20240527182036-3b0839577112
 	github.com/charmbracelet/lipgloss v0.11.0
-	github.com/decisiveai/mydecisive-engine-operator v0.0.0-20240523205724-9082151fd62e
 	github.com/decisiveai/opentelemetry-operator v0.93.0
 	github.com/pkg/errors v0.9.1
 	github.com/pytimer/k8sutil v0.0.0-20221114090626-86d6279d8e52
@@ -22,6 +21,8 @@ require (
 	sigs.k8s.io/controller-runtime v0.18.2
 	sigs.k8s.io/kind v0.23.0
 )
+
+require github.com/decisiveai/mydecisive-engine-operator v0.0.0-20240709150121-fe5ee3a3ae1b
 
 require (
 	github.com/AdaLogics/go-fuzz-headers v0.0.0-20230811130428-ced1acdcaa24 // indirect

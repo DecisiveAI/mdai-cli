@@ -3,12 +3,13 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"slices"
+	"strings"
 
 	"github.com/decisiveai/mdai-cli/internal/oteloperator"
+	mdaitypes "github.com/decisiveai/mdai-cli/internal/types"
 	mydecisivev1 "github.com/decisiveai/mydecisive-engine-operator/api/v1"
-	opentelemetry "github.com/decisiveai/opentelemetry-operator/apis/v1alpha1"
 	"github.com/spf13/cobra"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
@@ -18,50 +19,46 @@ var getCmd = &cobra.Command{
 	Use:   "get",
 	Short: "",
 	Long:  "",
-	Run: func(cmd *cobra.Command, args []string) {
-		cfg := config.GetConfigOrDie()
-		var group, version, kind string
+	PreRunE: func(cmd *cobra.Command, args []string) error {
 		configType, _ := cmd.Flags().GetString("config")
-		switch configType {
-		case "otel":
-			group = "opentelemetry.io"
-			version = "v1alpha1"
-			kind = "OpenTelemetryCollector"
-		case "mdai":
-			group = "mydecisive.ai"
-			version = "v1"
-			kind = "MyDecisiveEngine"
+		if configType == "" {
+			return fmt.Errorf("module is required")
 		}
-		gvk := schema.GroupVersionKind{
-			Group:   group,
-			Version: version,
-			Kind:    kind,
+		if !slices.Contains(SupportedConfigTypes, configType) {
+			return fmt.Errorf("config type %s is not supported", configType)
 		}
+		return nil
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+		configType, _ := cmd.Flags().GetString("config")
+		cfg := config.GetConfigOrDie()
 		s := scheme.Scheme
-		opentelemetry.AddToScheme(s)
 		mydecisivev1.AddToScheme(s)
 		k8sClient, _ := client.New(cfg, client.Options{Scheme: s})
-		if configType == "mdai" {
-			list := mydecisivev1.MyDecisiveEngineList{}
-			list.SetGroupVersionKind(gvk)
-			if err := k8sClient.List(context.TODO(), &list); err != nil {
+		switch configType {
+		case "mdai":
+			get := mydecisivev1.MyDecisiveEngine{}
+			if err := k8sClient.Get(context.TODO(), client.ObjectKey{
+				Namespace: Namespace,
+				Name:      mdaitypes.MDAIOperatorName,
+			}, &get); err != nil {
 				fmt.Printf("error: %+v\n", err)
+				return
 			}
-			fmt.Printf("name           : %+v\n", list.Items[0].Name)
-			fmt.Printf("namespace      : %+v\n", list.Items[0].Namespace)
-			fmt.Printf("measure volumes: %+v\n", list.Items[0].Spec.TelemetryModule.Collectors[0].MeasureVolumes)
-			fmt.Printf("enabled        : %+v\n", list.Items[0].Spec.TelemetryModule.Collectors[0].Enabled)
-			fmt.Printf("config         : %+v\n", list.Items[0].Spec.TelemetryModule.Collectors[0].Spec.Config)
-
-			/*
-				get := mydecisivev1.MyDecisiveEngine{}
-				get.SetGroupVersionKind(gvk)
-				if err := k8sClient.Get(context.TODO(), client.ObjectKey{Namespace: "mdai-otel-nucleus", Name: "mydecisiveengine-sample-1"}, &get); err != nil {
-					fmt.Printf("error: %+v\n", err)
+			fmt.Printf("name           : %s\n", get.Name)
+			fmt.Printf("namespace      : %s\n", get.Namespace)
+			fmt.Printf("measure volumes: %v\n", get.Spec.TelemetryModule.Collectors[0].MeasureVolumes)
+			fmt.Printf("enabled        : %v\n", get.Spec.TelemetryModule.Collectors[0].Enabled)
+			if get.Spec.TelemetryModule.Collectors[0].TelemetryFiltering != nil {
+				fmt.Println("filters")
+				for _, filter := range *get.Spec.TelemetryModule.Collectors[0].TelemetryFiltering.Filters {
+					fmt.Printf("\tname       : %s\n", filter.Name)
+					fmt.Printf("\tdescription: %s\n", filter.Description)
+					fmt.Printf("\tenabled    : %v\n", filter.Enabled)
+					fmt.Printf("\tpipelines  : %s\n", strings.Join(*filter.MutedPipelines, ", "))
 				}
-				fmt.Printf("%+v\n", get)
-			*/
-		} else if configType == "otel" {
+			}
+		case "otel":
 			config := oteloperator.GetConfig()
 			fmt.Println(config)
 		}
@@ -70,5 +67,5 @@ var getCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(getCmd)
-	getCmd.Flags().StringP("config", "c", "", "config to get")
+	getCmd.Flags().StringP("config", "c", "", "configuration to get ["+strings.Join(SupportedConfigTypes, ", ")+"]")
 }
