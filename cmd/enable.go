@@ -20,7 +20,7 @@ import (
 
 var enableCmd = &cobra.Command{
 	Use:   "enable",
-	Short: "",
+	Short: "enable a module",
 	Long:  ``,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		module, _ := cmd.Flags().GetString("module")

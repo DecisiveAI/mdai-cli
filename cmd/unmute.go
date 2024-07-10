@@ -20,7 +20,7 @@ import (
 
 var unmuteCmd = &cobra.Command{
 	Use:   "unmute",
-	Short: "",
+	Short: "unmute a pipeline",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
 		var patchBytes []byte

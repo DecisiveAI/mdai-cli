@@ -1,0 +1,14 @@
+name: mdai demo
+synopsis: install OpenTelemetry Demo
+description: install OpenTelemetry Demo
+usage: mdai demo [flags]
+options:
+    - name: cluster-name
+      default_value: mdai-local
+      usage: kubernetes cluster name
+    - name: help
+      shorthand: h
+      default_value: "false"
+      usage: help for demo
+see_also:
+    - mdai - MyDecisive.ai CLI

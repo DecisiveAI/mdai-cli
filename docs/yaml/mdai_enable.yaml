@@ -1,0 +1,12 @@
+name: mdai enable
+synopsis: enable a module
+usage: mdai enable [flags]
+options:
+    - name: help
+      shorthand: h
+      default_value: "false"
+      usage: help for enable
+    - name: module
+      usage: module to enable [datalyzer]
+see_also:
+    - mdai - MyDecisive.ai CLI

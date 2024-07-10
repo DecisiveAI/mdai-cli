@@ -31,12 +31,12 @@ var (
 
 var updateCmd = &cobra.Command{
 	Use:   "update",
-	Short: "",
+	Short: "update a configuration",
 	Long:  "",
-	Example: `	-f /path/to/mdai-operator.yaml
-	--config=otel
-	--config=otel --phase=logs
-	--config=otel --block=receivers`,
+	Example: `	mdai update -f /path/to/mdai-operator.yaml  # update mdai-operator configuration from file
+	mdai update --config=otel                   # edit otel collector configuration in $EDITOR
+	mdai update --config=otel --phase=logs      # jump to logs block
+	mdai update --config=otel --block=receivers # jump to receivers block`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		fileP, _ := cmd.Flags().GetString("file")
 		configP, _ := cmd.Flags().GetString("config")
@@ -54,23 +54,6 @@ var updateCmd = &cobra.Command{
 		if !slices.Contains(validBlocks, blockP) {
 			return fmt.Errorf("invalid block: %s", blockP)
 		}
-
-		/*if phaseP != "" {
-			for _, v := range validPhases {
-				if v == phaseP {
-					continue
-				}
-				return fmt.Errorf("invalid phase: %s", phaseP)
-			}
-		}
-		if blockP != "" {
-			for _, v := range validBlocks {
-				if v == blockP {
-					continue
-				}
-				return fmt.Errorf("invalid block: %s", blockP)
-			}
-		}*/
 
 		return nil
 	},

@@ -1,0 +1,13 @@
+name: mdai get
+synopsis: get a configuration
+usage: mdai get [flags]
+options:
+    - name: config
+      shorthand: c
+      usage: configuration to get [mdai, otel]
+    - name: help
+      shorthand: h
+      default_value: "false"
+      usage: help for get
+see_also:
+    - mdai - MyDecisive.ai CLI

@@ -43,7 +43,7 @@ var (
 
 var statusCmd = &cobra.Command{
 	Use:   "status",
-	Short: "",
+	Short: "show kubernetes deployment status",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
 		cfg := config.GetConfigOrDie()
@@ -97,10 +97,10 @@ var statusCmd = &cobra.Command{
 				}
 			}
 		}
-
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(statusCmd)
+	statusCmd.Hidden = true
 }

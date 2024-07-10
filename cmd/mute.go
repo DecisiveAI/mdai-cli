@@ -21,7 +21,7 @@ import (
 
 var muteCmd = &cobra.Command{
 	Use:   "mute",
-	Short: "",
+	Short: "mute a pipeline",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
 		filterName, _ := cmd.Flags().GetString("name")

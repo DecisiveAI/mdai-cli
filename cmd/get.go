@@ -17,7 +17,7 @@ import (
 
 var getCmd = &cobra.Command{
 	Use:   "get",
-	Short: "",
+	Short: "get a configuration",
 	Long:  "",
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		configType, _ := cmd.Flags().GetString("config")

@@ -1,0 +1,13 @@
+name: mdai unmute
+synopsis: unmute a pipeline
+usage: mdai unmute [flags]
+options:
+    - name: help
+      shorthand: h
+      default_value: "false"
+      usage: help for unmute
+    - name: name
+      shorthand: "n"
+      usage: name of the filter
+see_also:
+    - mdai - MyDecisive.ai CLI

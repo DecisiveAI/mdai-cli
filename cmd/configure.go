@@ -14,4 +14,5 @@ var configureCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(configureCmd)
+	configureCmd.Hidden = true
 }

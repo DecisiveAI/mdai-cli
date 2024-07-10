@@ -1,0 +1,19 @@
+name: mdai mute
+synopsis: mute a pipeline
+usage: mdai mute [flags]
+options:
+    - name: description
+      shorthand: d
+      usage: description of the filter
+    - name: help
+      shorthand: h
+      default_value: "false"
+      usage: help for mute
+    - name: name
+      shorthand: "n"
+      usage: name of the filter
+    - name: pipeline
+      shorthand: p
+      usage: pipeline to mute
+see_also:
+    - mdai - MyDecisive.ai CLI

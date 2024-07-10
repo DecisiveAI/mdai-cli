@@ -1,0 +1,25 @@
+name: mdai update
+synopsis: update a configuration
+usage: mdai update [flags]
+options:
+    - name: block
+      usage: block to jump to [receivers, processors, exporters]
+    - name: config
+      shorthand: c
+      usage: config type to update
+    - name: file
+      shorthand: f
+      usage: file to update
+    - name: help
+      shorthand: h
+      default_value: "false"
+      usage: help for update
+    - name: phase
+      usage: phase to jump to [metrics, logs, traces]
+example: |-
+    	mdai update -f /path/to/mdai-operator.yaml  # update mdai-operator configuration from file
+    	mdai update --config=otel                   # edit otel collector configuration in $EDITOR
+    	mdai update --config=otel --phase=logs      # jump to logs block
+    	mdai update --config=otel --block=receivers # jump to receivers block
+see_also:
+    - mdai - MyDecisive.ai CLI
