@@ -118,7 +118,7 @@ func init() {
 		ReleaseName:     "mydecisive-engine-operator",
 		ChartName:       "mydecisive/mydecisive-engine-operator",
 		Namespace:       "mdai",
-		Version:         "0.0.5",
+		Version:         "0.0.6",
 		UpgradeCRDs:     true,
 		Wait:            true,
 		ValuesYaml:      string(mdaiOperatorValuesYaml),
