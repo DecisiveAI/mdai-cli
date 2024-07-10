@@ -1,0 +1,31 @@
+[package]
+name = "mdai"
+description = "Releaser for mdai-cli"
+version = "0.1.0"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/decisiveai/mdai-cli"
+homepage = "https://www.mydecisive.ai/"
+binaries = ["mdai"]
+build-command = ["make", "build"]
+
+[package.metadata.wix]
+upgrade-guid = "9A4352DB-B302-4E7A-BFBD-DAD056AD6A34"
+path-guid = "B86F05C3-D50F-4B12-A5FC-D508854ECAF5"
+license = false
+eula = false
+
+# Config for 'cargo dist'
+[dist]
+# The preferred cargo-dist version to use in CI (Cargo.toml SemVer syntax)
+cargo-dist-version = "0.14.1"
+# CI backends to support
+ci = "github"
+# The installers to generate for each app
+installers = ["shell", "powershell", "homebrew"]
+# Target platforms to build apps for (Rust target-triple syntax)
+targets = ["aarch64-apple-darwin", "x86_64-apple-darwin", "x86_64-unknown-linux-gnu", "x86_64-unknown-linux-musl", "x86_64-pc-windows-msvc"]
+# Publish jobs to run in CI
+pr-run-mode = "plan"
+# Whether to install an updater program
+install-updater = false
+
