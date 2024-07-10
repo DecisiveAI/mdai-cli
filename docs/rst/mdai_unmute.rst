@@ -3,17 +3,24 @@
 mdai unmute
 -----------
 
-unmute a pipeline
+unmute a telemetry muting filter
 
 Synopsis
 ~~~~~~~~
 
 
-unmute a pipeline
+unmute a telemetry muting filter
 
 ::
 
-  mdai unmute [flags]
+  mdai unmute -n|--name FILTER-NAME
+
+Examples
+~~~~~~~~
+
+::
+
+    mdai unmute --name test-filter # unmute the filter with name test-filter
 
 Options
 ~~~~~~~

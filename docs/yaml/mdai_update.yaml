@@ -1,6 +1,6 @@
 name: mdai update
 synopsis: update a configuration
-usage: mdai update [flags]
+usage: mdai update [-f FILE] [--config CONFIG-TYPE] [--phase PHASE] [--block BLOCK]
 options:
     - name: block
       usage: block to jump to [receivers, processors, exporters]

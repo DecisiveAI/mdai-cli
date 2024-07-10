@@ -3,17 +3,17 @@
 
 .SH NAME
 .PP
-mdai-unmute - unmute a pipeline
+mdai-unmute - unmute a telemetry muting filter
 
 
 .SH SYNOPSIS
 .PP
-\fBmdai unmute [flags]\fP
+\fBmdai unmute -n|--name FILTER-NAME\fP
 
 
 .SH DESCRIPTION
 .PP
-unmute a pipeline
+unmute a telemetry muting filter
 
 
 .SH OPTIONS
@@ -24,6 +24,13 @@ unmute a pipeline
 .PP
 \fB-n\fP, \fB--name\fP=""
 	name of the filter
+
+
+.SH EXAMPLE
+.EX
+  mdai unmute --name test-filter # unmute the filter with name test-filter
+
+.EE
 
 
 .SH SEE ALSO

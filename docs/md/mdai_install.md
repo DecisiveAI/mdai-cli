@@ -1,13 +1,21 @@
 ## mdai install
 
-install MyDecisive Nucleus
+install MyDecisive Cluster
 
 ### Synopsis
 
-install MyDecisive Nucleus
+install MyDecisive Cluster
 
 ```
-mdai install [flags]
+mdai install [--cluster-name CLUSTER-NAME] [--debug] [--quiet]
+```
+
+### Examples
+
+```
+  mdai install --cluster-name mdai-local # install locally on kind cluster mdai-local
+  mdai install --debug                   # install in debug mode
+  mdai install --quiet                   # install in quiet mode
 ```
 
 ### Options

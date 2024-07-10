@@ -3,7 +3,13 @@
 enable a module
 
 ```
-mdai enable [flags]
+mdai enable -m|--module MODULE
+```
+
+### Examples
+
+```
+  mdai enable --module datalyzer
 ```
 
 ### Options

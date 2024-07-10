@@ -40,7 +40,7 @@ func init() {
 		ReleaseName: "opentelemetry-operator",
 		ChartName:   "mydecisive/opentelemetry-operator",
 		// ChartName: "opentelemetry/opentelemetry-operator",
-		Namespace: "mdai-otel-nucleus",
+		Namespace: "mdai",
 		Version:   "0.43.1",
 		// Version:         "0.61.0",
 		UpgradeCRDs:     true,
@@ -54,7 +54,7 @@ func init() {
 	chartSpecs["prometheus"] = mdaitypes.ChartSpec{
 		ReleaseName:     "prometheus",
 		ChartName:       "prometheus-community/prometheus",
-		Namespace:       "mdai-otel-nucleus",
+		Namespace:       "mdai",
 		Version:         "25.21.0",
 		UpgradeCRDs:     true,
 		Wait:            false,
@@ -79,7 +79,7 @@ func init() {
 	chartSpecs["mdai-api"] = mdaitypes.ChartSpec{
 		ReleaseName:     "mdai-api",
 		ChartName:       "mydecisive/mdai-api",
-		Namespace:       "mdai-otel-nucleus",
+		Namespace:       "mdai",
 		Version:         "0.0.4",
 		UpgradeCRDs:     true,
 		Wait:            true,
@@ -92,7 +92,7 @@ func init() {
 	chartSpecs["mdai-console"] = mdaitypes.ChartSpec{
 		ReleaseName:     "mdai-console",
 		ChartName:       "mydecisive/mdai-console",
-		Namespace:       "mdai-otel-nucleus",
+		Namespace:       "mdai",
 		Version:         "0.1.1",
 		UpgradeCRDs:     true,
 		Wait:            true,
@@ -105,7 +105,7 @@ func init() {
 	chartSpecs["datalyzer"] = mdaitypes.ChartSpec{
 		ReleaseName:     "datalyzer",
 		ChartName:       "mydecisive/datalyzer",
-		Namespace:       "mdai-otel-nucleus",
+		Namespace:       "mdai",
 		Version:         "0.0.4",
 		UpgradeCRDs:     true,
 		Wait:            true,
@@ -117,7 +117,7 @@ func init() {
 	chartSpecs["mdai-operator"] = mdaitypes.ChartSpec{
 		ReleaseName:     "mydecisive-engine-operator",
 		ChartName:       "mydecisive/mydecisive-engine-operator",
-		Namespace:       "mdai-otel-nucleus",
+		Namespace:       "mdai",
 		Version:         "0.0.5",
 		UpgradeCRDs:     true,
 		Wait:            true,

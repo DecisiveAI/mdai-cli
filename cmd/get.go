@@ -16,9 +16,12 @@ import (
 )
 
 var getCmd = &cobra.Command{
-	Use:   "get",
-	Short: "get a configuration",
-	Long:  "",
+	GroupID: "configuration",
+	Use:     "get -c|--config MODULE-NAME",
+	Short:   "get a configuration",
+	Long:    "",
+	Example: `  mdai get --config mdai # get mdai configuration
+  mdai get --config otel # get otel configuration`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		configType, _ := cmd.Flags().GetString("config")
 		if configType == "" {
@@ -68,4 +71,5 @@ var getCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(getCmd)
 	getCmd.Flags().StringP("config", "c", "", "configuration to get ["+strings.Join(SupportedConfigTypes, ", ")+"]")
+	getCmd.DisableFlagsInUseLine = true
 }

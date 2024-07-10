@@ -19,9 +19,11 @@ import (
 )
 
 var unmuteCmd = &cobra.Command{
-	Use:   "unmute",
-	Short: "unmute a pipeline",
-	Long:  ``,
+	GroupID: "configuration",
+	Use:     "unmute -n|--name FILTER-NAME",
+	Short:   "unmute a telemetry muting filter",
+	Long:    ``,
+	Example: `  mdai unmute --name test-filter # unmute the filter with name test-filter`,
 	Run: func(cmd *cobra.Command, args []string) {
 		var patchBytes []byte
 		filterName, _ := cmd.Flags().GetString("name")
@@ -58,7 +60,7 @@ var unmuteCmd = &cobra.Command{
 			}
 		}
 		if patchBytes == nil {
-			fmt.Printf("filter %s not found\n", filterName)
+			fmt.Printf("filter %s not found.\n", filterName)
 			return
 		}
 
@@ -82,11 +84,12 @@ var unmuteCmd = &cobra.Command{
 			fmt.Println(err)
 			return
 		}
-		fmt.Println("patched successfully")
+		fmt.Printf("%s filter unmuted successfully.\n", filterName)
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(unmuteCmd)
 	unmuteCmd.Flags().StringP("name", "n", "", "name of the filter")
+	unmuteCmd.DisableFlagsInUseLine = true
 }

@@ -1,6 +1,6 @@
 name: mdai unmute
-synopsis: unmute a pipeline
-usage: mdai unmute [flags]
+synopsis: unmute a telemetry muting filter
+usage: mdai unmute -n|--name FILTER-NAME
 options:
     - name: help
       shorthand: h
@@ -9,5 +9,6 @@ options:
     - name: name
       shorthand: "n"
       usage: name of the filter
+example: '  mdai unmute --name test-filter # unmute the filter with name test-filter'
 see_also:
     - mdai - MyDecisive.ai CLI

@@ -3,7 +3,7 @@
 update a configuration
 
 ```
-mdai update [flags]
+mdai update [-f FILE] [--config CONFIG-TYPE] [--phase PHASE] [--block BLOCK]
 ```
 
 ### Examples

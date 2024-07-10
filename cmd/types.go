@@ -3,7 +3,7 @@ package cmd
 import mydecisivev1 "github.com/decisiveai/mydecisive-engine-operator/api/v1"
 
 const (
-	Namespace      = "mdai-otel-nucleus"
+	Namespace      = "mdai"
 	PatchOpAdd     = "add"
 	PatchOpReplace = "replace"
 

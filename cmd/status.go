@@ -22,14 +22,14 @@ type deployment struct {
 }
 
 var deployments = []deployment{
-	{name: "datalyzer-deployment", namespace: "mdai-otel-nucleus"},
-	{name: "mdai-api", namespace: "mdai-otel-nucleus"},
-	{name: "mdai-console", namespace: "mdai-otel-nucleus"},
-	{name: "prometheus-server", namespace: "mdai-otel-nucleus"},
-	{name: "prometheus-kube-state-metrics", namespace: "mdai-otel-nucleus"},
-	{name: "test-collector-collector", namespace: "mdai-otel-nucleus"},
-	{name: "mydecisive-engine-operator-controller-manager", namespace: "mdai-otel-nucleus"},
-	{name: "opentelemetry-operator", namespace: "mdai-otel-nucleus"},
+	{name: "datalyzer-deployment", namespace: "mdai"},
+	{name: "mdai-api", namespace: "mdai"},
+	{name: "mdai-console", namespace: "mdai"},
+	{name: "prometheus-server", namespace: "mdai"},
+	{name: "prometheus-kube-state-metrics", namespace: "mdai"},
+	{name: "test-collector-collector", namespace: "mdai"},
+	{name: "mydecisive-engine-operator-controller-manager", namespace: "mdai"},
+	{name: "opentelemetry-operator", namespace: "mdai"},
 	{name: "cert-manager", namespace: "cert-manager"},
 	{name: "cert-manager-cainjector", namespace: "cert-manager"},
 	{name: "cert-manager-webhook", namespace: "cert-manager"},

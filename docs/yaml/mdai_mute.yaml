@@ -1,6 +1,6 @@
 name: mdai mute
-synopsis: mute a pipeline
-usage: mdai mute [flags]
+synopsis: mute a telemetry pipeline
+usage: mdai mute -n|--name FILTER-NAME -p|--pipeline PIPELINE-NAME -d|--description DESCRIPTION
 options:
     - name: description
       shorthand: d
@@ -15,5 +15,8 @@ options:
     - name: pipeline
       shorthand: p
       usage: pipeline to mute
+example: |4-
+      mdai mute --name test-filter --description "test filter muting" --pipeline "logs"
+      mdai mute --name another-filter --description "metrics pipeline muting" --pipeline "metrics"
 see_also:
     - mdai - MyDecisive.ai CLI

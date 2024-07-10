@@ -12,7 +12,7 @@ see_also:
     - mdai disable - disable a module
     - mdai enable - enable a module
     - mdai get - get a configuration
-    - mdai install - install MyDecisive Nucleus
-    - mdai mute - mute a pipeline
-    - mdai unmute - unmute a pipeline
+    - mdai install - install MyDecisive Cluster
+    - mdai mute - mute a telemetry pipeline
+    - mdai unmute - unmute a telemetry muting filter
     - mdai update - update a configuration

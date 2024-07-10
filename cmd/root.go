@@ -41,4 +41,8 @@ func Execute() {
 }
 
 func init() {
+	rootCmd.AddGroup(
+		&cobra.Group{ID: "installation", Title: "Installation"},
+		&cobra.Group{ID: "configuration", Title: "Configuration"},
+	)
 }

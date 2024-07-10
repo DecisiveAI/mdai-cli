@@ -1,6 +1,6 @@
 metadata:
     name: test-collector
-    namespace: mdai-otel-nucleus
+    namespace: mdai
     annotations:
         # MUST BE SPECIFIED!
         # add certificate arn for non-grpc endpoint

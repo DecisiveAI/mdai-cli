@@ -8,12 +8,15 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	mdaihelm "github.com/decisiveai/mdai-cli/internal/helm"
 	"github.com/decisiveai/mdai-cli/internal/kind"
+	mdaitypes "github.com/decisiveai/mdai-cli/internal/types"
 	"github.com/decisiveai/mdai-cli/internal/viewport"
 	"github.com/pkg/errors"
-	"github.com/pytimer/k8sutil/apply"
 	"github.com/spf13/cobra"
-	"k8s.io/client-go/discovery"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 )
 
@@ -22,13 +25,16 @@ var embedFS embed.FS
 
 var (
 	installationType string
-	clusterName      string
 )
 
 var installCommand = &cobra.Command{
-	Use:   "install",
-	Short: "install MyDecisive Nucleus",
-	Long:  "install MyDecisive Nucleus",
+	GroupID: "installation",
+	Use:     "install [--cluster-name CLUSTER-NAME] [--debug] [--quiet]",
+	Short:   "install MyDecisive Cluster",
+	Long:    "install MyDecisive Cluster",
+	Example: `  mdai install --cluster-name mdai-local # install locally on kind cluster mdai-local
+  mdai install --debug                   # install in debug mode
+  mdai install --quiet                   # install in quiet mode`,
 	PreRun: func(cmd *cobra.Command, args []string) {
 		/*
 			aws, _ := cmd.Flags().GetBool("aws")
@@ -58,6 +64,7 @@ var installCommand = &cobra.Command{
 
 		debugMode, _ := cmd.Flags().GetBool("debug")
 		quietMode, _ := cmd.Flags().GetBool("quiet")
+		clusterName, _ := cmd.Flags().GetString("cluster-name")
 
 		helmcharts := []string{"cert-manager", "opentelemetry-operator", "prometheus", "mdai-api", "mdai-console", "datalyzer", "mdai-operator"}
 		/*
@@ -116,20 +123,57 @@ var installCommand = &cobra.Command{
 				errs <- errors.Wrap(err, "failed to create dynamic client")
 				return errors.Wrap(err, "failed to create dynamic client")
 			}
-			discoveryClient, err := discovery.NewDiscoveryClientForConfig(cfg)
+
+			gvr := schema.GroupVersionResource{
+				Group:    mdaitypes.MDAIOperatorGroup,
+				Version:  mdaitypes.MDAIOperatorVersion,
+				Resource: mdaitypes.MDAIOperatorResource,
+			}
+
+			obj := &unstructured.Unstructured{}
+			decoder := scheme.Codecs.UniversalDecoder()
+			manifest, _ := embedFS.ReadFile("templates/mdai-operator.yaml")
+			_, _, err = decoder.Decode(manifest, nil, obj)
 			if err != nil {
-				errs <- errors.Wrap(err, "failed to create discovery client")
-				return errors.Wrap(err, "failed to create discovery client")
+				errs <- errors.Wrap(err, "failed to decode mdai-operator manifest")
+				return errors.Wrap(err, "failed to decode mdai-operator manifest")
 			}
 
-			applyOptions := apply.NewApplyOptions(dynamicClient, discoveryClient)
-			applyYaml, _ := embedFS.ReadFile("templates/mdai-operator.yaml")
-			task <- "applying mdai-operator manifest"
-			if err := applyOptions.Apply(context.TODO(), applyYaml); err != nil {
-				errs <- errors.Wrap(err, "failed to apply mdai-operator manifest")
-				return errors.Wrap(err, "failed to apply mdai-operator manifest")
+			mdaiOperator, err := dynamicClient.Resource(gvr).Namespace(obj.GetNamespace()).Get(
+				context.TODO(),
+				obj.GetName(),
+				metav1.GetOptions{},
+			)
+			if err != nil {
+				errs <- errors.Wrap(err, "failed to get mdai-operator")
+				return errors.Wrap(err, "failed to get mdai-operator")
 			}
 
+			if mdaiOperator == nil {
+				task <- "applying mdai-operator manifest"
+				if _, err = dynamicClient.Resource(gvr).Namespace(obj.GetNamespace()).Create(
+					context.TODO(),
+					obj,
+					metav1.CreateOptions{},
+				); err != nil {
+					errs <- errors.Wrap(err, "failed to apply mdai-operator manifest")
+					return errors.Wrap(err, "failed to apply mdai-operator manifest")
+				}
+				messages <- "mdai-operator manifest applied successfully"
+			} else {
+				task <- "updating mdai-operator manifest"
+				obj.SetResourceVersion(mdaiOperator.GetResourceVersion())
+				if _, err = dynamicClient.Resource(gvr).Namespace(obj.GetNamespace()).Update(
+					context.TODO(),
+					obj,
+					metav1.UpdateOptions{},
+				); err != nil {
+					errs <- errors.Wrap(err, "failed to update mdai-operator manifest")
+					return errors.Wrap(err, "failed to update mdai-operator manifest")
+				}
+				messages <- "mdai-operator manifest updated successfully"
+			}
+			messages <- "installation completed successfully"
 			done <- true
 			return nil
 		}()
@@ -146,7 +190,7 @@ var installCommand = &cobra.Command{
 			),
 		)
 		if _, err := p.Run(); err != nil {
-			return errors.Wrap(err, "failed to run tea program")
+			return errors.Wrap(err, "failed to run program")
 		}
 
 		return nil
@@ -154,9 +198,10 @@ var installCommand = &cobra.Command{
 }
 
 var demoCommand = &cobra.Command{
-	Use:   "demo",
-	Short: "install OpenTelemetry Demo",
-	Long:  "install OpenTelemetry Demo",
+	GroupID: "installation",
+	Use:     "demo",
+	Short:   "install OpenTelemetry Demo",
+	Long:    "install OpenTelemetry Demo",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		messages := make(chan string)
 		debug := make(chan string)
@@ -173,6 +218,7 @@ var demoCommand = &cobra.Command{
 
 		debugMode := false
 		quietMode := false
+		clusterName, _ := cmd.Flags().GetString("cluster-name")
 
 		helmcharts := []string{"opentelemetry-demo"}
 
@@ -217,7 +263,7 @@ var demoCommand = &cobra.Command{
 			),
 		)
 		if _, err := p.Run(); err != nil {
-			return errors.Wrap(err, "failed to run tea program")
+			return errors.Wrap(err, "failed to run program")
 		}
 		return nil
 	},
@@ -228,8 +274,9 @@ func init() {
 	rootCmd.AddCommand(demoCommand)
 	//installCommand.Flags().Bool("aws", false, "aws installation type")
 	//installCommand.Flags().Bool("local", false, "local installation type")
-	installCommand.Flags().StringVar(&clusterName, "cluster-name", "mdai-local", "kubernetes cluster name")
+	installCommand.Flags().String("cluster-name", "mdai-local", "kubernetes cluster name")
 	installCommand.Flags().Bool("debug", false, "debug mode")
 	installCommand.Flags().Bool("quiet", false, "quiet mode")
-	demoCommand.Flags().StringVar(&clusterName, "cluster-name", "mdai-local", "kubernetes cluster name")
+	installCommand.DisableFlagsInUseLine = true
+	demoCommand.Flags().String("cluster-name", "mdai-local", "kubernetes cluster name")
 }

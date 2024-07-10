@@ -1,9 +1,16 @@
 ## mdai mute
 
-mute a pipeline
+mute a telemetry pipeline
 
 ```
-mdai mute [flags]
+mdai mute -n|--name FILTER-NAME -p|--pipeline PIPELINE-NAME -d|--description DESCRIPTION
+```
+
+### Examples
+
+```
+  mdai mute --name test-filter --description "test filter muting" --pipeline "logs"
+  mdai mute --name another-filter --description "metrics pipeline muting" --pipeline "metrics"
 ```
 
 ### Options

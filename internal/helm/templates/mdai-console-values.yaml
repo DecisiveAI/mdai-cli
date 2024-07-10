@@ -1,4 +1,4 @@
 service:
-  decisiveApiUrl: http://mdai-api.mdai-otel-nucleus.svc.cluster.local:8081/query
-  prometheusUrl: http://prometheus-server.mdai-otel-nucleus.svc.cluster.local:9090
-  datalyzerNamespace: mdai-otel-nucleus
+  decisiveApiUrl: http://mdai-api.mdai.svc.cluster.local:8081/query
+  prometheusUrl: http://prometheus-server.mdai.svc.cluster.local:9090
+  datalyzerNamespace: mdai

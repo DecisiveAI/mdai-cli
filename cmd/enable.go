@@ -19,9 +19,11 @@ import (
 )
 
 var enableCmd = &cobra.Command{
-	Use:   "enable",
-	Short: "enable a module",
-	Long:  ``,
+	GroupID: "configuration",
+	Use:     "enable -m|--module MODULE",
+	Short:   "enable a module",
+	Long:    ``,
+	Example: `  mdai enable --module datalyzer`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		module, _ := cmd.Flags().GetString("module")
 		if module == "" {
@@ -33,6 +35,8 @@ var enableCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
+		var patchBytes []byte
+		module, _ := cmd.Flags().GetString("module")
 		cfg, _ := config.GetConfig()
 		dynamicClient, _ := dynamic.NewForConfig(cfg)
 
@@ -42,13 +46,17 @@ var enableCmd = &cobra.Command{
 			Resource: mdaitypes.MDAIOperatorResource,
 		}
 
-		patchBytes, _ := json.Marshal([]datalyzerPatch{
-			{
-				Op:    PatchOpReplace,
-				Path:  DatalyzerJSONPath,
-				Value: true,
-			},
-		})
+		switch module {
+		case "datalyzer":
+			patchBytes, _ = json.Marshal([]datalyzerPatch{
+				{
+					Op:    PatchOpReplace,
+					Path:  DatalyzerJSONPath,
+					Value: true,
+				},
+			})
+		}
+
 		if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 			_, err := dynamicClient.Resource(gvr).Namespace(Namespace).Patch(
 				context.TODO(),
@@ -62,11 +70,12 @@ var enableCmd = &cobra.Command{
 			fmt.Println(err)
 			return
 		}
-		fmt.Println("patched successfully")
+		fmt.Printf("%s module enabled successfully.\n", module)
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(enableCmd)
 	enableCmd.Flags().String("module", "", "module to enable ["+strings.Join(SupportedModules, ", ")+"]")
+	enableCmd.DisableFlagsInUseLine = true
 }

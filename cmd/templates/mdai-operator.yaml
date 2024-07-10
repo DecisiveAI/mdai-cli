@@ -1,7 +1,7 @@
 apiVersion: mydecisive.ai/v1
 kind: MyDecisiveEngine
 metadata:
-  namespace: mdai-otel-nucleus
+  namespace: mdai
   labels:
     app.kubernetes.io/name: mydecisiveengine
     app.kubernetes.io/instance: mydecisiveengine-sample
@@ -19,18 +19,18 @@ spec:
         name: "test-collector"
         enabled: true
         measureVolumes: true
-        telemetryFiltering:
-            filters:
-              - name: test-filter
-                enabled: false
-                description: Hello this is filter
-                mutedPipelines:
-                  - logs/foobar
-              - name: another-filter
-                enabled: true
-                description: WHOA two filters!?
-                mutedPipelines:
-                  - metrics
+        #telemetryFiltering:
+        #    filters:
+        #      - name: test-filter
+        #        enabled: false
+        #        description: Hello this is filter
+        #        mutedPipelines:
+        #          - logs/foobar
+        #      - name: another-filter
+        #        enabled: true
+        #        description: WHOA two filters!?
+        #        mutedPipelines:
+        #          - metrics
         spec:
           ingress:
             annotations:

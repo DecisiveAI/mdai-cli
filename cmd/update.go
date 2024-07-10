@@ -30,7 +30,8 @@ var (
 )
 
 var updateCmd = &cobra.Command{
-	Use:   "update",
+	GroupID: "configuration",
+	Use:   "update [-f FILE] [--config CONFIG-TYPE] [--phase PHASE] [--block BLOCK]",
 	Short: "update a configuration",
 	Long:  "",
 	Example: `	mdai update -f /path/to/mdai-operator.yaml  # update mdai-operator configuration from file
@@ -134,4 +135,5 @@ func init() {
 	updateCmd.Flags().String("block", "", "block to jump to ["+strings.Join(validBlocks, ", ")+"]")
 	updateCmd.Flags().String("phase", "", "phase to jump to ["+strings.Join(validPhases, ", ")+"]")
 	updateCmd.Flags().SortFlags = true
+	updateCmd.DisableFlagsInUseLine = true
 }

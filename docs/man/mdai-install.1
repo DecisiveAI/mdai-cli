@@ -3,17 +3,17 @@
 
 .SH NAME
 .PP
-mdai-install - install MyDecisive Nucleus
+mdai-install - install MyDecisive Cluster
 
 
 .SH SYNOPSIS
 .PP
-\fBmdai install [flags]\fP
+\fBmdai install [--cluster-name CLUSTER-NAME] [--debug] [--quiet]\fP
 
 
 .SH DESCRIPTION
 .PP
-install MyDecisive Nucleus
+install MyDecisive Cluster
 
 
 .SH OPTIONS
@@ -32,6 +32,15 @@ install MyDecisive Nucleus
 .PP
 \fB--quiet\fP[=false]
 	quiet mode
+
+
+.SH EXAMPLE
+.EX
+  mdai install --cluster-name mdai-local # install locally on kind cluster mdai-local
+  mdai install --debug                   # install in debug mode
+  mdai install --quiet                   # install in quiet mode
+
+.EE
 
 
 .SH SEE ALSO

@@ -18,9 +18,11 @@ import (
 )
 
 var disableCmd = &cobra.Command{
-	Use:   "disable",
-	Short: "disable a module",
-	Long:  ``,
+	GroupID: "configuration",
+	Use:     "disable -m|--module MODULE",
+	Short:   "disable a module",
+	Long:    ``,
+	Example: `  mdai disable --module datalyzer`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		module, _ := cmd.Flags().GetString("module")
 		if module == "" {
@@ -32,6 +34,8 @@ var disableCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
+		var patchBytes []byte
+		module, _ := cmd.Flags().GetString("module")
 		cfg, _ := config.GetConfig()
 		dynamicClient, _ := dynamic.NewForConfig(cfg)
 
@@ -40,13 +44,16 @@ var disableCmd = &cobra.Command{
 			Version:  mdaitypes.MDAIOperatorVersion,
 			Resource: mdaitypes.MDAIOperatorResource,
 		}
-		patchBytes, _ := json.Marshal([]datalyzerPatch{
-			{
-				Op:    PatchOpReplace,
-				Path:  DatalyzerJSONPath,
-				Value: false,
-			},
-		})
+		switch module {
+		case "datalyzer":
+			patchBytes, _ = json.Marshal([]datalyzerPatch{
+				{
+					Op:    PatchOpReplace,
+					Path:  DatalyzerJSONPath,
+					Value: false,
+				},
+			})
+		}
 
 		if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 			_, err := dynamicClient.Resource(gvr).Namespace(Namespace).Patch(
@@ -61,11 +68,12 @@ var disableCmd = &cobra.Command{
 			fmt.Println(err)
 			return
 		}
-		fmt.Println("patched successfully")
+		fmt.Printf("%s module disabled successfully.\n", module)
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(disableCmd)
 	disableCmd.Flags().String("module", "", "module to disable ["+strings.Join(SupportedModules, ", ")+"]")
+	disableCmd.DisableFlagsInUseLine = true
 }

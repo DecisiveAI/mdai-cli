@@ -3,17 +3,17 @@
 
 .SH NAME
 .PP
-mdai-mute - mute a pipeline
+mdai-mute - mute a telemetry pipeline
 
 
 .SH SYNOPSIS
 .PP
-\fBmdai mute [flags]\fP
+\fBmdai mute -n|--name FILTER-NAME -p|--pipeline PIPELINE-NAME -d|--description DESCRIPTION\fP
 
 
 .SH DESCRIPTION
 .PP
-mute a pipeline
+mute a telemetry pipeline
 
 
 .SH OPTIONS
@@ -32,6 +32,14 @@ mute a pipeline
 .PP
 \fB-p\fP, \fB--pipeline\fP=""
 	pipeline to mute
+
+
+.SH EXAMPLE
+.EX
+  mdai mute --name test-filter --description "test filter muting" --pipeline "logs"
+  mdai mute --name another-filter --description "metrics pipeline muting" --pipeline "metrics"
+
+.EE
 
 
 .SH SEE ALSO

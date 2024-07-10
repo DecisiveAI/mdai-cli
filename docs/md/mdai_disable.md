@@ -3,7 +3,13 @@
 disable a module
 
 ```
-mdai disable [flags]
+mdai disable -m|--module MODULE
+```
+
+### Examples
+
+```
+  mdai disable --module datalyzer
 ```
 
 ### Options

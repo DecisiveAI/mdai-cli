@@ -13,7 +13,15 @@ get a configuration
 
 ::
 
-  mdai get [flags]
+  mdai get -c|--config MODULE-NAME
+
+Examples
+~~~~~~~~
+
+::
+
+    mdai get --config mdai # get mdai configuration
+    mdai get --config otel # get otel configuration
 
 Options
 ~~~~~~~

@@ -20,9 +20,12 @@ import (
 )
 
 var muteCmd = &cobra.Command{
-	Use:   "mute",
-	Short: "mute a pipeline",
-	Long:  ``,
+	GroupID: "configuration",
+	Use:     "mute -n|--name FILTER-NAME -p|--pipeline PIPELINE-NAME -d|--description DESCRIPTION",
+	Short:   "mute a telemetry pipeline",
+	Long:    ``,
+	Example: `  mdai mute --name test-filter --description "test filter muting" --pipeline "logs"
+  mdai mute --name another-filter --description "metrics pipeline muting" --pipeline "metrics"`,
 	Run: func(cmd *cobra.Command, args []string) {
 		filterName, _ := cmd.Flags().GetString("name")
 		pipeline, _ := cmd.Flags().GetString("pipeline")
@@ -49,11 +52,6 @@ var muteCmd = &cobra.Command{
 			Version:  mdaitypes.MDAIOperatorVersion,
 			Resource: mdaitypes.MDAIOperatorResource,
 		}
-
-		//patchBytes := []byte(`[{ "op": "replace", "path": "/spec/telemetryModule/collectors/0/measureVolumes", "value": true }]`)
-		//patchBytes := []byte(`[{ "op": "add", "path": "/spec/telemetryModule/collectors/0/telemetryFiltering/filters/-", "value": [{ "name": "test-filter", "enabled": true, "description": "Hello this is filter", "mutedPipelines": ["logs/foobar"] }] }]`)
-		//patchBytes = []byte(`[{ "op": "add", "path": "/spec/telemetryModule/collectors/0/telemetryFiltering/filters/-", "value": { "enabled": true, "name": "test-filter", "description": "Hello this is filter", "mutedPipelines": ["logs/foobar"] } }]`)
-		//patchBytes := []byte(`[{ "op": "add", "path": "/spec/telemetryModule/collectors/0/telemetryFiltering/filters/-", "value": { "name": "another-filter", "enabled": true, "description": "WHOA two filters?!", "mutedPipelines": ["metrics"] } }]`)
 
 		s := scheme.Scheme
 		mydecisivev1.AddToScheme(s)
@@ -85,7 +83,7 @@ var muteCmd = &cobra.Command{
 			fmt.Println(err)
 			return
 		}
-		fmt.Println("patched successfully")
+		fmt.Printf("pipeline %s muted successfully as filter %s (%s).\n", pipeline, filterName, description)
 	},
 }
 
@@ -94,4 +92,5 @@ func init() {
 	muteCmd.Flags().StringP("pipeline", "p", "", "pipeline to mute")
 	muteCmd.Flags().StringP("name", "n", "", "name of the filter")
 	muteCmd.Flags().StringP("description", "d", "", "description of the filter")
+	muteCmd.DisableFlagsInUseLine = true
 }
