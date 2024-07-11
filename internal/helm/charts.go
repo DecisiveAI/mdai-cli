@@ -131,13 +131,13 @@ func init() {
 		ReleaseName:     "otel-demo",
 		ChartName:       "opentelemetry/opentelemetry-demo",
 		Namespace:       "mdai-otel-demo",
-		Version:         "0.30.5",
+		Version:         "0.32.0",
 		UpgradeCRDs:     true,
-		Wait:            false,
+		Wait:            true,
 		ValuesYaml:      string(opentelemetryDemoValuesYaml),
 		Replace:         true,
 		CreateNamespace: true,
-		Timeout:         120 * time.Second, // nolint: gomnd
+		Timeout:         300 * time.Second, // nolint: gomnd
 	}
 }
 

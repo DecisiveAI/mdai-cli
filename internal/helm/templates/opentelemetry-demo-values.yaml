@@ -90,5 +90,3 @@
         enabled: true
       kafka:
         enabled: false
-      redis:
-        enabled: true
