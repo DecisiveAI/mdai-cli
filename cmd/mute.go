@@ -28,7 +28,7 @@ var muteCmd = &cobra.Command{
   mdai mute --name another-filter --description "metrics pipeline muting" --pipeline "metrics"`,
 	Run: func(cmd *cobra.Command, args []string) {
 		filterName, _ := cmd.Flags().GetString("name")
-		pipeline, _ := cmd.Flags().GetString("pipeline")
+		pipelines, _ := cmd.Flags().GetStringSlice("pipeline")
 		description, _ := cmd.Flags().GetString("description")
 
 		patchBytes, _ := json.Marshal([]mutePatch{
@@ -39,7 +39,7 @@ var muteCmd = &cobra.Command{
 					Name:           filterName,
 					Description:    description,
 					Enabled:        true,
-					MutedPipelines: &[]string{pipeline},
+					MutedPipelines: &pipelines,
 				},
 			},
 		})
@@ -83,13 +83,13 @@ var muteCmd = &cobra.Command{
 			fmt.Println(err)
 			return
 		}
-		fmt.Printf("pipeline %s muted successfully as filter %s (%s).\n", pipeline, filterName, description)
+		fmt.Printf("pipeline(s) %v muted successfully as filter %s (%s).\n", pipelines, filterName, description)
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(muteCmd)
-	muteCmd.Flags().StringP("pipeline", "p", "", "pipeline to mute")
+	muteCmd.Flags().StringSliceP("pipeline", "p", []string{""}, "pipeline to mute")
 	muteCmd.Flags().StringP("name", "n", "", "name of the filter")
 	muteCmd.Flags().StringP("description", "d", "", "description of the filter")
 	muteCmd.DisableFlagsInUseLine = true
