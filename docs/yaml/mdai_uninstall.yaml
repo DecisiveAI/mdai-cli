@@ -1,0 +1,20 @@
+name: mdai uninstall
+synopsis: uninstall MyDecisive Cluster
+description: uninstall MyDecisive Cluster
+usage: mdai uninstall [flags]
+options:
+    - name: cluster-name
+      default_value: mdai-local
+      usage: kubernetes cluster name
+    - name: debug
+      default_value: "false"
+      usage: debug mode
+    - name: help
+      shorthand: h
+      default_value: "false"
+      usage: help for uninstall
+    - name: quiet
+      default_value: "false"
+      usage: quiet mode
+see_also:
+    - mdai - MyDecisive.ai CLI

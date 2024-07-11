@@ -1,5 +1,6 @@
 name: mdai enable
 synopsis: enable a module
+description: enable one of the supported modules
 usage: mdai enable -m|--module MODULE
 options:
     - name: help

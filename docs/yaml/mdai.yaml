@@ -14,5 +14,6 @@ see_also:
     - mdai get - get a configuration
     - mdai install - install MyDecisive Cluster
     - mdai mute - mute a telemetry pipeline
+    - mdai uninstall - uninstall MyDecisive Cluster
     - mdai unmute - unmute a telemetry muting filter
     - mdai update - update a configuration

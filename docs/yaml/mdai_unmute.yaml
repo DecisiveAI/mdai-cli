@@ -1,5 +1,7 @@
 name: mdai unmute
 synopsis: unmute a telemetry muting filter
+description: |
+    deactivate (delete from pipeline configuration) a telemetry muting filter
 usage: mdai unmute -n|--name FILTER-NAME
 options:
     - name: help

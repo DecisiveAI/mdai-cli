@@ -3,17 +3,17 @@
 
 .SH NAME
 .PP
-mdai-install - install MyDecisive Cluster
+mdai-uninstall - uninstall MyDecisive Cluster
 
 
 .SH SYNOPSIS
 .PP
-\fBmdai install [--cluster-name CLUSTER-NAME] [--debug] [--quiet]\fP
+\fBmdai uninstall [flags]\fP
 
 
 .SH DESCRIPTION
 .PP
-install MyDecisive Cluster
+uninstall MyDecisive Cluster
 
 
 .SH OPTIONS
@@ -27,20 +27,11 @@ install MyDecisive Cluster
 
 .PP
 \fB-h\fP, \fB--help\fP[=false]
-	help for install
+	help for uninstall
 
 .PP
 \fB--quiet\fP[=false]
 	quiet mode
-
-
-.SH EXAMPLE
-.EX
-  mdai install --cluster-name mdai-local # install locally on kind cluster mdai-local
-  mdai install --debug                   # install in debug mode
-  mdai install --quiet                   # install in quiet mode
-
-.EE
 
 
 .SH SEE ALSO

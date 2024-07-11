@@ -1,5 +1,6 @@
 name: mdai disable
 synopsis: disable a module
+description: disable a module
 usage: mdai disable -m|--module MODULE
 options:
     - name: help

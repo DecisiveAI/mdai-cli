@@ -1,5 +1,7 @@
 name: mdai mute
 synopsis: mute a telemetry pipeline
+description: |
+    activate (add to pipeline configuration) a telemetry muting filter
 usage: mdai mute -n|--name FILTER-NAME -p|--pipeline PIPELINE-NAME -d|--description DESCRIPTION
 options:
     - name: description
@@ -14,6 +16,7 @@ options:
       usage: name of the filter
     - name: pipeline
       shorthand: p
+      default_value: '[]'
       usage: pipeline to mute
 example: |4-
       mdai mute --name test-filter --description "test filter muting" --pipeline "logs"

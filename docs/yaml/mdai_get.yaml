@@ -1,5 +1,6 @@
 name: mdai get
 synopsis: get a configuration
+description: get mdai or otel collector configuration
 usage: mdai get -c|--config MODULE-NAME
 options:
     - name: config

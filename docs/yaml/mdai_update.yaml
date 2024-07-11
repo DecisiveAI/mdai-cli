@@ -1,5 +1,7 @@
 name: mdai update
 synopsis: update a configuration
+description: |
+    update a configuration file or edit a configuration in an editor
 usage: mdai update [-f FILE] [--config CONFIG-TYPE] [--phase PHASE] [--block BLOCK]
 options:
     - name: block
