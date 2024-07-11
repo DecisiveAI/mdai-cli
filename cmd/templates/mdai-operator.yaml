@@ -1,7 +1,7 @@
 apiVersion: mydecisive.ai/v1
 kind: MyDecisiveEngine
 metadata:
-  namespace: mdai-otel-nucleus
+  namespace: mdai
   labels:
     app.kubernetes.io/name: mydecisiveengine
     app.kubernetes.io/instance: mydecisiveengine-sample
@@ -19,6 +19,18 @@ spec:
         name: "test-collector"
         enabled: true
         measureVolumes: true
+        telemetryFiltering:
+            filters:
+              - name: test-filter
+                enabled: false
+                description: Hello this is filter
+                mutedPipelines:
+                  - logs/foobar
+              - name: another-filter
+                enabled: true
+                description: WHOA two filters!?
+                mutedPipelines:
+                  - metrics
         spec:
           ingress:
             annotations:
@@ -51,6 +63,8 @@ spec:
               protocol: TCP
             - name: otlp-grpc
               port: 4317
+            - name: otlp-http
+              port: 4318
           config: |
             receivers:
               hostmetrics:
@@ -67,6 +81,8 @@ spec:
                 protocols:
                   grpc:
                     endpoint: "0.0.0.0:4317"
+                  http:
+                    endpoint: "0.0.0.0:4318"
             processors:
               resource:
                 attributes:
@@ -91,6 +107,10 @@ spec:
                   processors: [resource]
                   exporters: [debug]
                 logs:
+                  receivers: [otlp]
+                  processors: [resource]
+                  exporters: [debug]
+                logs/foobar:
                   receivers: [otlp]
                   processors: [resource]
                   exporters: [debug]

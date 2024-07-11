@@ -1,0 +1,25 @@
+name: mdai completion fish
+synopsis: Generate the autocompletion script for fish
+description: |
+    Generate the autocompletion script for the fish shell.
+
+    To load completions in your current shell session:
+
+    	mdai completion fish | source
+
+    To load completions for every new session, execute once:
+
+    	mdai completion fish > ~/.config/fish/completions/mdai.fish
+
+    You will need to start a new shell for this setup to take effect.
+usage: mdai completion fish [flags]
+options:
+    - name: help
+      shorthand: h
+      default_value: "false"
+      usage: help for fish
+    - name: no-descriptions
+      default_value: "false"
+      usage: disable completion descriptions
+see_also:
+    - mdai completion - Generate the autocompletion script for the specified shell

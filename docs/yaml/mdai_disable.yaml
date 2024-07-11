@@ -1,0 +1,14 @@
+name: mdai disable
+synopsis: disable a module
+description: disable a module
+usage: mdai disable -m|--module MODULE
+options:
+    - name: help
+      shorthand: h
+      default_value: "false"
+      usage: help for disable
+    - name: module
+      usage: module to disable [datalyzer]
+example: '  mdai disable --module datalyzer'
+see_also:
+    - mdai - MyDecisive.ai CLI

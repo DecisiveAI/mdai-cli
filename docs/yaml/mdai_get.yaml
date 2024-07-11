@@ -1,0 +1,17 @@
+name: mdai get
+synopsis: get a configuration
+description: get mdai or otel collector configuration
+usage: mdai get -c|--config MODULE-NAME
+options:
+    - name: config
+      shorthand: c
+      usage: configuration to get [mdai, otel]
+    - name: help
+      shorthand: h
+      default_value: "false"
+      usage: help for get
+example: |4-
+      mdai get --config mdai # get mdai configuration
+      mdai get --config otel # get otel configuration
+see_also:
+    - mdai - MyDecisive.ai CLI

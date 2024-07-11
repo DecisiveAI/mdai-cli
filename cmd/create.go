@@ -8,10 +8,11 @@ var createCmd = &cobra.Command{
 	Use:   "create",
 	Short: "",
 	Long:  "",
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, _ []string) {
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(createCmd)
+	createCmd.Hidden = true
 }

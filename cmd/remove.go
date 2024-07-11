@@ -8,10 +8,11 @@ var removeCmd = &cobra.Command{
 	Use:   "remove",
 	Short: "",
 	Long:  ``,
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, _ []string) {
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(removeCmd)
+	removeCmd.Hidden = true
 }

@@ -6,12 +6,11 @@ import (
 	"strings"
 	"time"
 
-	//"github.com/decisiveai/opentelemetry-operator/apis/v1alpha1"
+	"github.com/charmbracelet/lipgloss"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"helm.sh/helm/v3/pkg/action"
-	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/cli"
-	"helm.sh/helm/v3/pkg/registry"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
@@ -23,81 +22,50 @@ type deployment struct {
 }
 
 var deployments = []deployment{
-	{name: "datalyzer-deployment", namespace: "default"},
-	{name: "mdai-api", namespace: "default"},
-	{name: "mdai-console", namespace: "default"},
-	{name: "prometheus-server", namespace: "default"},
-	{name: "prometheus-kube-state-metrics", namespace: "default"},
-	{name: "test-collector-collector", namespace: "default"},
-	{name: "mydecisive-engine-operator-controller-manager", namespace: "mydecisive-engine-operator-system"},
-	{name: "opentelemetry-operator", namespace: "opentelemetry-operator-system"},
+	{name: "datalyzer-deployment", namespace: "mdai"},
+	{name: "mdai-api", namespace: "mdai"},
+	{name: "mdai-console", namespace: "mdai"},
+	{name: "prometheus-server", namespace: "mdai"},
+	{name: "prometheus-kube-state-metrics", namespace: "mdai"},
+	{name: "test-collector-collector", namespace: "mdai"},
+	{name: "mydecisive-engine-operator-controller-manager", namespace: "mdai"},
+	{name: "opentelemetry-operator", namespace: "mdai"},
 	{name: "cert-manager", namespace: "cert-manager"},
 	{name: "cert-manager-cainjector", namespace: "cert-manager"},
 	{name: "cert-manager-webhook", namespace: "cert-manager"},
 }
 
+var (
+	purple  = lipgloss.NewStyle().Foreground(lipgloss.Color("#BF40BF"))
+	white   = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
+	lpurple = lipgloss.NewStyle().Foreground(lipgloss.Color("#800080"))
+)
+
 var statusCmd = &cobra.Command{
 	Use:   "status",
-	Short: "",
-	Long:  ``,
-	Run: func(cmd *cobra.Command, args []string) {
-		/*
-			cfg := config.GetConfigOrDie()
-			scheme := runtime.NewScheme()
-			v1alpha1.AddToScheme(scheme)
-			k8sClient, _ := client.New(cfg, client.Options{Scheme: scheme})
-			//"github.com/open-telemetry/opentelemetry-operator/apis/v1alpha1"
-			collectors := &v1alpha1.OpenTelemetryCollectorList{}
-			opts := client.MatchingLabels(map[string]string{
-				"app.kubernetes.io/managed-by": "opentelemetry-operator", // mydecisive-engine-operator",
-			})
-			err := k8sClient.List(context.TODO(), collectors, opts)
-			if err != nil {
-				fmt.Println(err.Error())
-			}
-			fmt.Printf("%+v\n", collectors)
-			os.Exit(0)*/
-		/*
-			configMapList := &corev1.ConfigMapList{}
-			cfg := config.GetConfigOrDie()
-			k8sClient, _ := client.New(cfg, client.Options{})
-			selectorLabels := map[string]string{
-				"app.kubernetes.io/managed-by": "opentelemetry-operator",
-				"app.kubernetes.io/instance":   "default.test-collector", //  naming.Truncate("%s.%s", 63, instance.Namespace, instance.Name),
-				"app.kubernetes.io/part-of":    "opentelemetry",
-				"app.kubernetes.io/component":  "opentelemetry-collector", // component,
-			}
-			listOps := &client.ListOptions{
-				Namespace:     "default",
-				LabelSelector: labels.SelectorFromSet(selectorLabels),
-				// LabelSelector: labels.SelectorFromSet(manifestutils.SelectorLabels(params.OtelCol.ObjectMeta, collector.ComponentOpenTelemetryCollector)),
-			}
-			err := k8sClient.List(context.TODO(), configMapList, listOps)
-			if err != nil {
-				fmt.Printf("error listing ConfigMaps: %v", err)
-			}
-			for i, item := range configMapList.Items {
-				fmt.Printf("config %d: %s\n", i, item.Data["collector.yaml"])
-			}
-			fmt.Printf("total configurations %d\n", len(configMapList.Items))
-		*/
-		//provider := cluster.NewProvider()
-		//kubeconfig, _ := provider.KubeConfig("mdai-local", false)
+	Short: "show kubernetes deployment status",
+	Long:  `show installed helm charts, deployments with their statuses`,
+	RunE: func(_ *cobra.Command, _ []string) error {
 		cfg := config.GetConfigOrDie()
 		actionConfig := new(action.Configuration)
 		settings := cli.New()
-		if err := actionConfig.Init(settings.RESTClientGetter(), "", "secrets", nil); err != nil {
-			panic(err)
+		if err := actionConfig.Init(settings.RESTClientGetter(), "", "", nil); err != nil {
+			return errors.Wrap(err, "failed to initialize helm client")
 		}
 		client := action.NewList(actionConfig)
 		client.AllNamespaces = true
-		registry.NewClient()
-		ch := chart.Chart{}
-		action.NewInstall(actionConfig).Run(&ch, nil)
 
 		releases, _ := client.Run()
 		for _, release := range releases {
-			fmt.Printf("Namespace: %s, Release Name: %s, Chart: %s, Version: %s, AppVersion: %s, First Deployed: %s, Last Deployed: %s\n", release.Namespace, release.Name, release.Chart.Metadata.Name, release.Chart.Metadata.Version, release.Chart.Metadata.AppVersion, release.Info.FirstDeployed, release.Info.LastDeployed)
+			fmt.Printf("Namespace: %s, Release Name: %s, Chart: %s, Version: %s, AppVersion: %s, First Deployed: %s, Last Deployed: %s\n",
+				purple.Render(release.Namespace),
+				purple.Render(release.Name),
+				purple.Render(release.Chart.Metadata.Name),
+				purple.Render(release.Chart.Metadata.Version),
+				purple.Render(release.Chart.Metadata.AppVersion),
+				purple.Render(release.Info.FirstDeployed.String()),
+				purple.Render(release.Info.LastDeployed.String()),
+			)
 		}
 
 		clientset, _ := kubernetes.NewForConfig(cfg)
@@ -107,28 +75,33 @@ var statusCmd = &cobra.Command{
 			labelSelector := metav1.FormatLabelSelector(d.Spec.Selector)
 			var release, version string
 			if _, ok := d.Labels["helm.sh/chart"]; ok {
-				helmInfo := strings.Split(d.Labels["helm.sh/chart"], "-")
-				release = helmInfo[0]
-				version = helmInfo[1]
+				lastIndex := strings.LastIndex(d.Labels["helm.sh/chart"], "-")
+				release = d.Labels["helm.sh/chart"][:lastIndex]
+				version = d.Labels["helm.sh/chart"][lastIndex+1:]
 			}
-			fmt.Printf("Deployment: %s (%s) [%s]\n", deployment.name, release, version)
+			fmt.Printf("Deployment: %s (%s) [%s]\n",
+				lpurple.Render(deployment.name),
+				purple.Render(release),
+				purple.Render(version),
+			)
 
 			pod, _ := clientset.CoreV1().Pods(deployment.namespace).List(context.TODO(), metav1.ListOptions{LabelSelector: labelSelector})
 			for _, pod := range pod.Items {
-				fmt.Printf("  Pod: %s\n", pod.Name)
+				fmt.Printf("  Pod: %s\n", white.Render(pod.Name))
 				for _, containerStatus := range pod.Status.ContainerStatuses {
 					image := containerStatus.Image
 					lastPullTime := containerStatus.State.Running.StartedAt.Time
-
-					fmt.Printf("    Container: %s\n", containerStatus.Name)
-					fmt.Printf("      Image: %s\n", image)
-					fmt.Printf("      Last Pull: %s\n", lastPullTime.Format(time.RFC3339))
+					fmt.Printf("    Container: %s\n", white.Render(containerStatus.Name))
+					fmt.Printf("      Image: %s\n", white.Render(image))
+					fmt.Printf("      Last Pull: %s\n", white.Render(lastPullTime.Format(time.RFC3339)))
 				}
 			}
 		}
+		return nil
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(statusCmd)
+	statusCmd.Hidden = true
 }

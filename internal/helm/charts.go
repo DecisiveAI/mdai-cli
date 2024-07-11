@@ -4,13 +4,7 @@ import (
 	"embed"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
 	mdaitypes "github.com/decisiveai/mdai-cli/internal/types"
-	"github.com/pkg/errors"
-	"gopkg.in/yaml.v3"
-	"helm.sh/helm/v3/pkg/action"
-	"helm.sh/helm/v3/pkg/chart/loader"
-	"helm.sh/helm/v3/pkg/cli"
 )
 
 //go:embed templates/*
@@ -24,7 +18,7 @@ func init() {
 	prometheusValuesYaml, _ := embedFS.ReadFile("templates/prometheus-values.yaml")
 	mdaiConsoleValuesYaml, _ := embedFS.ReadFile("templates/mdai-console-values.yaml")
 	mdaiOperatorValuesYaml, _ := embedFS.ReadFile("templates/mdai-operator-values.yaml")
-	mdaiApiValuesYaml, _ := embedFS.ReadFile("templates/mdai-api-values.yaml")
+	mdaiAPIValuesYaml, _ := embedFS.ReadFile("templates/mdai-api-values.yaml")
 	opentelemetryDemoValuesYaml, _ := embedFS.ReadFile("templates/opentelemetry-demo-values.yaml")
 
 	chartSpecs = make(map[string]mdaitypes.ChartSpec)
@@ -39,18 +33,18 @@ func init() {
 		ValuesYaml:      string(certManagerValuesYaml),
 		Replace:         true,
 		CreateNamespace: true,
-		Timeout:         60 * time.Second, // nolint: gomnd
+		Timeout:         120 * time.Second, // nolint: gomnd
 	}
 
 	chartSpecs["opentelemetry-operator"] = mdaitypes.ChartSpec{
 		ReleaseName: "opentelemetry-operator",
 		ChartName:   "mydecisive/opentelemetry-operator",
 		// ChartName: "opentelemetry/opentelemetry-operator",
-		Namespace: "mdai-otel-nucleus",
+		Namespace: "mdai",
 		Version:   "0.43.1",
 		// Version:         "0.61.0",
 		UpgradeCRDs:     true,
-		Wait:            false,
+		Wait:            true,
 		ValuesYaml:      string(opentelemetryOperatorValuesYaml),
 		Replace:         true,
 		CreateNamespace: true,
@@ -60,7 +54,7 @@ func init() {
 	chartSpecs["prometheus"] = mdaitypes.ChartSpec{
 		ReleaseName:     "prometheus",
 		ChartName:       "prometheus-community/prometheus",
-		Namespace:       "mdai-otel-nucleus",
+		Namespace:       "mdai",
 		Version:         "25.21.0",
 		UpgradeCRDs:     true,
 		Wait:            false,
@@ -85,11 +79,11 @@ func init() {
 	chartSpecs["mdai-api"] = mdaitypes.ChartSpec{
 		ReleaseName:     "mdai-api",
 		ChartName:       "mydecisive/mdai-api",
-		Namespace:       "mdai-otel-nucleus",
+		Namespace:       "mdai",
 		Version:         "0.0.4",
 		UpgradeCRDs:     true,
-		Wait:            false,
-		ValuesYaml:      string(mdaiApiValuesYaml),
+		Wait:            true,
+		ValuesYaml:      string(mdaiAPIValuesYaml),
 		Replace:         true,
 		CreateNamespace: true,
 		Timeout:         60 * time.Second, // nolint: gomnd
@@ -98,10 +92,10 @@ func init() {
 	chartSpecs["mdai-console"] = mdaitypes.ChartSpec{
 		ReleaseName:     "mdai-console",
 		ChartName:       "mydecisive/mdai-console",
-		Namespace:       "mdai-otel-nucleus",
+		Namespace:       "mdai",
 		Version:         "0.1.1",
 		UpgradeCRDs:     true,
-		Wait:            false,
+		Wait:            true,
 		ValuesYaml:      string(mdaiConsoleValuesYaml),
 		Replace:         true,
 		CreateNamespace: true,
@@ -111,10 +105,10 @@ func init() {
 	chartSpecs["datalyzer"] = mdaitypes.ChartSpec{
 		ReleaseName:     "datalyzer",
 		ChartName:       "mydecisive/datalyzer",
-		Namespace:       "mdai-otel-nucleus",
+		Namespace:       "mdai",
 		Version:         "0.0.4",
 		UpgradeCRDs:     true,
-		Wait:            false,
+		Wait:            true,
 		Replace:         true,
 		CreateNamespace: true,
 		Timeout:         60 * time.Second, // nolint: gomnd
@@ -123,8 +117,8 @@ func init() {
 	chartSpecs["mdai-operator"] = mdaitypes.ChartSpec{
 		ReleaseName:     "mydecisive-engine-operator",
 		ChartName:       "mydecisive/mydecisive-engine-operator",
-		Namespace:       "mdai-otel-nucleus",
-		Version:         "0.0.3",
+		Namespace:       "mdai",
+		Version:         "0.0.6",
 		UpgradeCRDs:     true,
 		Wait:            true,
 		ValuesYaml:      string(mdaiOperatorValuesYaml),
@@ -135,55 +129,18 @@ func init() {
 
 	chartSpecs["opentelemetry-demo"] = mdaitypes.ChartSpec{
 		ReleaseName:     "otel-demo",
-		ChartName:       "open-telemetry/opentelemetry-demo",
+		ChartName:       "opentelemetry/opentelemetry-demo",
 		Namespace:       "mdai-otel-demo",
-		Version:         "0.30.5",
+		Version:         "0.32.0",
 		UpgradeCRDs:     true,
-		Wait:            false,
+		Wait:            true,
 		ValuesYaml:      string(opentelemetryDemoValuesYaml),
 		Replace:         true,
 		CreateNamespace: true,
-		Timeout:         120 * time.Second, // nolint: gomnd
+		Timeout:         300 * time.Second, // nolint: gomnd
 	}
 }
 
 func getChartSpec(name string) mdaitypes.ChartSpec {
 	return chartSpecs[name]
-}
-
-func InstallChart(helmChart string) error {
-	chartSpec := getChartSpec(helmChart)
-	settings := cli.New()
-	settings.SetNamespace(chartSpec.Namespace)
-	actionConfig := new(action.Configuration)
-	if err := actionConfig.Init(settings.RESTClientGetter(), chartSpec.Namespace, "", func(format string, v ...interface{}) { tea.Printf(format, v) }); err != nil {
-		return err
-	}
-
-	client := action.NewInstall(actionConfig)
-	client.ReleaseName = chartSpec.ReleaseName
-	client.Namespace = chartSpec.Namespace
-	client.CreateNamespace = chartSpec.CreateNamespace
-	client.Wait = chartSpec.Wait
-	client.Timeout = chartSpec.Timeout
-
-	chartPath, err := client.ChartPathOptions.LocateChart(chartSpec.ChartName, settings)
-	if err != nil {
-		return err
-	}
-
-	chart, err := loader.Load(chartPath)
-	if err != nil {
-		return err
-	}
-
-	values := map[string]interface{}{}
-	if chartSpec.ValuesYaml != "" {
-		if err := yaml.Unmarshal([]byte(chartSpec.ValuesYaml), &values); err != nil {
-			return errors.Wrap(err, "failed to parse ValuesYaml")
-		}
-	}
-
-	_, err = client.Run(chart, values)
-	return err
 }

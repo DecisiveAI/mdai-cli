@@ -6,7 +6,7 @@
             apiVersion: v1
             fieldPath: status.podIP
       - name: OTEL_COLLECTOR_NAME
-        value: 'gateway-collector.mdai-otel-nucleus.svc.cluster.local'
+        value: 'gateway-collector.mdai.svc.cluster.local'
       - name: OTEL_SERVICE_NAME
         valueFrom:
           fieldRef:
@@ -90,5 +90,3 @@
         enabled: true
       kafka:
         enabled: false
-      redis:
-        enabled: true

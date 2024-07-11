@@ -10,7 +10,6 @@ require (
 	github.com/charmbracelet/huh v0.4.2
 	github.com/charmbracelet/huh/spinner v0.0.0-20240527182036-3b0839577112
 	github.com/charmbracelet/lipgloss v0.11.0
-	github.com/decisiveai/mydecisive-engine-operator v0.0.0-20240523205724-9082151fd62e
 	github.com/decisiveai/opentelemetry-operator v0.93.0
 	github.com/pkg/errors v0.9.1
 	github.com/pytimer/k8sutil v0.0.0-20221114090626-86d6279d8e52
@@ -21,6 +20,12 @@ require (
 	k8s.io/client-go v0.30.1
 	sigs.k8s.io/controller-runtime v0.18.2
 	sigs.k8s.io/kind v0.23.0
+)
+
+require (
+	github.com/decisiveai/mydecisive-engine-operator v0.0.0-20240709150121-fe5ee3a3ae1b
+	github.com/spf13/pflag v1.0.5
+	k8s.io/apiextensions-apiserver v0.30.0
 )
 
 require (
@@ -41,7 +46,6 @@ require (
 	github.com/catppuccin/go v0.2.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/chai2010/gettext-go v1.0.2 // indirect
-	github.com/charmbracelet/harmonica v0.2.0 // indirect
 	github.com/charmbracelet/x/ansi v0.1.1 // indirect
 	github.com/charmbracelet/x/exp/strings v0.0.0-20240524151031-ff83003bf67a // indirect
 	github.com/charmbracelet/x/input v0.1.1 // indirect
@@ -49,6 +53,7 @@ require (
 	github.com/charmbracelet/x/windows v0.1.2 // indirect
 	github.com/containerd/containerd v1.7.11 // indirect
 	github.com/containerd/log v0.1.0 // indirect
+	github.com/cpuguy83/go-md2man/v2 v2.0.3 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.4 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/distribution/reference v0.5.0 // indirect
@@ -121,7 +126,6 @@ require (
 	github.com/monochromegane/go-gitignore v0.0.0-20200626010858-205db1a8cc00 // indirect
 	github.com/muesli/ansi v0.0.0-20230316100256-276c6243b2f6 // indirect
 	github.com/muesli/cancelreader v0.2.2 // indirect
-	github.com/muesli/reflow v0.3.0 // indirect
 	github.com/muesli/termenv v0.15.2 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f // indirect
@@ -139,7 +143,6 @@ require (
 	github.com/shopspring/decimal v1.3.1 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/spf13/cast v1.6.0 // indirect
-	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
 	github.com/xeipuuv/gojsonschema v1.2.0 // indirect
@@ -170,7 +173,6 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	k8s.io/api v0.30.1 // indirect
-	k8s.io/apiextensions-apiserver v0.30.0 // indirect
 	k8s.io/apiserver v0.30.0 // indirect
 	k8s.io/cli-runtime v0.29.1 // indirect
 	k8s.io/component-base v0.30.0 // indirect

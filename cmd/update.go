@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -29,43 +30,35 @@ var (
 )
 
 var updateCmd = &cobra.Command{
-	Use:   "update",
-	Short: "",
-	Long:  "",
-	Example: `	-f /path/to/mdai-operator.yaml
-	--config=otel
-	--config=otel --phase=logs
-	--config=otel --block=receivers`,
-	PreRunE: func(cmd *cobra.Command, args []string) error {
+	GroupID: "configuration",
+	Use:     "update [-f FILE] [--config CONFIG-TYPE] [--phase PHASE] [--block BLOCK]",
+	Short:   "update a configuration",
+	Long:    "update a configuration file or edit a configuration in an editor",
+	Example: `	mdai update -f /path/to/mdai-operator.yaml  # update mdai-operator configuration from file
+	mdai update --config=otel                   # edit otel collector configuration in $EDITOR
+	mdai update --config=otel --phase=logs      # jump to logs block
+	mdai update --config=otel --block=receivers # jump to receivers block`,
+	PreRunE: func(cmd *cobra.Command, _ []string) error {
 		fileP, _ := cmd.Flags().GetString("file")
 		configP, _ := cmd.Flags().GetString("config")
-		// phaseP, _ := cmd.Flags().GetString("phase")
-		// blockP, _ := cmd.Flags().GetString("block")
+		phaseP, _ := cmd.Flags().GetString("phase")
+		blockP, _ := cmd.Flags().GetString("block")
 
 		if fileP != "" && configP != "" {
 			return errors.New("cannot specify both --file and --config")
 		}
 
-		/*if phaseP != "" {
-			for _, v := range validPhases {
-				if v == phaseP {
-					continue
-				}
-				return fmt.Errorf("invalid phase: %s", phaseP)
-			}
+		if !slices.Contains(validPhases, phaseP) {
+			return fmt.Errorf("invalid phase: %s", phaseP)
 		}
-		if blockP != "" {
-			for _, v := range validBlocks {
-				if v == blockP {
-					continue
-				}
-				return fmt.Errorf("invalid block: %s", blockP)
-			}
-		}*/
+
+		if !slices.Contains(validBlocks, blockP) {
+			return fmt.Errorf("invalid block: %s", blockP)
+		}
 
 		return nil
 	},
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(cmd *cobra.Command, _ []string) {
 		fileP, _ := cmd.Flags().GetString("file")
 		configP, _ := cmd.Flags().GetString("config")
 		phaseP, _ := cmd.Flags().GetString("phase")
@@ -85,7 +78,7 @@ var updateCmd = &cobra.Command{
 
 			m := editor.NewModel(f.Name(), blockP, phaseP)
 			if _, err := tea.NewProgram(m).Run(); err != nil {
-				fmt.Println("error running program:", err)
+				fmt.Println("error running program: ", err)
 				os.Exit(1)
 			}
 			var applyConfig bool
@@ -142,4 +135,5 @@ func init() {
 	updateCmd.Flags().String("block", "", "block to jump to ["+strings.Join(validBlocks, ", ")+"]")
 	updateCmd.Flags().String("phase", "", "phase to jump to ["+strings.Join(validPhases, ", ")+"]")
 	updateCmd.Flags().SortFlags = true
+	updateCmd.DisableFlagsInUseLine = true
 }

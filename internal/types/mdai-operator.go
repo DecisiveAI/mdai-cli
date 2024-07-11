@@ -55,6 +55,14 @@ type MDAIOperatorCollector struct {
 	Spec           MDAIOperatorCollectorSpec `yaml:"spec"`
 }
 
+const (
+	MDAIOperatorName     = "mydecisiveengine-sample-1"
+	MDAIOperatorGroup    = "mydecisive.ai"
+	MDAIOperatorVersion  = "v1"
+	MDAIOperatorResource = "mydecisiveengines"
+	MDAIOperatorKind     = "MyDecisiveEngine"
+)
+
 func NewMDAIOperator() MDAIOperator {
 	m := MDAIOperator{
 		APIVersion: "mydecisive.ai/v1",
