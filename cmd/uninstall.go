@@ -2,12 +2,12 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
 	mdaihelm "github.com/decisiveai/mdai-cli/internal/helm"
 	"github.com/decisiveai/mdai-cli/internal/viewport"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -40,16 +40,16 @@ var uninstallCmd = &cobra.Command{
 		go func() error {
 			tmpfile, err := os.CreateTemp(os.TempDir(), "mdai-cli")
 			if err != nil {
-				errs <- errors.Wrap(err, "failed to create temp dir")
-				return errors.Wrap(err, "failed to create temp dir")
+				errs <- fmt.Errorf("failed to create temp dir: %w", err)
+				return fmt.Errorf("failed to create temp dir: %w", err)
 			}
 			defer os.Remove(tmpfile.Name())
 			helmclient := mdaihelm.NewClient(messages, debug, errs, tmpfile.Name())
 			for _, helmchart := range mdaiHelmcharts {
 				task <- "uninstalling helm chart " + helmchart
 				if err := helmclient.UninstallChart(helmchart); err != nil {
-					errs <- errors.Wrap(err, "failed to uninstall helm chart "+helmchart)
-					return errors.Wrap(err, "failed to uninstall helm chart "+helmchart)
+					errs <- fmt.Errorf("failed to uninstall helm chart %s: %w", helmchart, err)
+					return fmt.Errorf("failed to uninstall helm chart %s: %w", helmchart, err)
 				}
 			}
 			messages <- "helm charts uninstalled successfully."
@@ -91,7 +91,7 @@ var uninstallCmd = &cobra.Command{
 			),
 		)
 		if _, err := p.Run(); err != nil {
-			return errors.Wrap(err, "failed to run program")
+			return fmt.Errorf("failed to run program: %w", err)
 		}
 
 		return nil

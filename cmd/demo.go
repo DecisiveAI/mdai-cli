@@ -1,13 +1,13 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
 	mdaihelm "github.com/decisiveai/mdai-cli/internal/helm"
 	"github.com/decisiveai/mdai-cli/internal/kind"
 	"github.com/decisiveai/mdai-cli/internal/viewport"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -44,16 +44,16 @@ var demoCmd = &cobra.Command{
 			action = func() error {
 				tmpfile, err := os.CreateTemp(os.TempDir(), "mdai-cli")
 				if err != nil {
-					errs <- errors.Wrap(err, "failed to create temp dir")
-					return errors.Wrap(err, "failed to create temp dir")
+					errs <- fmt.Errorf("failed to create temp dir: %w", err)
+					return fmt.Errorf("failed to create temp dir: %w", err)
 				}
 				defer os.Remove(tmpfile.Name())
 				helmclient := mdaihelm.NewClient(messages, debug, errs, tmpfile.Name())
 				for _, helmchart := range helmcharts {
 					task <- "uninstalling helm chart " + helmchart
 					if err := helmclient.UninstallChart(helmchart); err != nil {
-						errs <- errors.Wrap(err, "failed to uninstall helm chart "+helmchart)
-						return errors.Wrap(err, "failed to uninstall helm chart "+helmchart)
+						errs <- fmt.Errorf("failed to uninstall helm chart %s: %w", helmchart, err)
+						return fmt.Errorf("failed to uninstall helm chart %s: %w", helmchart, err)
 					}
 				}
 				done <- true
@@ -64,14 +64,14 @@ var demoCmd = &cobra.Command{
 				task <- "creating kubernetes cluster via kind"
 				kindclient := kind.NewClient(messages, debug, errs, clusterName)
 				if _, err := kindclient.Install(); err != nil {
-					errs <- errors.Wrap(err, "failed to create kubernetes cluster")
-					return errors.Wrap(err, "failed to create kubernetes cluster")
+					errs <- fmt.Errorf("failed to create kubernetes cluster: %w", err)
+					return fmt.Errorf("failed to create kubernetes cluster: %w", err)
 				}
 
 				tmpfile, err := os.CreateTemp(os.TempDir(), "mdai-cli")
 				if err != nil {
-					errs <- errors.Wrap(err, "failed to create temp dir")
-					return errors.Wrap(err, "failed to create temp dir")
+					errs <- fmt.Errorf("failed to create temp dir: %w", err)
+					return fmt.Errorf("failed to create temp dir: %w", err)
 				}
 				defer os.Remove(tmpfile.Name())
 				helmclient := mdaihelm.NewClient(messages, debug, errs, tmpfile.Name())
@@ -80,8 +80,8 @@ var demoCmd = &cobra.Command{
 				for _, helmchart := range helmcharts {
 					task <- "installing helm chart " + helmchart
 					if err := helmclient.InstallChart(helmchart); err != nil {
-						errs <- errors.Wrap(err, "failed to install helm chart "+helmchart)
-						return errors.Wrap(err, "failed to install helm chart "+helmchart)
+						errs <- fmt.Errorf("failed to install helm chart %s %w", helmchart, err)
+						return fmt.Errorf("failed to install helm chart %s: %w", helmchart, err)
 					}
 				}
 
@@ -103,7 +103,7 @@ var demoCmd = &cobra.Command{
 			),
 		)
 		if _, err := p.Run(); err != nil {
-			return errors.Wrap(err, "failed to run program")
+			return fmt.Errorf("failed to run program: %w", err)
 		}
 		return nil
 	},

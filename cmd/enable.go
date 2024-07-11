@@ -72,7 +72,7 @@ var enableCmd = &cobra.Command{
 				patchBytes,
 				metav1.PatchOptions{},
 			)
-			return err
+			return fmt.Errorf("failed to apply patch: %w", err)
 		}); err != nil {
 			fmt.Println(err)
 			return

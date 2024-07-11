@@ -25,7 +25,7 @@ var muteCmd = &cobra.Command{
 	Long:    `activate (add to pipeline configuration) a telemetry muting filter`,
 	Example: `  mdai mute --name test-filter --description "test filter muting" --pipeline "logs"
   mdai mute --name another-filter --description "metrics pipeline muting" --pipeline "metrics"`,
-	Run: func(cmd *cobra.Command, _ []string) {
+	RunE: func(cmd *cobra.Command, _ []string) error {
 		filterName, _ := cmd.Flags().GetString("name")
 		pipelines, _ := cmd.Flags().GetStringSlice("pipeline")
 		description, _ := cmd.Flags().GetString("description")
@@ -43,8 +43,7 @@ var muteCmd = &cobra.Command{
 			},
 		})
 		if err != nil {
-			fmt.Println(err)
-			return
+			return fmt.Errorf("failed to marshal patch: %w", err)
 		}
 
 		cfg, _ := config.GetConfig()
@@ -60,18 +59,22 @@ var muteCmd = &cobra.Command{
 		mydecisivev1.AddToScheme(s)
 		k8sClient, _ := client.New(cfg, client.Options{Scheme: s})
 		get := mydecisivev1.MyDecisiveEngine{}
-		k8sClient.Get(context.TODO(), client.ObjectKey{
+		if err := k8sClient.Get(context.TODO(), client.ObjectKey{
 			Namespace: Namespace,
 			Name:      mdaitypes.MDAIOperatorName,
-		}, &get)
+		}, &get); err != nil {
+			return fmt.Errorf("failed to get mdai operator: %w", err)
+		}
 		if get.Spec.TelemetryModule.Collectors[0].TelemetryFiltering == nil {
-			dynamicClient.Resource(gvr).Namespace(Namespace).Patch(
+			if _, err := dynamicClient.Resource(gvr).Namespace(Namespace).Patch(
 				context.TODO(),
 				mdaitypes.MDAIOperatorName,
 				types.JSONPatchType,
 				MutedPipelineEmptyFilter,
 				metav1.PatchOptions{},
-			)
+			); err != nil {
+				return fmt.Errorf("failed to apply patch: %w", err)
+			}
 		}
 		if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 			_, err := dynamicClient.Resource(gvr).Namespace(Namespace).Patch(
@@ -81,12 +84,12 @@ var muteCmd = &cobra.Command{
 				patchBytes,
 				metav1.PatchOptions{},
 			)
-			return err
+			return fmt.Errorf("failed to apply patch: %w", err)
 		}); err != nil {
-			fmt.Println(err)
-			return
+			return err // nolint: wrapcheck
 		}
 		fmt.Printf("pipeline(s) %v muted successfully as filter %s (%s).\n", pipelines, filterName, description)
+		return nil
 	},
 }
 
@@ -96,4 +99,5 @@ func init() {
 	muteCmd.Flags().StringP("name", "n", "", "name of the filter")
 	muteCmd.Flags().StringP("description", "d", "", "description of the filter")
 	muteCmd.DisableFlagsInUseLine = true
+	muteCmd.SilenceUsage = true
 }
