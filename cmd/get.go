@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -22,17 +23,17 @@ var getCmd = &cobra.Command{
 	Long:    "get mdai or otel collector configuration",
 	Example: `  mdai get --config mdai # get mdai configuration
   mdai get --config otel # get otel configuration`,
-	PreRunE: func(cmd *cobra.Command, args []string) error {
+	PreRunE: func(cmd *cobra.Command, _ []string) error {
 		configType, _ := cmd.Flags().GetString("config")
 		if configType == "" {
-			return fmt.Errorf("module is required")
+			return errors.New("config is required")
 		}
 		if !slices.Contains(SupportedConfigTypes, configType) {
 			return fmt.Errorf("config type %s is not supported", configType)
 		}
 		return nil
 	},
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(cmd *cobra.Command, _ []string) {
 		configType, _ := cmd.Flags().GetString("config")
 		cfg := config.GetConfigOrDie()
 		s := scheme.Scheme

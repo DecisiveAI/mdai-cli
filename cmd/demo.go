@@ -16,7 +16,7 @@ var demoCmd = &cobra.Command{
 	Use:     "demo [--cluster-name=CLUSTER-NAME] [--uninstall]",
 	Short:   "install OpenTelemetry Demo",
 	Long:    "install OpenTelemetry Demo",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(cmd *cobra.Command, _ []string) error {
 		var action func() error
 
 		messages := make(chan string)

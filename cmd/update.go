@@ -38,7 +38,7 @@ var updateCmd = &cobra.Command{
 	mdai update --config=otel                   # edit otel collector configuration in $EDITOR
 	mdai update --config=otel --phase=logs      # jump to logs block
 	mdai update --config=otel --block=receivers # jump to receivers block`,
-	PreRunE: func(cmd *cobra.Command, args []string) error {
+	PreRunE: func(cmd *cobra.Command, _ []string) error {
 		fileP, _ := cmd.Flags().GetString("file")
 		configP, _ := cmd.Flags().GetString("config")
 		phaseP, _ := cmd.Flags().GetString("phase")
@@ -58,7 +58,7 @@ var updateCmd = &cobra.Command{
 
 		return nil
 	},
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(cmd *cobra.Command, _ []string) {
 		fileP, _ := cmd.Flags().GetString("file")
 		configP, _ := cmd.Flags().GetString("config")
 		phaseP, _ := cmd.Flags().GetString("phase")

@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	//"github.com/decisiveai/opentelemetry-operator/apis/v1alpha1"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -46,7 +45,7 @@ var statusCmd = &cobra.Command{
 	Use:   "status",
 	Short: "show kubernetes deployment status",
 	Long:  `show installed helm charts, deployments with their statuses`,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		cfg := config.GetConfigOrDie()
 		actionConfig := new(action.Configuration)
 		settings := cli.New()

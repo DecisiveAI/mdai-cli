@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-
 	"sigs.k8s.io/kind/pkg/cluster"
 )
 

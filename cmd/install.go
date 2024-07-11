@@ -24,9 +24,7 @@ import (
 //go:embed templates/*
 var embedFS embed.FS
 
-var (
-	installationType string
-)
+var installationType string
 
 var installCmd = &cobra.Command{
 	GroupID: "installation",
@@ -36,7 +34,7 @@ var installCmd = &cobra.Command{
 	Example: `  mdai install --cluster-name mdai-local # install locally on kind cluster mdai-local
   mdai install --debug                   # install in debug mode
   mdai install --quiet                   # install in quiet mode`,
-	PreRun: func(cmd *cobra.Command, args []string) {
+	PreRun: func(_ *cobra.Command, _ []string) {
 		/*
 			aws, _ := cmd.Flags().GetBool("aws")
 			local, _ := cmd.Flags().GetBool("local")
@@ -49,7 +47,7 @@ var installCmd = &cobra.Command{
 		*/
 		installationType = "kind"
 	},
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(cmd *cobra.Command, _ []string) error {
 		messages := make(chan string)
 		debug := make(chan string)
 		errs := make(chan error)
@@ -199,8 +197,8 @@ var installCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(installCmd)
-	//installCommand.Flags().Bool("aws", false, "aws installation type")
-	//installCommand.Flags().Bool("local", false, "local installation type")
+	// installCommand.Flags().Bool("aws", false, "aws installation type")
+	// installCommand.Flags().Bool("local", false, "local installation type")
 	installCmd.Flags().String("cluster-name", "mdai-local", "kubernetes cluster name")
 	installCmd.Flags().Bool("debug", false, "debug mode")
 	installCmd.Flags().Bool("quiet", false, "quiet mode")

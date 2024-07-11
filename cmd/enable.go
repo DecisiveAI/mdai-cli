@@ -3,19 +3,19 @@ package cmd
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
 
 	mdaitypes "github.com/decisiveai/mdai-cli/internal/types"
 	"github.com/spf13/cobra"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/util/retry"
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/util/retry"
+	"sigs.k8s.io/controller-runtime/pkg/client/config"
 )
 
 var enableCmd = &cobra.Command{
@@ -24,18 +24,21 @@ var enableCmd = &cobra.Command{
 	Short:   "enable a module",
 	Long:    `enable one of the supported modules`,
 	Example: `  mdai enable --module datalyzer`,
-	PreRunE: func(cmd *cobra.Command, args []string) error {
+	PreRunE: func(cmd *cobra.Command, _ []string) error {
 		module, _ := cmd.Flags().GetString("module")
 		if module == "" {
-			return fmt.Errorf("module is required")
+			return errors.New("module is required")
 		}
 		if !slices.Contains(SupportedModules, module) {
 			return fmt.Errorf("module %s is not supported for enabling", module)
 		}
 		return nil
 	},
-	Run: func(cmd *cobra.Command, args []string) {
-		var patchBytes []byte
+	Run: func(cmd *cobra.Command, _ []string) {
+		var (
+			patchBytes []byte
+			err        error
+		)
 		module, _ := cmd.Flags().GetString("module")
 		cfg, _ := config.GetConfig()
 		dynamicClient, _ := dynamic.NewForConfig(cfg)
@@ -48,13 +51,17 @@ var enableCmd = &cobra.Command{
 
 		switch module {
 		case "datalyzer":
-			patchBytes, _ = json.Marshal([]datalyzerPatch{
+			patchBytes, err = json.Marshal([]datalyzerPatch{
 				{
 					Op:    PatchOpReplace,
 					Path:  DatalyzerJSONPath,
 					Value: true,
 				},
 			})
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
 		}
 
 		if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {

@@ -73,6 +73,7 @@ func waitForDebug(sub chan string) tea.Cmd {
 		return responseDebug(<-sub)
 	}
 }
+
 func waitForErrors(sub chan error) tea.Cmd {
 	return func() tea.Msg {
 		return responseError(<-sub)
@@ -116,7 +117,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			waitForDone(m.done),
 		)
 	case responseError:
-		m.viewport.SetContent(m.viewport.View() + "\n" + errorStyle.Render(string(msg.Error())))
+		m.viewport.SetContent(m.viewport.View() + "\n" + errorStyle.Render(msg.Error()))
 		m.viewport.GotoBottom()
 		return m, tea.Quit
 	case responseDone:

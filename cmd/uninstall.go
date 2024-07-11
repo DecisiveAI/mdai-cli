@@ -19,7 +19,7 @@ var uninstallCmd = &cobra.Command{
 	Use:     "uninstall",
 	Short:   "uninstall MyDecisive Cluster",
 	Long:    "uninstall MyDecisive Cluster",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(cmd *cobra.Command, _ []string) error {
 		messages := make(chan string)
 		debug := make(chan string)
 		errs := make(chan error)
@@ -56,8 +56,10 @@ var uninstallCmd = &cobra.Command{
 
 			cfg := config.GetConfigOrDie()
 			apiExtensionsClientset, _ := apiextensionsclient.NewForConfig(cfg)
-			crds := []string{"opentelemetrycollectors.opentelemetry.io", "instrumentations.opentelemetry.io", "opampbridges.opentelemetry.io",
-				"certificaterequests.cert-manager.io", "certificates.cert-manager.io", "challenges.acme.cert-manager.io", "clusterissuers.cert-manager.io", "issuers.cert-manager.io", "orders.acme.cert-manager.io"}
+			crds := []string{
+				"opentelemetrycollectors.opentelemetry.io", "instrumentations.opentelemetry.io", "opampbridges.opentelemetry.io",
+				"certificaterequests.cert-manager.io", "certificates.cert-manager.io", "challenges.acme.cert-manager.io", "clusterissuers.cert-manager.io", "issuers.cert-manager.io", "orders.acme.cert-manager.io",
+			}
 
 			for _, crd := range crds {
 				task <- "deleting crd " + crd

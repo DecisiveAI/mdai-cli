@@ -80,7 +80,7 @@ func (c *Client) addRepo(name, url string) error {
 	}
 
 	repoFile.Update(&entry)
-	err = repoFile.WriteFile(file, 0644)
+	err = repoFile.WriteFile(file, 0o644)
 	c.errs <- errors.Wrap(err, "failed to write Helm repo index file")
 	return err
 }
@@ -98,8 +98,8 @@ func (c *Client) InstallChart(helmchart string) error {
 	histClient := action.NewHistory(actionConfig)
 	histClient.Max = 1
 	_, err := histClient.Run(chartSpec.ReleaseName)
-	switch err {
-	case driver.ErrReleaseNotFound:
+	switch {
+	case errors.Is(err, driver.ErrReleaseNotFound):
 		client := action.NewInstall(actionConfig)
 		client.ReleaseName = chartSpec.ReleaseName
 		client.Namespace = chartSpec.Namespace
@@ -146,7 +146,6 @@ func (c *Client) InstallChart(helmchart string) error {
 		if _, err = client.Run(chartSpec.ReleaseName, chart, values); err != nil {
 			c.errs <- errors.Wrap(err, "failed to upgrade chart "+chartSpec.ReleaseName+" in namespace "+chartSpec.Namespace)
 			return errors.Wrap(err, "failed to upgrade chart "+chartSpec.ReleaseName+" in namespace "+chartSpec.Namespace)
-
 		}
 		c.messages <- "chart " + chartSpec.ReleaseName + " in namespace " + chartSpec.Namespace + " upgraded successfully"
 		return nil
@@ -165,7 +164,7 @@ func (c *Client) UninstallChart(helmchart string) error {
 
 	histClient := action.NewHistory(actionConfig)
 	histClient.Max = 1
-	if _, err := histClient.Run(chartSpec.ReleaseName); err == driver.ErrReleaseNotFound {
+	if _, err := histClient.Run(chartSpec.ReleaseName); errors.Is(err, driver.ErrReleaseNotFound) {
 		c.messages <- "chart " + chartSpec.ReleaseName + " in namespace " + chartSpec.Namespace + " not found. skipping uninstall."
 		return nil
 	}

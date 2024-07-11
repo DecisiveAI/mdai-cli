@@ -5,18 +5,17 @@ import (
 	"encoding/json"
 	"fmt"
 
+	mdaitypes "github.com/decisiveai/mdai-cli/internal/types"
 	mydecisivev1 "github.com/decisiveai/mydecisive-engine-operator/api/v1"
 	"github.com/spf13/cobra"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
-
-	mdaitypes "github.com/decisiveai/mdai-cli/internal/types"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/types"
 )
 
 var muteCmd = &cobra.Command{
@@ -26,12 +25,12 @@ var muteCmd = &cobra.Command{
 	Long:    `activate (add to pipeline configuration) a telemetry muting filter`,
 	Example: `  mdai mute --name test-filter --description "test filter muting" --pipeline "logs"
   mdai mute --name another-filter --description "metrics pipeline muting" --pipeline "metrics"`,
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(cmd *cobra.Command, _ []string) {
 		filterName, _ := cmd.Flags().GetString("name")
 		pipelines, _ := cmd.Flags().GetStringSlice("pipeline")
 		description, _ := cmd.Flags().GetString("description")
 
-		patchBytes, _ := json.Marshal([]mutePatch{
+		patchBytes, err := json.Marshal([]mutePatch{
 			{
 				Op:   PatchOpAdd,
 				Path: fmt.Sprintf(MutedPipelinesJSONPath, "-"),
@@ -43,6 +42,10 @@ var muteCmd = &cobra.Command{
 				},
 			},
 		})
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
 
 		cfg, _ := config.GetConfig()
 		dynamicClient, _ := dynamic.NewForConfig(cfg)

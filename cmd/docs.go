@@ -10,7 +10,7 @@ var docsCmd = &cobra.Command{
 	Use:   "docs",
 	Short: "generate documentation",
 	Long:  ``,
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(cmd *cobra.Command, _ []string) {
 		md, _ := cmd.Flags().GetBool("md")
 		yaml, _ := cmd.Flags().GetBool("yaml")
 		rst, _ := cmd.Flags().GetBool("rst")
@@ -45,7 +45,7 @@ func init() {
 	docsCmd.Flags().Bool("restructured", false, "generate ReStructuredText documentation")
 	docsCmd.Flags().Bool("man", false, "generate man page documentation")
 
-	docsCmd.Flags().SetNormalizeFunc(func(f *pflag.FlagSet, name string) pflag.NormalizedName {
+	docsCmd.Flags().SetNormalizeFunc(func(_ *pflag.FlagSet, name string) pflag.NormalizedName {
 		switch name {
 		case "md":
 			name = "markdown"

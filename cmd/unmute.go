@@ -24,8 +24,11 @@ var unmuteCmd = &cobra.Command{
 	Short:   "unmute a telemetry muting filter",
 	Long:    `deactivate (delete from pipeline configuration) a telemetry muting filter`,
 	Example: `  mdai unmute --name test-filter # unmute the filter with name test-filter`,
-	Run: func(cmd *cobra.Command, args []string) {
-		var patchBytes []byte
+	Run: func(cmd *cobra.Command, _ []string) {
+		var (
+			patchBytes []byte
+			err        error
+		)
 		filterName, _ := cmd.Flags().GetString("name")
 
 		cfg := config.GetConfigOrDie()
@@ -49,13 +52,17 @@ var unmuteCmd = &cobra.Command{
 		for i, filter := range *get.Spec.TelemetryModule.Collectors[0].TelemetryFiltering.Filters {
 			if filter.Name == filterName {
 				filter.Enabled = false
-				patchBytes, _ = json.Marshal([]mutePatch{
+				patchBytes, err = json.Marshal([]mutePatch{
 					{
 						Op:    PatchOpReplace,
 						Path:  fmt.Sprintf(MutedPipelinesJSONPath, i),
 						Value: filter,
 					},
 				})
+				if err != nil {
+					fmt.Println(err)
+					return
+				}
 				break
 			}
 		}

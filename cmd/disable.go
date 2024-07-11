@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -23,18 +24,21 @@ var disableCmd = &cobra.Command{
 	Short:   "disable a module",
 	Long:    `disable a module`,
 	Example: `  mdai disable --module datalyzer`,
-	PreRunE: func(cmd *cobra.Command, args []string) error {
+	PreRunE: func(cmd *cobra.Command, _ []string) error {
 		module, _ := cmd.Flags().GetString("module")
 		if module == "" {
-			return fmt.Errorf("module is required")
+			return errors.New("module is required")
 		}
 		if !slices.Contains(SupportedModules, module) {
 			return fmt.Errorf("module %s is not supported for disabling", module)
 		}
 		return nil
 	},
-	Run: func(cmd *cobra.Command, args []string) {
-		var patchBytes []byte
+	Run: func(cmd *cobra.Command, _ []string) {
+		var (
+			patchBytes []byte
+			err        error
+		)
 		module, _ := cmd.Flags().GetString("module")
 		cfg, _ := config.GetConfig()
 		dynamicClient, _ := dynamic.NewForConfig(cfg)
@@ -46,13 +50,17 @@ var disableCmd = &cobra.Command{
 		}
 		switch module {
 		case "datalyzer":
-			patchBytes, _ = json.Marshal([]datalyzerPatch{
+			patchBytes, err = json.Marshal([]datalyzerPatch{
 				{
 					Op:    PatchOpReplace,
 					Path:  DatalyzerJSONPath,
 					Value: false,
 				},
 			})
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
 		}
 
 		if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {

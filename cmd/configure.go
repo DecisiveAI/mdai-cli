@@ -8,7 +8,7 @@ var configureCmd = &cobra.Command{
 	Use:   "configure",
 	Short: "",
 	Long:  "",
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, _ []string) {
 	},
 }
 

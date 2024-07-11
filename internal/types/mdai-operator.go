@@ -60,7 +60,7 @@ const (
 	MDAIOperatorGroup    = "mydecisive.ai"
 	MDAIOperatorVersion  = "v1"
 	MDAIOperatorResource = "mydecisiveengines"
-	MDAIOperatorKind = "MyDecisiveEngine"
+	MDAIOperatorKind     = "MyDecisiveEngine"
 )
 
 func NewMDAIOperator() MDAIOperator {
