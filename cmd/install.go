@@ -28,7 +28,7 @@ var (
 	installationType string
 )
 
-var installCommand = &cobra.Command{
+var installCmd = &cobra.Command{
 	GroupID: "installation",
 	Use:     "install [--cluster-name CLUSTER-NAME] [--debug] [--quiet]",
 	Short:   "install MyDecisive Cluster",
@@ -67,7 +67,6 @@ var installCommand = &cobra.Command{
 		quietMode, _ := cmd.Flags().GetBool("quiet")
 		clusterName, _ := cmd.Flags().GetString("cluster-name")
 
-		helmcharts := []string{"cert-manager", "opentelemetry-operator", "prometheus", "mdai-api", "mdai-console", "datalyzer", "mdai-operator"}
 		/*
 			if installationType == "" {
 				s := huh.NewSelect[string]().
@@ -105,7 +104,7 @@ var installCommand = &cobra.Command{
 				errs <- errors.Wrap(err, "failed to add helm repos")
 				return errors.Wrap(err, "failed to add helm repos")
 			}
-			for _, helmchart := range helmcharts {
+			for _, helmchart := range mdaiHelmcharts {
 				task <- "installing helm chart " + helmchart
 				if err := helmclient.InstallChart(helmchart); err != nil {
 					errs <- errors.Wrap(err, "failed to install helm chart "+helmchart)
@@ -198,86 +197,12 @@ var installCommand = &cobra.Command{
 	},
 }
 
-var demoCommand = &cobra.Command{
-	GroupID: "installation",
-	Use:     "demo",
-	Short:   "install OpenTelemetry Demo",
-	Long:    "install OpenTelemetry Demo",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		messages := make(chan string)
-		debug := make(chan string)
-		errs := make(chan error)
-		done := make(chan bool)
-		task := make(chan string)
-		defer func() {
-			close(messages)
-			close(debug)
-			close(errs)
-			close(task)
-			close(done)
-		}()
-
-		debugMode := false
-		quietMode := false
-		clusterName, _ := cmd.Flags().GetString("cluster-name")
-
-		helmcharts := []string{"opentelemetry-demo"}
-
-		go func() error {
-			task <- "creating kubernetes cluster via kind"
-			kindclient := kind.NewClient(messages, debug, errs, clusterName)
-			if _, err := kindclient.Install(); err != nil {
-				errs <- errors.Wrap(err, "failed to create kubernetes cluster")
-				return errors.Wrap(err, "failed to create kubernetes cluster")
-			}
-
-			tmpfile, err := os.CreateTemp(os.TempDir(), "mdai-cli")
-			if err != nil {
-				errs <- errors.Wrap(err, "failed to create temp dir")
-				return errors.Wrap(err, "failed to create temp dir")
-			}
-			defer os.Remove(tmpfile.Name())
-			helmclient := mdaihelm.NewClient(messages, debug, errs, tmpfile.Name())
-			task <- "adding helm repos"
-			helmclient.AddRepos()
-			for _, helmchart := range helmcharts {
-				task <- "installing helm chart " + helmchart
-				if err := helmclient.InstallChart(helmchart); err != nil {
-					errs <- errors.Wrap(err, "failed to install helm chart "+helmchart)
-					return errors.Wrap(err, "failed to install helm chart "+helmchart)
-				}
-			}
-
-			done <- true
-			return nil
-		}()
-
-		p := tea.NewProgram(
-			viewport.InitialModel(
-				messages,
-				debug,
-				errs,
-				done,
-				task,
-				debugMode,
-				quietMode,
-			),
-		)
-		if _, err := p.Run(); err != nil {
-			return errors.Wrap(err, "failed to run program")
-		}
-		return nil
-	},
-}
-
 func init() {
-	rootCmd.AddCommand(installCommand)
-	rootCmd.AddCommand(demoCommand)
+	rootCmd.AddCommand(installCmd)
 	//installCommand.Flags().Bool("aws", false, "aws installation type")
 	//installCommand.Flags().Bool("local", false, "local installation type")
-	installCommand.Flags().String("cluster-name", "mdai-local", "kubernetes cluster name")
-	installCommand.Flags().Bool("debug", false, "debug mode")
-	installCommand.Flags().Bool("quiet", false, "quiet mode")
-	installCommand.DisableFlagsInUseLine = true
-	demoCommand.Flags().String("cluster-name", "mdai-local", "kubernetes cluster name")
+	installCmd.Flags().String("cluster-name", "mdai-local", "kubernetes cluster name")
+	installCmd.Flags().Bool("debug", false, "debug mode")
+	installCmd.Flags().Bool("quiet", false, "quiet mode")
+	installCmd.DisableFlagsInUseLine = true
 }

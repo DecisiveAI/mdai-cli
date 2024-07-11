@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"os"
 
+	mdaitypes "github.com/decisiveai/mdai-cli/internal/types"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v3"
 	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/getter"
@@ -83,8 +85,8 @@ func (c *Client) addRepo(name, url string) error {
 	return err
 }
 
-func (c *Client) InstallChart(helmChart string) error {
-	chartSpec := getChartSpec(helmChart)
+func (c *Client) InstallChart(helmchart string) error {
+	chartSpec := getChartSpec(helmchart)
 	settings := c.cliEnvSettings
 	settings.SetNamespace(chartSpec.Namespace)
 	actionConfig := new(action.Configuration)
@@ -111,26 +113,18 @@ func (c *Client) InstallChart(helmChart string) error {
 			return errors.Wrap(err, "failed to locate chart")
 		}
 
-		chart, err := loader.Load(chartPath)
+		chart, values, err := c.getChartAndValues(chartSpec, chartPath)
 		if err != nil {
-			c.errs <- errors.Wrap(err, "failed to load chart")
-			return errors.Wrap(err, "failed to load chart")
+			c.errs <- errors.Wrap(err, "failed to get chart and values")
+			return errors.Wrap(err, "failed to get chart and values")
 		}
 
-		values := map[string]any{}
-		if chartSpec.ValuesYaml != "" {
-			if err := yaml.Unmarshal([]byte(chartSpec.ValuesYaml), &values); err != nil {
-				c.errs <- errors.Wrap(err, "failed to parse ValuesYaml")
-				return errors.Wrap(err, "failed to parse ValuesYaml")
-			}
+		if _, err = client.Run(chart, values); err != nil {
+			c.errs <- errors.Wrap(err, "failed to install chart "+chartSpec.ReleaseName+" in namespace "+chartSpec.Namespace)
+			return errors.Wrap(err, "failed to install chart "+chartSpec.ReleaseName+" in namespace "+chartSpec.Namespace)
 		}
-
-		_, err = client.Run(chart, values)
-		if err == nil {
-			c.messages <- "chart " + chartSpec.ReleaseName + " in namespace " + chartSpec.Namespace + " installed successfully"
-		}
-		c.errs <- errors.Wrap(err, "failed to install chart "+chartSpec.ReleaseName+"in namespace "+chartSpec.Namespace)
-		return errors.Wrap(err, "failed to install chart "+chartSpec.ReleaseName+"in namespace "+chartSpec.Namespace)
+		c.messages <- "chart " + chartSpec.ReleaseName + " in namespace " + chartSpec.Namespace + " installed successfully"
+		return nil
 	default:
 		client := action.NewUpgrade(actionConfig)
 		client.Namespace = chartSpec.Namespace
@@ -140,28 +134,66 @@ func (c *Client) InstallChart(helmChart string) error {
 		chartPath, err := client.ChartPathOptions.LocateChart(chartSpec.ChartName, settings)
 		if err != nil {
 			c.errs <- errors.Wrap(err, "failed to locate chart")
-			return err
+			return errors.Wrap(err, "failed to locate chart")
 		}
 
-		chart, err := loader.Load(chartPath)
+		chart, values, err := c.getChartAndValues(chartSpec, chartPath)
 		if err != nil {
-			c.errs <- errors.Wrap(err, "failed to load chart")
-			return err
+			c.errs <- errors.Wrap(err, "failed to get chart and values")
+			return errors.Wrap(err, "failed to get chart and values")
 		}
 
-		values := map[string]any{}
-		if chartSpec.ValuesYaml != "" {
-			if err := yaml.Unmarshal([]byte(chartSpec.ValuesYaml), &values); err != nil {
-				c.errs <- errors.Wrap(err, "failed to parse ValuesYaml")
-				return errors.Wrap(err, "failed to parse ValuesYaml")
-			}
-		}
+		if _, err = client.Run(chartSpec.ReleaseName, chart, values); err != nil {
+			c.errs <- errors.Wrap(err, "failed to upgrade chart "+chartSpec.ReleaseName+" in namespace "+chartSpec.Namespace)
+			return errors.Wrap(err, "failed to upgrade chart "+chartSpec.ReleaseName+" in namespace "+chartSpec.Namespace)
 
-		_, err = client.Run(chartSpec.ReleaseName, chart, values)
-		if err == nil {
-			c.messages <- "chart " + chartSpec.ReleaseName + " in namespace " + chartSpec.Namespace + " upgraded successfully"
 		}
-		c.errs <- errors.Wrap(err, "failed to upgrade chart "+chartSpec.ReleaseName+"in namespace "+chartSpec.Namespace)
-		return errors.Wrap(err, "failed to upgrade chart "+chartSpec.ReleaseName+"in namespace "+chartSpec.Namespace)
+		c.messages <- "chart " + chartSpec.ReleaseName + " in namespace " + chartSpec.Namespace + " upgraded successfully"
+		return nil
 	}
+}
+
+func (c *Client) UninstallChart(helmchart string) error {
+	chartSpec := getChartSpec(helmchart)
+	settings := c.cliEnvSettings
+	settings.SetNamespace(chartSpec.Namespace)
+	actionConfig := new(action.Configuration)
+	if err := actionConfig.Init(settings.RESTClientGetter(), chartSpec.Namespace, "", func(format string, v ...interface{}) { c.debug <- fmt.Sprintf(format, v) }); err != nil {
+		c.errs <- errors.Wrap(err, "failed to initialize Helm client")
+		return errors.Wrap(err, "failed to initialize Helm client")
+	}
+
+	histClient := action.NewHistory(actionConfig)
+	histClient.Max = 1
+	if _, err := histClient.Run(chartSpec.ReleaseName); err == driver.ErrReleaseNotFound {
+		c.messages <- "chart " + chartSpec.ReleaseName + " in namespace " + chartSpec.Namespace + " not found. skipping uninstall."
+		return nil
+	}
+
+	uninstall := action.NewUninstall(actionConfig)
+
+	if _, err := uninstall.Run(chartSpec.ReleaseName); err != nil {
+		c.errs <- errors.Wrap(err, "failed to uninstall chart "+chartSpec.ReleaseName+" in namespace "+chartSpec.Namespace)
+		return errors.Wrap(err, "failed to uninstall chart "+chartSpec.ReleaseName+" in namespace "+chartSpec.Namespace)
+	}
+	c.messages <- "release " + chartSpec.ReleaseName + " in namespace " + chartSpec.Namespace + " uninstalled successfully"
+
+	return nil
+}
+
+func (c *Client) getChartAndValues(chartSpec mdaitypes.ChartSpec, chartPath string) (*chart.Chart, map[string]any, error) {
+	chart, err := loader.Load(chartPath)
+	if err != nil {
+		c.errs <- errors.Wrap(err, "failed to load chart")
+		return nil, nil, errors.Wrap(err, "failed to load chart")
+	}
+
+	values := map[string]any{}
+	if chartSpec.ValuesYaml != "" {
+		if err := yaml.Unmarshal([]byte(chartSpec.ValuesYaml), &values); err != nil {
+			c.errs <- errors.Wrap(err, "failed to parse ValuesYaml")
+			return nil, nil, errors.Wrap(err, "failed to parse ValuesYaml")
+		}
+	}
+	return chart, values, nil
 }

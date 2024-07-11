@@ -33,7 +33,7 @@ func init() {
 		ValuesYaml:      string(certManagerValuesYaml),
 		Replace:         true,
 		CreateNamespace: true,
-		Timeout:         60 * time.Second, // nolint: gomnd
+		Timeout:         120 * time.Second, // nolint: gomnd
 	}
 
 	chartSpecs["opentelemetry-operator"] = mdaitypes.ChartSpec{

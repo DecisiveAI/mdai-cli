@@ -8,6 +8,7 @@ import (
 
 	//"github.com/decisiveai/opentelemetry-operator/apis/v1alpha1"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/cli"
@@ -45,12 +46,12 @@ var statusCmd = &cobra.Command{
 	Use:   "status",
 	Short: "show kubernetes deployment status",
 	Long:  `show installed helm charts, deployments with their statuses`,
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		cfg := config.GetConfigOrDie()
 		actionConfig := new(action.Configuration)
 		settings := cli.New()
 		if err := actionConfig.Init(settings.RESTClientGetter(), "", "", nil); err != nil {
-			panic(err)
+			return errors.Wrap(err, "failed to initialize helm client")
 		}
 		client := action.NewList(actionConfig)
 		client.AllNamespaces = true
@@ -97,6 +98,7 @@ var statusCmd = &cobra.Command{
 				}
 			}
 		}
+		return nil
 	},
 }
 

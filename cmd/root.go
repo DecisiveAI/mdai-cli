@@ -6,6 +6,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var (
+  mdaiHelmcharts = []string{"cert-manager", "opentelemetry-operator", "prometheus", "mdai-api", "mdai-console", "datalyzer", "mdai-operator"}
+)
+
 var rootCmd = &cobra.Command{
 	Use:   "mdai",
 	Short: "MyDecisive.ai CLI",
