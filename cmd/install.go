@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"embed"
+	"fmt"
 	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -144,7 +145,7 @@ var installCommand = &cobra.Command{
 				obj.GetName(),
 				metav1.GetOptions{},
 			)
-			if err != nil {
+			if err != nil && err.Error() != fmt.Sprintf(`%s.%s "%s" not found`, mdaitypes.MDAIOperatorResource, mdaitypes.MDAIOperatorGroup, obj.GetName()) {
 				errs <- errors.Wrap(err, "failed to get mdai-operator")
 				return errors.Wrap(err, "failed to get mdai-operator")
 			}
