@@ -59,9 +59,9 @@ install: mdai
 demo: mdai
 	./mdai demo
 
-.PHONY: docker-local
-.SILENT: docker-local
-docker-local: docker-build
+.PHONY: docker-install
+.SILENT: docker-install
+docker-install: docker-build
 	docker run --network host -v /var/run/docker.sock:/var/run/docker.sock -it --rm mdai-cli:latest install
 
 .PHONY: docker-demo
