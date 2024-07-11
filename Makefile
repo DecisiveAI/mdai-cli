@@ -1,3 +1,36 @@
+ifndef CARGO_DIST_TARGET
+	GOARCH = $(shell uname -m)
+	GOOS = $(shell uname -o | tr '[:upper:]' '[:lower:]')
+else
+ifeq ($(CARGO_DIST_TARGET),aarch64-apple-darwin)
+	GOARCH = arm64
+	GOOS = darwin
+else
+ifeq ($(CARGO_DIST_TARGET),x86_64-apple-darwin)
+	GOARCH = amd64
+	GOOS = darwin
+else
+ifeq ($(CARGO_DIST_TARGET),x86_64-unknown-linux-gnu)
+	GOARCH = amd64
+	GOOS = linux
+else
+ifeq ($(CARGO_DIST_TARGET),x86_64-unknown-linux-musl)
+	GOARCH = amd64
+	GOOS = linux
+else
+ifeq ($(CARGO_DIST_TARGET),x86_64-pc-windows-msvc)
+	GOARCH = amd64
+	GOOS = windows
+else
+$(error "unsupported target platform $(CARGO_DIST_TARGET)")
+endif
+endif
+endif
+endif
+endif
+endif
+
+
 .PHONY: build
 .SILENT: build
 build:
@@ -8,7 +41,7 @@ build:
 .SILENT: mdai
 mdai:
 	go mod vendor
-	CGO_ENABLED=0 go build -o mdai main.go
+	GOOS=$(GOOS) GOARCH=$(GOARCH) CGO_ENABLED=0 go build -o mdai main.go
 
 .PHONY: docker-build
 .SILENT: docker-build
@@ -16,9 +49,9 @@ docker-build:
 	go mod vendor
 	docker build -t mdai-cli:latest .
 
-.PHONY: local
-.SILENT: local
-local: mdai
+.PHONY: install
+.SILENT: install
+install: mdai
 	./mdai install
 
 .PHONY: demo
