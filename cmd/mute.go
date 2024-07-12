@@ -77,14 +77,16 @@ var muteCmd = &cobra.Command{
 			}
 		}
 		if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-			_, err := dynamicClient.Resource(gvr).Namespace(Namespace).Patch(
+			if _, err := dynamicClient.Resource(gvr).Namespace(Namespace).Patch(
 				context.TODO(),
 				mdaitypes.MDAIOperatorName,
 				types.JSONPatchType,
 				patchBytes,
 				metav1.PatchOptions{},
-			)
-			return fmt.Errorf("failed to apply patch: %w", err)
+			); err != nil {
+				return fmt.Errorf("failed to apply patch: %w", err)
+			}
+			return nil
 		}); err != nil {
 			return err // nolint: wrapcheck
 		}
