@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/charmbracelet/lipgloss"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/cli"
@@ -50,7 +49,7 @@ var statusCmd = &cobra.Command{
 		actionConfig := new(action.Configuration)
 		settings := cli.New()
 		if err := actionConfig.Init(settings.RESTClientGetter(), "", "", nil); err != nil {
-			return errors.Wrap(err, "failed to initialize helm client")
+			return fmt.Errorf("failed to initialize helm client: %w", err)
 		}
 		client := action.NewList(actionConfig)
 		client.AllNamespaces = true

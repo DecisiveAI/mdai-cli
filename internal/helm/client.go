@@ -42,8 +42,8 @@ func NewClient(
 func (c *Client) AddRepos() error {
 	for _, repo := range repos {
 		if err := c.addRepo(repo.Name, repo.URL); err != nil {
-			c.errs <- errors.Wrap(err, "failed to add repo "+repo.Name)
-			return errors.Wrap(err, "failed to add repo "+repo.Name)
+			c.errs <- fmt.Errorf("failed to add repo %s: %w", repo.Name, err)
+			return fmt.Errorf("failed to add repo %s: %w", repo.Name, err)
 		}
 		c.messages <- "added repo " + repo.Name
 	}
@@ -54,8 +54,8 @@ func (c *Client) addRepo(name, url string) error {
 	file := c.cliEnvSettings.RepositoryConfig
 	repoFile, err := repo.LoadFile(file)
 	if err != nil && !os.IsNotExist(err) {
-		c.errs <- errors.Wrap(err, "failed to load Helm repo index file")
-		return err
+		c.errs <- fmt.Errorf("failed to load helm repo index file: %w", err)
+		return fmt.Errorf("failed to load helm repo index file: %w", err)
 	}
 
 	if repoFile.Has(name) {
@@ -70,19 +70,19 @@ func (c *Client) addRepo(name, url string) error {
 
 	repo, err := repo.NewChartRepository(&entry, getter.All(c.cliEnvSettings))
 	if err != nil {
-		c.errs <- errors.Wrap(err, "failed to create chart repository")
-		return err
+		c.errs <- fmt.Errorf("failed to create chart repository: %w", err)
+		return fmt.Errorf("failed to create chart repository: %w", err)
 	}
 
 	if _, err := repo.DownloadIndexFile(); err != nil {
-		c.errs <- errors.Wrap(err, "failed to download Helm repo index file")
-		return err
+		c.errs <- fmt.Errorf("failed to download helm repo index file: %w", err)
+		return fmt.Errorf("failed to download helm repo index file: %w", err)
 	}
 
 	repoFile.Update(&entry)
-	err = repoFile.WriteFile(file, 0o644)
-	c.errs <- errors.Wrap(err, "failed to write Helm repo index file")
-	return err
+	err = repoFile.WriteFile(file, 0o644) // nolint: mnd
+	c.errs <- fmt.Errorf("failed to write helm repo index file: %w", err)
+	return fmt.Errorf("failed to write helm repo index file: %w", err)
 }
 
 func (c *Client) InstallChart(helmchart string) error {
@@ -91,8 +91,8 @@ func (c *Client) InstallChart(helmchart string) error {
 	settings.SetNamespace(chartSpec.Namespace)
 	actionConfig := new(action.Configuration)
 	if err := actionConfig.Init(settings.RESTClientGetter(), chartSpec.Namespace, "", func(format string, v ...interface{}) { c.debug <- fmt.Sprintf(format, v) }); err != nil {
-		c.errs <- errors.Wrap(err, "failed to initialize Helm client")
-		return errors.Wrap(err, "failed to initialize Helm client")
+		c.errs <- fmt.Errorf("failed to initialize helm client: %w", err)
+		return fmt.Errorf("failed to initialize helm client: %w", err)
 	}
 
 	histClient := action.NewHistory(actionConfig)
@@ -109,19 +109,19 @@ func (c *Client) InstallChart(helmchart string) error {
 
 		chartPath, err := client.ChartPathOptions.LocateChart(chartSpec.ChartName, settings)
 		if err != nil {
-			c.errs <- errors.Wrap(err, "failed to locate chart")
-			return errors.Wrap(err, "failed to locate chart")
+			c.errs <- fmt.Errorf("failed to locate chart: %w", err)
+			return fmt.Errorf("failed to locate chart: %w", err)
 		}
 
 		chart, values, err := c.getChartAndValues(chartSpec, chartPath)
 		if err != nil {
-			c.errs <- errors.Wrap(err, "failed to get chart and values")
-			return errors.Wrap(err, "failed to get chart and values")
+			c.errs <- fmt.Errorf("failed to get chart and values: %w", err)
+			return fmt.Errorf("failed to get chart and values: %w", err)
 		}
 
 		if _, err = client.Run(chart, values); err != nil {
-			c.errs <- errors.Wrap(err, "failed to install chart "+chartSpec.ReleaseName+" in namespace "+chartSpec.Namespace)
-			return errors.Wrap(err, "failed to install chart "+chartSpec.ReleaseName+" in namespace "+chartSpec.Namespace)
+			c.errs <- fmt.Errorf("failed to install chart %s in namespace %s: %w", chartSpec.ReleaseName, chartSpec.Namespace, err)
+			return fmt.Errorf("failed to install chart %s in namespace %s: %w", chartSpec.ReleaseName, chartSpec.Namespace, err)
 		}
 		c.messages <- "chart " + chartSpec.ReleaseName + " in namespace " + chartSpec.Namespace + " installed successfully"
 		return nil
@@ -133,19 +133,19 @@ func (c *Client) InstallChart(helmchart string) error {
 
 		chartPath, err := client.ChartPathOptions.LocateChart(chartSpec.ChartName, settings)
 		if err != nil {
-			c.errs <- errors.Wrap(err, "failed to locate chart")
-			return errors.Wrap(err, "failed to locate chart")
+			c.errs <- fmt.Errorf("failed to locate chart: %w", err)
+			return fmt.Errorf("failed to locate chart: %w", err)
 		}
 
 		chart, values, err := c.getChartAndValues(chartSpec, chartPath)
 		if err != nil {
-			c.errs <- errors.Wrap(err, "failed to get chart and values")
-			return errors.Wrap(err, "failed to get chart and values")
+			c.errs <- fmt.Errorf("failed to get chart and values: %w", err)
+			return fmt.Errorf("failed to get chart and values: %w", err)
 		}
 
 		if _, err = client.Run(chartSpec.ReleaseName, chart, values); err != nil {
-			c.errs <- errors.Wrap(err, "failed to upgrade chart "+chartSpec.ReleaseName+" in namespace "+chartSpec.Namespace)
-			return errors.Wrap(err, "failed to upgrade chart "+chartSpec.ReleaseName+" in namespace "+chartSpec.Namespace)
+			c.errs <- fmt.Errorf("failed to upgrade chart %s in namespace %s: %w", chartSpec.ReleaseName, chartSpec.Namespace, err)
+			return fmt.Errorf("failed to upgrade chart %s in namespace %s: %w", chartSpec.ReleaseName, chartSpec.Namespace, err)
 		}
 		c.messages <- "chart " + chartSpec.ReleaseName + " in namespace " + chartSpec.Namespace + " upgraded successfully"
 		return nil
@@ -158,8 +158,8 @@ func (c *Client) UninstallChart(helmchart string) error {
 	settings.SetNamespace(chartSpec.Namespace)
 	actionConfig := new(action.Configuration)
 	if err := actionConfig.Init(settings.RESTClientGetter(), chartSpec.Namespace, "", func(format string, v ...interface{}) { c.debug <- fmt.Sprintf(format, v) }); err != nil {
-		c.errs <- errors.Wrap(err, "failed to initialize Helm client")
-		return errors.Wrap(err, "failed to initialize Helm client")
+		c.errs <- fmt.Errorf("failed to initialize helm client: %w", err)
+		return fmt.Errorf("failed to initialize helm client: %w", err)
 	}
 
 	histClient := action.NewHistory(actionConfig)
@@ -172,8 +172,8 @@ func (c *Client) UninstallChart(helmchart string) error {
 	uninstall := action.NewUninstall(actionConfig)
 
 	if _, err := uninstall.Run(chartSpec.ReleaseName); err != nil {
-		c.errs <- errors.Wrap(err, "failed to uninstall chart "+chartSpec.ReleaseName+" in namespace "+chartSpec.Namespace)
-		return errors.Wrap(err, "failed to uninstall chart "+chartSpec.ReleaseName+" in namespace "+chartSpec.Namespace)
+		c.errs <- fmt.Errorf("failed to uninstall chart %s in namespace %s: %w", chartSpec.ReleaseName, chartSpec.Namespace, err)
+		return fmt.Errorf("failed to uninstall chart %s in namespace %s: %w", chartSpec.ReleaseName, chartSpec.Namespace, err)
 	}
 	c.messages <- "release " + chartSpec.ReleaseName + " in namespace " + chartSpec.Namespace + " uninstalled successfully"
 
@@ -183,15 +183,15 @@ func (c *Client) UninstallChart(helmchart string) error {
 func (c *Client) getChartAndValues(chartSpec mdaitypes.ChartSpec, chartPath string) (*chart.Chart, map[string]any, error) {
 	chart, err := loader.Load(chartPath)
 	if err != nil {
-		c.errs <- errors.Wrap(err, "failed to load chart")
-		return nil, nil, errors.Wrap(err, "failed to load chart")
+		c.errs <- fmt.Errorf("failed to load chart: %w", err)
+		return nil, nil, fmt.Errorf("failed to load chart: %w", err)
 	}
 
 	values := map[string]any{}
 	if chartSpec.ValuesYaml != "" {
 		if err := yaml.Unmarshal([]byte(chartSpec.ValuesYaml), &values); err != nil {
-			c.errs <- errors.Wrap(err, "failed to parse ValuesYaml")
-			return nil, nil, errors.Wrap(err, "failed to parse ValuesYaml")
+			c.errs <- fmt.Errorf("failed to parse ValuesYaml: %w", err)
+			return nil, nil, fmt.Errorf("failed to parse ValuesYaml: %w", err)
 		}
 	}
 	return chart, values, nil

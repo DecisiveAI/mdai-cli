@@ -24,7 +24,7 @@ var unmuteCmd = &cobra.Command{
 	Short:   "unmute a telemetry muting filter",
 	Long:    `deactivate (delete from pipeline configuration) a telemetry muting filter`,
 	Example: `  mdai unmute --name test-filter # unmute the filter with name test-filter`,
-	Run: func(cmd *cobra.Command, _ []string) {
+	RunE: func(cmd *cobra.Command, _ []string) error {
 		var (
 			patchBytes []byte
 			err        error
@@ -40,13 +40,11 @@ var unmuteCmd = &cobra.Command{
 			Namespace: Namespace,
 			Name:      mdaitypes.MDAIOperatorName,
 		}, &get); err != nil {
-			fmt.Printf("error: %+v\n", err)
-			return
+			return fmt.Errorf("failed to get mdai operator: %w", err)
 		}
 
 		if get.Spec.TelemetryModule.Collectors[0].TelemetryFiltering == nil {
-			fmt.Printf("filter %s not found\n", filterName)
-			return
+			return fmt.Errorf("filter %s not found", filterName)
 		}
 
 		for i, filter := range *get.Spec.TelemetryModule.Collectors[0].TelemetryFiltering.Filters {
@@ -60,15 +58,13 @@ var unmuteCmd = &cobra.Command{
 					},
 				})
 				if err != nil {
-					fmt.Println(err)
-					return
+					return fmt.Errorf("failed to marshal patch: %w", err)
 				}
 				break
 			}
 		}
 		if patchBytes == nil {
-			fmt.Printf("filter %s not found.\n", filterName)
-			return
+			return fmt.Errorf("filter %s not found", filterName)
 		}
 
 		dynamicClient, _ := dynamic.NewForConfig(cfg)
@@ -86,12 +82,12 @@ var unmuteCmd = &cobra.Command{
 				patchBytes,
 				metav1.PatchOptions{},
 			)
-			return err
+			return fmt.Errorf("failed to apply patch: %w", err)
 		}); err != nil {
-			fmt.Println(err)
-			return
+			return err // nolint: wrapcheck
 		}
 		fmt.Printf("%s filter unmuted successfully.\n", filterName)
+		return nil
 	},
 }
 
@@ -99,4 +95,5 @@ func init() {
 	rootCmd.AddCommand(unmuteCmd)
 	unmuteCmd.Flags().StringP("name", "n", "", "name of the filter")
 	unmuteCmd.DisableFlagsInUseLine = true
+	unmuteCmd.SilenceUsage = true
 }

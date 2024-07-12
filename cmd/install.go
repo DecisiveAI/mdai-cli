@@ -11,7 +11,6 @@ import (
 	"github.com/decisiveai/mdai-cli/internal/kind"
 	mdaitypes "github.com/decisiveai/mdai-cli/internal/types"
 	"github.com/decisiveai/mdai-cli/internal/viewport"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -85,41 +84,41 @@ var installCmd = &cobra.Command{
 				task <- "creating kubernetes cluster via kind"
 				kindclient := kind.NewClient(messages, debug, errs, clusterName)
 				if _, err := kindclient.Install(); err != nil {
-					errs <- errors.Wrap(err, "failed to create kubernetes cluster")
-					return errors.Wrap(err, "failed to create kubernetes cluster")
+					errs <- fmt.Errorf("failed to create kubernetes cluster: %w", err)
+					return fmt.Errorf("failed to create kubernetes cluster: %w", err)
 				}
 			}
 
 			tmpfile, err := os.CreateTemp(os.TempDir(), "mdai-cli")
 			if err != nil {
-				errs <- errors.Wrap(err, "failed to create temp dir")
-				return errors.Wrap(err, "failed to create temp dir")
+				errs <- fmt.Errorf("failed to create temp dir: %w", err)
+				return fmt.Errorf("failed to create temp dir: %w", err)
 			}
 			defer os.Remove(tmpfile.Name())
 			helmclient := mdaihelm.NewClient(messages, debug, errs, tmpfile.Name())
 			task <- "adding helm repos"
 			if err := helmclient.AddRepos(); err != nil {
-				errs <- errors.Wrap(err, "failed to add helm repos")
-				return errors.Wrap(err, "failed to add helm repos")
+				errs <- fmt.Errorf("failed to add helm repos: %w", err)
+				return fmt.Errorf("failed to add helm repos: %w", err)
 			}
 			for _, helmchart := range mdaiHelmcharts {
 				task <- "installing helm chart " + helmchart
 				if err := helmclient.InstallChart(helmchart); err != nil {
-					errs <- errors.Wrap(err, "failed to install helm chart "+helmchart)
-					return errors.Wrap(err, "failed to install helm chart "+helmchart)
+					errs <- fmt.Errorf("failed to install helm chart %s: %w", helmchart, err)
+					return fmt.Errorf("failed to install helm chart %s: %w", helmchart, err)
 				}
 			}
 
 			cfg, err := config.GetConfig()
 			if err != nil {
-				errs <- errors.Wrap(err, "failed to get kubernetes config")
-				return errors.Wrap(err, "failed to get kubernetes config")
+				errs <- fmt.Errorf("failed to get kubernetes config: %w", err)
+				return fmt.Errorf("failed to get kubernetes config: %w", err)
 			}
 
 			dynamicClient, err := dynamic.NewForConfig(cfg)
 			if err != nil {
-				errs <- errors.Wrap(err, "failed to create dynamic client")
-				return errors.Wrap(err, "failed to create dynamic client")
+				errs <- fmt.Errorf("failed to create dynamic client: %w", err)
+				return fmt.Errorf("failed to create dynamic client: %w", err)
 			}
 
 			gvr := schema.GroupVersionResource{
@@ -133,8 +132,8 @@ var installCmd = &cobra.Command{
 			manifest, _ := embedFS.ReadFile("templates/mdai-operator.yaml")
 			_, _, err = decoder.Decode(manifest, nil, obj)
 			if err != nil {
-				errs <- errors.Wrap(err, "failed to decode mdai-operator manifest")
-				return errors.Wrap(err, "failed to decode mdai-operator manifest")
+				errs <- fmt.Errorf("failed to decode mdai-operator manifest: %w", err)
+				return fmt.Errorf("failed to decode mdai-operator manifest: %w", err)
 			}
 
 			mdaiOperator, err := dynamicClient.Resource(gvr).Namespace(obj.GetNamespace()).Get(
@@ -143,8 +142,8 @@ var installCmd = &cobra.Command{
 				metav1.GetOptions{},
 			)
 			if err != nil && err.Error() != fmt.Sprintf(`%s.%s "%s" not found`, mdaitypes.MDAIOperatorResource, mdaitypes.MDAIOperatorGroup, obj.GetName()) {
-				errs <- errors.Wrap(err, "failed to get mdai-operator")
-				return errors.Wrap(err, "failed to get mdai-operator")
+				errs <- fmt.Errorf("failed to get mdai-operator: %w", err)
+				return fmt.Errorf("failed to get mdai-operator: %w", err)
 			}
 
 			if mdaiOperator == nil {
@@ -154,8 +153,8 @@ var installCmd = &cobra.Command{
 					obj,
 					metav1.CreateOptions{},
 				); err != nil {
-					errs <- errors.Wrap(err, "failed to apply mdai-operator manifest")
-					return errors.Wrap(err, "failed to apply mdai-operator manifest")
+					errs <- fmt.Errorf("failed to apply mdai-operator manifest: %w", err)
+					return fmt.Errorf("failed to apply mdai-operator manifest: %w", err)
 				}
 				messages <- "mdai-operator manifest applied successfully"
 			} else {
@@ -166,8 +165,8 @@ var installCmd = &cobra.Command{
 					obj,
 					metav1.UpdateOptions{},
 				); err != nil {
-					errs <- errors.Wrap(err, "failed to update mdai-operator manifest")
-					return errors.Wrap(err, "failed to update mdai-operator manifest")
+					errs <- fmt.Errorf("failed to update mdai-operator manifest: %w", err)
+					return fmt.Errorf("failed to update mdai-operator manifest: %w", err)
 				}
 				messages <- "mdai-operator manifest updated successfully"
 			}
@@ -188,7 +187,7 @@ var installCmd = &cobra.Command{
 			),
 		)
 		if _, err := p.Run(); err != nil {
-			return errors.Wrap(err, "failed to run program")
+			return fmt.Errorf("failed to run program: %w", err)
 		}
 
 		return nil

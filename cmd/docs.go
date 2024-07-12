@@ -17,15 +17,15 @@ var docsCmd = &cobra.Command{
 		man, _ := cmd.Flags().GetBool("man")
 
 		if md {
-			doc.GenMarkdownTree(rootCmd, "docs/md")
+			doc.GenMarkdownTree(rootCmd, "docs/md") // nolint: errcheck
 		}
 
 		if yaml {
-			doc.GenYamlTree(rootCmd, "docs/yaml")
+			doc.GenYamlTree(rootCmd, "docs/yaml") // nolint: errcheck
 		}
 
 		if rst {
-			doc.GenReSTTree(rootCmd, "docs/rst")
+			doc.GenReSTTree(rootCmd, "docs/rst") // nolint: errcheck
 		}
 
 		if man {
@@ -33,7 +33,7 @@ var docsCmd = &cobra.Command{
 				Title:   "MDAI CLI",
 				Section: "1",
 			}
-			doc.GenManTree(rootCmd, header, "docs/man")
+			doc.GenManTree(rootCmd, header, "docs/man") // nolint: errcheck
 		}
 	},
 }

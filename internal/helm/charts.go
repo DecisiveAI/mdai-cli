@@ -33,7 +33,7 @@ func init() {
 		ValuesYaml:      string(certManagerValuesYaml),
 		Replace:         true,
 		CreateNamespace: true,
-		Timeout:         120 * time.Second, // nolint: gomnd
+		Timeout:         120 * time.Second, // nolint: mnd
 	}
 
 	chartSpecs["opentelemetry-operator"] = mdaitypes.ChartSpec{
@@ -48,7 +48,7 @@ func init() {
 		ValuesYaml:      string(opentelemetryOperatorValuesYaml),
 		Replace:         true,
 		CreateNamespace: true,
-		Timeout:         60 * time.Second, // nolint: gomnd
+		Timeout:         60 * time.Second, // nolint: mnd
 	}
 
 	chartSpecs["prometheus"] = mdaitypes.ChartSpec{
@@ -61,7 +61,7 @@ func init() {
 		ValuesYaml:      string(prometheusValuesYaml),
 		Replace:         true,
 		CreateNamespace: true,
-		Timeout:         60 * time.Second, // nolint: gomnd
+		Timeout:         60 * time.Second, // nolint: mnd
 	}
 
 	chartSpecs["metrics-server"] = mdaitypes.ChartSpec{
@@ -73,7 +73,7 @@ func init() {
 		Wait:            true,
 		Replace:         true,
 		CreateNamespace: true,
-		Timeout:         60 * time.Second, // nolint: gomnd
+		Timeout:         60 * time.Second, // nolint: mnd
 	}
 
 	chartSpecs["mdai-api"] = mdaitypes.ChartSpec{
@@ -86,7 +86,7 @@ func init() {
 		ValuesYaml:      string(mdaiAPIValuesYaml),
 		Replace:         true,
 		CreateNamespace: true,
-		Timeout:         60 * time.Second, // nolint: gomnd
+		Timeout:         60 * time.Second, // nolint: mnd
 	}
 
 	chartSpecs["mdai-console"] = mdaitypes.ChartSpec{
@@ -99,7 +99,7 @@ func init() {
 		ValuesYaml:      string(mdaiConsoleValuesYaml),
 		Replace:         true,
 		CreateNamespace: true,
-		Timeout:         60 * time.Second, // nolint: gomnd
+		Timeout:         60 * time.Second, // nolint: mnd
 	}
 
 	chartSpecs["datalyzer"] = mdaitypes.ChartSpec{
@@ -111,7 +111,7 @@ func init() {
 		Wait:            true,
 		Replace:         true,
 		CreateNamespace: true,
-		Timeout:         60 * time.Second, // nolint: gomnd
+		Timeout:         60 * time.Second, // nolint: mnd
 	}
 
 	chartSpecs["mdai-operator"] = mdaitypes.ChartSpec{
@@ -124,7 +124,7 @@ func init() {
 		ValuesYaml:      string(mdaiOperatorValuesYaml),
 		Replace:         true,
 		CreateNamespace: true,
-		Timeout:         60 * time.Second, // nolint: gomnd
+		Timeout:         60 * time.Second, // nolint: mnd
 	}
 
 	chartSpecs["opentelemetry-demo"] = mdaitypes.ChartSpec{
@@ -137,7 +137,7 @@ func init() {
 		ValuesYaml:      string(opentelemetryDemoValuesYaml),
 		Replace:         true,
 		CreateNamespace: true,
-		Timeout:         300 * time.Second, // nolint: gomnd
+		Timeout:         300 * time.Second, // nolint: mnd
 	}
 }
 

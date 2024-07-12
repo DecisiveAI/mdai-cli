@@ -100,7 +100,7 @@ func NewMDAIOperator() MDAIOperator {
 }
 
 func (m *MDAIOperator) ToYaml() ([]byte, error) {
-	return yaml.Marshal(m)
+	return yaml.Marshal(m) // nolint: wrapcheck
 }
 
 func (m *MDAIOperator) SetCollectorConfig(config string) {
