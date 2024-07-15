@@ -33,13 +33,12 @@ endif
 
 .PHONY: build
 .SILENT: build
-build:
-	rm -f mdai
-	go mod vendor
-	CGO_ENABLED=0 go build -o mdai main.go
+build: mdai
 
+.PHONY: mdai
 .SILENT: mdai
 mdai:
+	rm -f mdai
 	go mod vendor
 	GOOS=$(GOOS) GOARCH=$(GOARCH) CGO_ENABLED=0 go build -o mdai main.go
 
