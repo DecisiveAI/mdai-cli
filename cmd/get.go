@@ -73,6 +73,7 @@ func NewGetCommand() *cobra.Command {
 	}
 	cmd.Flags().StringP("config", "c", "", "configuration to get ["+strings.Join(SupportedConfigTypes, ", ")+"]")
 	cmd.DisableFlagsInUseLine = true
+	cmd.SilenceUsage = true
 
 	return cmd
 }
