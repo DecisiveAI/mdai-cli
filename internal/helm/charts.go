@@ -108,7 +108,7 @@ var chartSpecs = map[string]mdaitypes.ChartSpec{
 		ReleaseName:     "mydecisive-engine-operator",
 		ChartName:       "mydecisive/mydecisive-engine-operator",
 		Namespace:       "mdai",
-		Version:         "0.0.7",
+		Version:         "0.0.8",
 		Values:          map[string]any{},
 		UpgradeCRDs:     true,
 		Wait:            true,
