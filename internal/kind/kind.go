@@ -46,9 +46,10 @@ func (c *Client) Install() (string, error) {
 	provider := cluster.NewProvider()
 	c.messages <- "listing nodes in cluster " + c.clusterName + "..."
 	n, err := provider.ListNodes(c.clusterName)
-	if err != nil {
-		c.errs <- fmt.Errorf("error listing nodes: %w", err)
-		return "", fmt.Errorf("error listing nodes: %w", err)
+
+	if err != nil { // the error returned is already wrapped, `errors.Wrap(err, "failed to list nodes")`
+		c.errs <- err  // nolint: wrapcheck
+		return "", err // nolint: wrapcheck
 	}
 	if len(n) == 0 {
 		c.messages <- "cluster " + c.clusterName + " does not exist, creating..."
