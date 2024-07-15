@@ -6,7 +6,7 @@ type ChartSpec struct {
 	ReleaseName     string
 	ChartName       string
 	Namespace       string
-	ValuesYaml      string
+	Values          map[string]any
 	Version         string
 	CreateNamespace bool
 	Replace         bool

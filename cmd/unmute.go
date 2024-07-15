@@ -18,84 +18,84 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 )
 
-var unmuteCmd = &cobra.Command{
-	GroupID: "configuration",
-	Use:     "unmute -n|--name FILTER-NAME",
-	Short:   "unmute a telemetry muting filter",
-	Long:    `deactivate (delete from pipeline configuration) a telemetry muting filter`,
-	Example: `  mdai unmute --name test-filter # unmute the filter with name test-filter`,
-	RunE: func(cmd *cobra.Command, _ []string) error {
-		var (
-			patchBytes []byte
-			err        error
-		)
-		filterName, _ := cmd.Flags().GetString("name")
+func NewUnmuteCommand() *cobra.Command {
+	cmd := &cobra.Command{
+		GroupID: "configuration",
+		Use:     "unmute -n|--name FILTER-NAME",
+		Short:   "unmute a telemetry muting filter",
+		Long:    `deactivate (delete from pipeline configuration) a telemetry muting filter`,
+		Example: `  mdai unmute --name test-filter # unmute the filter with name test-filter`,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			var (
+				patchBytes []byte
+				err        error
+			)
+			filterName, _ := cmd.Flags().GetString("name")
 
-		cfg := config.GetConfigOrDie()
-		s := scheme.Scheme
-		mydecisivev1.AddToScheme(s)
-		k8sClient, _ := client.New(cfg, client.Options{Scheme: s})
-		get := mydecisivev1.MyDecisiveEngine{}
-		if err := k8sClient.Get(context.TODO(), client.ObjectKey{
-			Namespace: Namespace,
-			Name:      mdaitypes.MDAIOperatorName,
-		}, &get); err != nil {
-			return fmt.Errorf("failed to get mdai operator: %w", err)
-		}
+			cfg := config.GetConfigOrDie()
+			s := scheme.Scheme
+			mydecisivev1.AddToScheme(s)
+			k8sClient, _ := client.New(cfg, client.Options{Scheme: s})
+			get := mydecisivev1.MyDecisiveEngine{}
+			if err := k8sClient.Get(context.TODO(), client.ObjectKey{
+				Namespace: Namespace,
+				Name:      mdaitypes.MDAIOperatorName,
+			}, &get); err != nil {
+				return fmt.Errorf("failed to get mdai operator: %w", err)
+			}
 
-		if get.Spec.TelemetryModule.Collectors[0].TelemetryFiltering == nil {
-			return fmt.Errorf("filter %s not found", filterName)
-		}
+			if get.Spec.TelemetryModule.Collectors[0].TelemetryFiltering == nil {
+				return fmt.Errorf("filter %s not found", filterName)
+			}
 
-		for i, filter := range *get.Spec.TelemetryModule.Collectors[0].TelemetryFiltering.Filters {
-			if filter.Name == filterName {
-				filter.Enabled = false
-				patchBytes, err = json.Marshal([]mutePatch{
-					{
-						Op:    PatchOpReplace,
-						Path:  fmt.Sprintf(MutedPipelinesJSONPath, i),
-						Value: filter,
-					},
-				})
-				if err != nil {
-					return fmt.Errorf("failed to marshal patch: %w", err)
+			for i, filter := range *get.Spec.TelemetryModule.Collectors[0].TelemetryFiltering.Filters {
+				if filter.Name == filterName {
+					filter.Enabled = false
+					patchBytes, err = json.Marshal([]mutePatch{
+						{
+							Op:    PatchOpReplace,
+							Path:  fmt.Sprintf(MutedPipelinesJSONPath, i),
+							Value: filter,
+						},
+					})
+					if err != nil {
+						return fmt.Errorf("failed to marshal patch: %w", err)
+					}
+					break
 				}
-				break
 			}
-		}
-		if patchBytes == nil {
-			return fmt.Errorf("filter %s not found", filterName)
-		}
-
-		dynamicClient, _ := dynamic.NewForConfig(cfg)
-		gvr := schema.GroupVersionResource{
-			Group:    mdaitypes.MDAIOperatorGroup,
-			Version:  mdaitypes.MDAIOperatorVersion,
-			Resource: mdaitypes.MDAIOperatorResource,
-		}
-
-		if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-			if _, err := dynamicClient.Resource(gvr).Namespace(Namespace).Patch(
-				context.TODO(),
-				mdaitypes.MDAIOperatorName,
-				types.JSONPatchType,
-				patchBytes,
-				metav1.PatchOptions{},
-			); err != nil {
-				return fmt.Errorf("failed to apply patch: %w", err)
+			if patchBytes == nil {
+				return fmt.Errorf("filter %s not found", filterName)
 			}
+
+			dynamicClient, _ := dynamic.NewForConfig(cfg)
+			gvr := schema.GroupVersionResource{
+				Group:    mdaitypes.MDAIOperatorGroup,
+				Version:  mdaitypes.MDAIOperatorVersion,
+				Resource: mdaitypes.MDAIOperatorResource,
+			}
+
+			if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+				if _, err := dynamicClient.Resource(gvr).Namespace(Namespace).Patch(
+					context.TODO(),
+					mdaitypes.MDAIOperatorName,
+					types.JSONPatchType,
+					patchBytes,
+					metav1.PatchOptions{},
+				); err != nil {
+					return fmt.Errorf("failed to apply patch: %w", err)
+				}
+				return nil
+			}); err != nil {
+				return err // nolint: wrapcheck
+			}
+			fmt.Printf("%s filter unmuted successfully.\n", filterName)
 			return nil
-		}); err != nil {
-			return err // nolint: wrapcheck
-		}
-		fmt.Printf("%s filter unmuted successfully.\n", filterName)
-		return nil
-	},
-}
+		},
+	}
+	cmd.Flags().StringP("name", "n", "", "name of the filter")
+	cmd.DisableFlagsInUseLine = true
+	cmd.SilenceUsage = true
 
-func init() {
-	rootCmd.AddCommand(unmuteCmd)
-	unmuteCmd.Flags().StringP("name", "n", "", "name of the filter")
-	unmuteCmd.DisableFlagsInUseLine = true
-	unmuteCmd.SilenceUsage = true
+	return cmd
 }

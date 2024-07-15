@@ -1,6 +1,9 @@
 package cmd
 
-import mydecisivev1 "github.com/decisiveai/mydecisive-engine-operator/api/v1"
+import (
+	"github.com/charmbracelet/lipgloss"
+	mydecisivev1 "github.com/decisiveai/mydecisive-engine-operator/api/v1"
+)
 
 const (
 	Namespace      = "mdai"
@@ -9,6 +12,12 @@ const (
 
 	DatalyzerJSONPath      = "/spec/telemetryModule/collectors/0/measureVolumes"
 	MutedPipelinesJSONPath = "/spec/telemetryModule/collectors/0/telemetryFiltering/filters/%v"
+)
+
+var (
+	purple  = lipgloss.NewStyle().Foreground(lipgloss.Color("#BF40BF"))
+	white   = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
+	lpurple = lipgloss.NewStyle().Foreground(lipgloss.Color("#800080"))
 )
 
 var (

@@ -16,7 +16,7 @@ spec:
       version: "0.0.1"
     collectors:
       -
-        name: "test-collector"
+        name: "gateway"
         enabled: true
         measureVolumes: true
         telemetryFiltering:

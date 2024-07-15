@@ -4,15 +4,15 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var removeCmd = &cobra.Command{
-	Use:   "remove",
-	Short: "",
-	Long:  ``,
-	Run: func(_ *cobra.Command, _ []string) {
-	},
-}
+func NewRemoveCommand() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "remove",
+		Short: "",
+		Long:  ``,
+		Run: func(_ *cobra.Command, _ []string) {
+		},
+	}
+	cmd.Hidden = true
 
-func init() {
-	rootCmd.AddCommand(removeCmd)
-	removeCmd.Hidden = true
+	return cmd
 }
