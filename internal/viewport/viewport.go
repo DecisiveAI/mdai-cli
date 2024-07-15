@@ -2,6 +2,8 @@ package viewport
 
 import (
 	"fmt"
+	"strings"
+	"time"
 
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/viewport"
@@ -21,6 +23,9 @@ type (
 		quietMode bool
 		spinner   spinner.Model
 		title     string
+		ready     bool
+		content   string
+		start     time.Time
 	}
 	responseMsg   string
 	responseDebug string
@@ -33,13 +38,11 @@ var (
 	errorStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("#FF0000"))
 	normalStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#d3d3d3"))
 	debugStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("#808080"))
+	titleStyle  = lipgloss.NewStyle().Bold(true).Underline(true).MarginBottom(0)
 )
 
 func InitialModel(messages chan string, debug chan string, errs chan error, done chan bool, task chan string, debugMode bool, quietMode bool) model {
-	vp := viewport.New(150, 25)
-	vp.YOffset = 0
 	return model{
-		viewport:  vp,
 		messages:  messages,
 		debug:     debug,
 		errs:      errs,
@@ -48,6 +51,8 @@ func InitialModel(messages chan string, debug chan string, errs chan error, done
 		debugMode: debugMode,
 		quietMode: quietMode,
 		spinner:   spinner.New(spinner.WithSpinner(spinner.Meter), spinner.WithStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("#800080")))),
+		content:   "[" + time.Now().Format(time.DateTime) + "] installation started...",
+		start:     time.Now(),
 	}
 }
 
@@ -95,8 +100,13 @@ func waitForTask(sub chan string) tea.Cmd {
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case responseMsg:
-		m.viewport.SetContent(m.viewport.View() + "\n" + normalStyle.Render(string(msg)))
-		m.viewport.GotoBottom()
+		ts := "[" + time.Now().Format(time.DateTime) + "] "
+		m.content = strings.Join([]string{m.content, normalStyle.Width(m.viewport.Width - 10).Render(ts + string(msg) + " (" + time.Since(m.start).String() + ")")}, "\n")
+		m.viewport.SetContent(m.content)
+		if len(m.content) > m.viewport.VisibleLineCount() {
+			m.viewport.GotoBottom()
+		}
+		m.start = time.Now()
 		return m, tea.Batch(
 			waitForMessages(m.messages),
 			waitForDebug(m.debug),
@@ -106,8 +116,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		)
 	case responseDebug:
 		if m.debugMode {
-			m.viewport.SetContent(m.viewport.View() + "\n" + debugStyle.Render(string(msg)))
-			m.viewport.GotoBottom()
+			ts := "[" + time.Now().Format(time.DateTime) + "] "
+			m.content = strings.Join([]string{m.content, debugStyle.Width(m.viewport.Width - 10).Render(ts + string(msg))}, "\n")
+			m.viewport.SetContent(m.content)
+			if len(m.content) > m.viewport.VisibleLineCount() {
+				m.viewport.GotoBottom()
+			}
 		}
 		return m, tea.Batch(
 			waitForMessages(m.messages),
@@ -117,8 +131,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			waitForDone(m.done),
 		)
 	case responseError:
-		m.viewport.SetContent(m.viewport.View() + "\n" + errorStyle.Render(msg.Error()))
-		m.viewport.GotoBottom()
+		ts := "[" + time.Now().Format(time.DateTime) + "] "
+		m.content = strings.Join([]string{m.content, errorStyle.Width(m.viewport.Width - 10).Render(ts + msg.Error())}, "\n")
+		m.viewport.SetContent(m.content)
+		if len(m.content) > m.viewport.VisibleLineCount() {
+			m.viewport.GotoBottom()
+		}
 		return m, tea.Quit
 	case responseDone:
 		m.title = "installation complete"
@@ -141,33 +159,37 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		var cmd tea.Cmd
 		m.spinner, cmd = m.spinner.Update(msg)
 		return m, cmd
+	case tea.WindowSizeMsg:
+		if !m.ready {
+			m.viewport = viewport.New(msg.Width-2, msg.Height-3)
+			m.viewport.Style = lipgloss.NewStyle().
+				//	Border(lipgloss.RoundedBorder()).
+				Padding(0).
+				MarginTop(0).
+				MarginLeft(0)
+			m.viewport.YPosition = 0
+			m.viewport.HighPerformanceRendering = false
+			m.viewport.SetContent(m.content)
+			m.ready = true
+		} else {
+			m.viewport.Width = msg.Width
+			m.viewport.Height = msg.Height
+		}
 	}
 
 	return m, nil
 }
 
 func (m model) View() string {
-	titleStyle := lipgloss.NewStyle().
-		Bold(true).
-		Underline(true).
-		MarginBottom(0)
-
-	viewportStyle := lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		Padding(0).
-		MarginTop(0).
-		MarginLeft(0)
-
 	title := titleStyle.Render(m.title)
-	viewport := viewportStyle.Render(m.viewport.View())
-
 	if m.quietMode {
 		return fmt.Sprintf("%s %s", m.spinner.View(), title)
 	}
 	return fmt.Sprintf(
-		"%s %s\n%s",
+		"%s %s (%s)\n%s",
 		m.spinner.View(),
 		title,
-		viewport,
+		time.Since(m.start).Truncate(time.Second).String(),
+		m.viewport.View(),
 	)
 }
