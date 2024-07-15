@@ -4,143 +4,136 @@ import (
 	"embed"
 	"time"
 
+	"gopkg.in/yaml.v3"
+
 	mdaitypes "github.com/decisiveai/mdai-cli/internal/types"
 )
 
 //go:embed templates/*
 var embedFS embed.FS
 
-var chartSpecs = map[string]mdaitypes.ChartSpec{}
-
-func init() {
-	certManagerValuesYaml, _ := embedFS.ReadFile("templates/cert-manager-values.yaml")
-	opentelemetryOperatorValuesYaml, _ := embedFS.ReadFile("templates/opentelemetry-operator-values.yaml")
-	prometheusValuesYaml, _ := embedFS.ReadFile("templates/prometheus-values.yaml")
-	mdaiConsoleValuesYaml, _ := embedFS.ReadFile("templates/mdai-console-values.yaml")
-	mdaiOperatorValuesYaml, _ := embedFS.ReadFile("templates/mdai-operator-values.yaml")
-	mdaiAPIValuesYaml, _ := embedFS.ReadFile("templates/mdai-api-values.yaml")
-	opentelemetryDemoValuesYaml, _ := embedFS.ReadFile("templates/opentelemetry-demo-values.yaml")
-
-	chartSpecs = make(map[string]mdaitypes.ChartSpec)
-
-	chartSpecs["cert-manager"] = mdaitypes.ChartSpec{
+var chartSpecs = map[string]mdaitypes.ChartSpec{
+	"cert-manager": {
 		ReleaseName:     "cert-manager",
 		ChartName:       "jetstack/cert-manager",
 		Namespace:       "cert-manager",
 		Version:         "1.15.0",
+		Values:          map[string]any{},
 		UpgradeCRDs:     true,
 		Wait:            true,
-		ValuesYaml:      string(certManagerValuesYaml),
 		Replace:         true,
 		CreateNamespace: true,
 		Timeout:         120 * time.Second, // nolint: mnd
-	}
+	},
 
-	chartSpecs["opentelemetry-operator"] = mdaitypes.ChartSpec{
-		ReleaseName: "opentelemetry-operator",
-		ChartName:   "mydecisive/opentelemetry-operator",
-		// ChartName: "opentelemetry/opentelemetry-operator",
-		Namespace: "mdai",
-		Version:   "0.43.1",
-		// Version:         "0.61.0",
+	"opentelemetry-operator": {
+		ReleaseName:     "opentelemetry-operator",
+		ChartName:       "mydecisive/opentelemetry-operator",
+		Namespace:       "mdai",
+		Version:         "0.43.1",
+		Values:          map[string]any{},
 		UpgradeCRDs:     true,
 		Wait:            true,
-		ValuesYaml:      string(opentelemetryOperatorValuesYaml),
 		Replace:         true,
 		CreateNamespace: true,
 		Timeout:         60 * time.Second, // nolint: mnd
-	}
+	},
 
-	chartSpecs["prometheus"] = mdaitypes.ChartSpec{
+	"prometheus": {
 		ReleaseName:     "prometheus",
 		ChartName:       "prometheus-community/prometheus",
 		Namespace:       "mdai",
 		Version:         "25.21.0",
+		Values:          map[string]any{},
 		UpgradeCRDs:     true,
 		Wait:            false,
-		ValuesYaml:      string(prometheusValuesYaml),
 		Replace:         true,
 		CreateNamespace: true,
 		Timeout:         60 * time.Second, // nolint: mnd
-	}
+	},
 
-	chartSpecs["metrics-server"] = mdaitypes.ChartSpec{
+	"metrics-server": {
 		ReleaseName:     "metrics-server",
 		ChartName:       "metrics-server",
 		Namespace:       "kube-system",
 		Version:         "3.12.1",
+		Values:          map[string]any{},
 		UpgradeCRDs:     true,
 		Wait:            true,
 		Replace:         true,
 		CreateNamespace: true,
 		Timeout:         60 * time.Second, // nolint: mnd
-	}
+	},
 
-	chartSpecs["mdai-api"] = mdaitypes.ChartSpec{
+	"mdai-api": {
 		ReleaseName:     "mdai-api",
 		ChartName:       "mydecisive/mdai-api",
 		Namespace:       "mdai",
 		Version:         "0.0.4",
+		Values:          map[string]any{},
 		UpgradeCRDs:     true,
-		Wait:            true,
-		ValuesYaml:      string(mdaiAPIValuesYaml),
+		Wait:            false,
 		Replace:         true,
 		CreateNamespace: true,
 		Timeout:         60 * time.Second, // nolint: mnd
-	}
+	},
 
-	chartSpecs["mdai-console"] = mdaitypes.ChartSpec{
+	"mdai-console": {
 		ReleaseName:     "mdai-console",
 		ChartName:       "mydecisive/mdai-console",
 		Namespace:       "mdai",
-		Version:         "0.1.1",
+		Version:         "0.2.1",
+		Values:          map[string]any{},
 		UpgradeCRDs:     true,
-		Wait:            true,
-		ValuesYaml:      string(mdaiConsoleValuesYaml),
+		Wait:            false,
 		Replace:         true,
 		CreateNamespace: true,
 		Timeout:         60 * time.Second, // nolint: mnd
-	}
+	},
 
-	chartSpecs["datalyzer"] = mdaitypes.ChartSpec{
+	"datalyzer": {
 		ReleaseName:     "datalyzer",
 		ChartName:       "mydecisive/datalyzer",
 		Namespace:       "mdai",
 		Version:         "0.0.4",
+		Values:          map[string]any{},
 		UpgradeCRDs:     true,
-		Wait:            true,
+		Wait:            false,
 		Replace:         true,
 		CreateNamespace: true,
 		Timeout:         60 * time.Second, // nolint: mnd
-	}
+	},
 
-	chartSpecs["mdai-operator"] = mdaitypes.ChartSpec{
+	"mdai-operator": {
 		ReleaseName:     "mydecisive-engine-operator",
 		ChartName:       "mydecisive/mydecisive-engine-operator",
 		Namespace:       "mdai",
-		Version:         "0.0.6",
+		Version:         "0.0.7",
+		Values:          map[string]any{},
 		UpgradeCRDs:     true,
 		Wait:            true,
-		ValuesYaml:      string(mdaiOperatorValuesYaml),
 		Replace:         true,
 		CreateNamespace: true,
 		Timeout:         60 * time.Second, // nolint: mnd
-	}
+	},
 
-	chartSpecs["opentelemetry-demo"] = mdaitypes.ChartSpec{
+	"opentelemetry-demo": {
 		ReleaseName:     "otel-demo",
 		ChartName:       "opentelemetry/opentelemetry-demo",
 		Namespace:       "mdai-otel-demo",
 		Version:         "0.32.0",
+		Values:          map[string]any{},
 		UpgradeCRDs:     true,
 		Wait:            true,
-		ValuesYaml:      string(opentelemetryDemoValuesYaml),
 		Replace:         true,
 		CreateNamespace: true,
 		Timeout:         300 * time.Second, // nolint: mnd
-	}
+	},
 }
 
 func getChartSpec(name string) mdaitypes.ChartSpec {
-	return chartSpecs[name]
+	spec := chartSpecs[name]
+	valuesYaml, _ := embedFS.ReadFile("templates/" + name + "-values.yaml")
+	yaml.Unmarshal(valuesYaml, &spec.Values)
+	return spec
 }

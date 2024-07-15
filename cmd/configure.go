@@ -4,15 +4,15 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var configureCmd = &cobra.Command{
-	Use:   "configure",
-	Short: "",
-	Long:  "",
-	Run: func(_ *cobra.Command, _ []string) {
-	},
-}
+func NewConfigureCommand() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "configure",
+		Short: "",
+		Long:  "",
+		Run: func(_ *cobra.Command, _ []string) {
+		},
+	}
+	cmd.Hidden = true
 
-func init() {
-	rootCmd.AddCommand(configureCmd)
-	configureCmd.Hidden = true
+	return cmd
 }

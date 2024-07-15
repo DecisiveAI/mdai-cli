@@ -4,11 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	mdaitypes "github.com/decisiveai/mdai-cli/internal/types"
 	"github.com/pkg/errors"
-	"gopkg.in/yaml.v3"
 	"helm.sh/helm/v3/pkg/action"
-	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/getter"
@@ -80,9 +77,11 @@ func (c *Client) addRepo(name, url string) error {
 	}
 
 	repoFile.Update(&entry)
-	err = repoFile.WriteFile(file, 0o644) // nolint: mnd
-	c.errs <- fmt.Errorf("failed to write helm repo index file: %w", err)
-	return fmt.Errorf("failed to write helm repo index file: %w", err)
+	if err = repoFile.WriteFile(file, 0o644); err != nil { // nolint: mnd
+		c.errs <- fmt.Errorf("failed to write helm repo index file: %w", err)
+		return fmt.Errorf("failed to write helm repo index file: %w", err)
+	}
+	return nil
 }
 
 func (c *Client) InstallChart(helmchart string) error {
@@ -113,13 +112,13 @@ func (c *Client) InstallChart(helmchart string) error {
 			return fmt.Errorf("failed to locate chart: %w", err)
 		}
 
-		chart, values, err := c.getChartAndValues(chartSpec, chartPath)
+		chart, err := loader.Load(chartPath)
 		if err != nil {
-			c.errs <- fmt.Errorf("failed to get chart and values: %w", err)
-			return fmt.Errorf("failed to get chart and values: %w", err)
+			c.errs <- fmt.Errorf("failed to load chart: %w", err)
+			return fmt.Errorf("failed to load chart: %w", err)
 		}
 
-		if _, err = client.Run(chart, values); err != nil {
+		if _, err = client.Run(chart, chartSpec.Values); err != nil {
 			c.errs <- fmt.Errorf("failed to install chart %s in namespace %s: %w", chartSpec.ReleaseName, chartSpec.Namespace, err)
 			return fmt.Errorf("failed to install chart %s in namespace %s: %w", chartSpec.ReleaseName, chartSpec.Namespace, err)
 		}
@@ -137,13 +136,13 @@ func (c *Client) InstallChart(helmchart string) error {
 			return fmt.Errorf("failed to locate chart: %w", err)
 		}
 
-		chart, values, err := c.getChartAndValues(chartSpec, chartPath)
+		chart, err := loader.Load(chartPath)
 		if err != nil {
-			c.errs <- fmt.Errorf("failed to get chart and values: %w", err)
-			return fmt.Errorf("failed to get chart and values: %w", err)
+			c.errs <- fmt.Errorf("failed to load chart: %w", err)
+			return fmt.Errorf("failed to load chart: %w", err)
 		}
 
-		if _, err = client.Run(chartSpec.ReleaseName, chart, values); err != nil {
+		if _, err = client.Run(chartSpec.ReleaseName, chart, chartSpec.Values); err != nil {
 			c.errs <- fmt.Errorf("failed to upgrade chart %s in namespace %s: %w", chartSpec.ReleaseName, chartSpec.Namespace, err)
 			return fmt.Errorf("failed to upgrade chart %s in namespace %s: %w", chartSpec.ReleaseName, chartSpec.Namespace, err)
 		}
@@ -178,21 +177,4 @@ func (c *Client) UninstallChart(helmchart string) error {
 	c.messages <- "release " + chartSpec.ReleaseName + " in namespace " + chartSpec.Namespace + " uninstalled successfully"
 
 	return nil
-}
-
-func (c *Client) getChartAndValues(chartSpec mdaitypes.ChartSpec, chartPath string) (*chart.Chart, map[string]any, error) {
-	chart, err := loader.Load(chartPath)
-	if err != nil {
-		c.errs <- fmt.Errorf("failed to load chart: %w", err)
-		return nil, nil, fmt.Errorf("failed to load chart: %w", err)
-	}
-
-	values := map[string]any{}
-	if chartSpec.ValuesYaml != "" {
-		if err := yaml.Unmarshal([]byte(chartSpec.ValuesYaml), &values); err != nil {
-			c.errs <- fmt.Errorf("failed to parse ValuesYaml: %w", err)
-			return nil, nil, fmt.Errorf("failed to parse ValuesYaml: %w", err)
-		}
-	}
-	return chart, values, nil
 }
