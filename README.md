@@ -19,3 +19,9 @@
 
 # remove kind cluster
     kind delete cluster -n mdai-local
+ 
+ ------
+
+## For usage docs
+
+See [Usage Docs Guide](https://github.com/DecisiveAI/mdai-cli/blob/main/docs/md/mdai.md)
