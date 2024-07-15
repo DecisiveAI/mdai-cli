@@ -1,2 +1,1 @@
-env:
-  DATALYZER_NAMESPACE: mdai
+datalyzerNamespace: mdai
