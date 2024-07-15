@@ -29,8 +29,15 @@ func NewUnmuteCommand() *cobra.Command {
 			var (
 				patchBytes []byte
 				err        error
+				action     string
 			)
 			filterName, _ := cmd.Flags().GetString("name")
+			removeFilter, _ := cmd.Flags().GetBool("remove")
+			if removeFilter {
+				action = "removed"
+			} else {
+				action = "updated"
+			}
 
 			cfg := config.GetConfigOrDie()
 			s := scheme.Scheme
@@ -51,13 +58,22 @@ func NewUnmuteCommand() *cobra.Command {
 			for i, filter := range *get.Spec.TelemetryModule.Collectors[0].TelemetryFiltering.Filters {
 				if filter.Name == filterName {
 					filter.Enabled = false
-					patchBytes, err = json.Marshal([]mutePatch{
-						{
-							Op:    PatchOpReplace,
-							Path:  fmt.Sprintf(MutedPipelinesJSONPath, i),
-							Value: filter,
-						},
-					})
+					if removeFilter {
+						patchBytes, err = json.Marshal([]mutePatch{
+							{
+								Op:   PatchOpRemove,
+								Path: fmt.Sprintf(MutedPipelinesJSONPath, i),
+							},
+						})
+					} else {
+						patchBytes, err = json.Marshal([]mutePatch{
+							{
+								Op:    PatchOpReplace,
+								Path:  fmt.Sprintf(MutedPipelinesJSONPath, i),
+								Value: filter,
+							},
+						})
+					}
 					if err != nil {
 						return fmt.Errorf("failed to marshal patch: %w", err)
 					}
@@ -89,11 +105,12 @@ func NewUnmuteCommand() *cobra.Command {
 			}); err != nil {
 				return err // nolint: wrapcheck
 			}
-			fmt.Printf("%s filter unmuted successfully.\n", filterName)
+			fmt.Printf("%s filter %s successfully.\n", filterName, action)
 			return nil
 		},
 	}
 	cmd.Flags().StringP("name", "n", "", "name of the filter")
+	cmd.Flags().Bool("remove", false, "remove the filter")
 	cmd.DisableFlagsInUseLine = true
 	cmd.SilenceUsage = true
 

@@ -9,6 +9,7 @@ const (
 	Namespace      = "mdai"
 	PatchOpAdd     = "add"
 	PatchOpReplace = "replace"
+	PatchOpRemove  = "remove"
 
 	DatalyzerJSONPath      = "/spec/telemetryModule/collectors/0/measureVolumes"
 	MutedPipelinesJSONPath = "/spec/telemetryModule/collectors/0/telemetryFiltering/filters/%v"
@@ -29,7 +30,7 @@ var (
 type mutePatch struct {
 	Op    string                       `json:"op"`
 	Path  string                       `json:"path"`
-	Value mydecisivev1.TelemetryFilter `json:"value"`
+	Value mydecisivev1.TelemetryFilter `json:"value,omitempty"`
 }
 
 type datalyzerPatch struct {
