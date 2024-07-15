@@ -5,6 +5,7 @@ Prerequisites:
 - [helm](https://helm.sh/docs/intro/install/)
 - [kind](https://kind.sigs.k8s.io/docs/user/quick-start/#installation)
 - [go](https://go.dev/doc/install)
+- [docker](https://docs.docker.com/engine/install/)
 
 # Build binary
 ```shell
