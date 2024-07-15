@@ -1,27 +1,45 @@
-# build binary
-    go mod vendor
-    GOPRIVATE=github.com/decisiveai/opentelemetry-operator go build -o mdai main.go
+# MDAI CLI
+MDAI command line tool that allows to install, update and manage MDAI clusters locally.
 
-# build docker image
-    go mod vendor
-    docker build -t mdai-cli:latest .
+Prerequisites:
+- [helm](https://helm.sh/docs/intro/install/)
+- [kind](https://kind.sigs.k8s.io/docs/user/quick-start/#installation)
+- [go](https://go.dev/doc/install)
 
-# local install
+# Build binary
+```shell
+make build
+```
+
+# Build docker image
+```shell
+make docker-build
+```
+
+# Local install
 ## go run
-    go mod vendor
-    GOPRIVATE=github.com/decisiveai/opentelemetry-operator go run main.go install
+```shell
+go mod vendor
+GOPRIVATE=github.com/decisiveai/opentelemetry-operator go run main.go install
+```
+
 
 ## binary
-    ./mdai install
+```shell
+./mdai install
+```
 
 ## docker
-    docker run --network host -v /var/run/docker.sock:/var/run/docker.sock -it --rm mdai-cli:latest install
+```shell
+docker run --network host -v /var/run/docker.sock:/var/run/docker.sock -it --rm mdai-cli:latest install
+```
 
-# remove kind cluster
-    kind delete cluster -n mdai-local
- 
+# Remove kind cluster
+```shell
+kind delete cluster -n mdai-local
+```
  ------
 
-## For usage docs
+# Usage docs
 
 See [Usage Docs Guide](https://github.com/DecisiveAI/mdai-cli/blob/main/docs/md/mdai.md)
