@@ -49,11 +49,11 @@ func NewUpdateCommand() *cobra.Command {
 				return errors.New("cannot specify both --file and --config")
 			}
 
-			if !slices.Contains(validPhases, phaseP) {
+			if phaseP != "" && !slices.Contains(validPhases, phaseP) {
 				return fmt.Errorf("invalid phase: %s", phaseP)
 			}
 
-			if !slices.Contains(validBlocks, blockP) {
+			if blockP != "" && !slices.Contains(validBlocks, blockP) {
 				return fmt.Errorf("invalid block: %s", blockP)
 			}
 
