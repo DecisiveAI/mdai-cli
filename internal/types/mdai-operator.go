@@ -85,7 +85,7 @@ func NewMDAIOperator() MDAIOperator {
 				},
 				Collectors: []MDAIOperatorCollector{
 					{
-						Name:           "test-collector",
+						Name:           "gateway-collector",
 						Enabled:        true,
 						MeasureVolumes: true,
 						Spec: MDAIOperatorCollectorSpec{

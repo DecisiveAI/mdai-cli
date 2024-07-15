@@ -26,7 +26,7 @@ var deployments = []deployment{
 	{name: "mdai-console", namespace: "mdai"},
 	{name: "prometheus-server", namespace: "mdai"},
 	{name: "prometheus-kube-state-metrics", namespace: "mdai"},
-	{name: "test-collector-collector", namespace: "mdai"},
+	{name: "gateway-collector", namespace: "mdai"},
 	{name: "mydecisive-engine-operator-controller-manager", namespace: "mdai"},
 	{name: "opentelemetry-operator", namespace: "mdai"},
 	{name: "cert-manager", namespace: "cert-manager"},
