@@ -1,6 +1,0 @@
-ingress:
-  userPoolArn: ''
-  userPoolClientId: ''
-  userPoolDomain: ''
-  acmArn: arn:aws:acm:us-east-1:168005146325:certificate/eaa7da72-1c8d-4277-8131-ab9dfdc35f37
-  enabled: true
