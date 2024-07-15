@@ -1,11 +1,14 @@
 # MDAI CLI
 MDAI command line tool that allows to install, update and manage MDAI clusters locally.
 
-Prerequisites:
-- [helm](https://helm.sh/docs/intro/install/)
-- [kind](https://kind.sigs.k8s.io/docs/user/quick-start/#installation)
+Prerequisites to build:
 - [go](https://go.dev/doc/install)
 - [docker](https://docs.docker.com/engine/install/)
+- access to https://github.com/DecisiveAI/opentelemetry-operator 
+
+Prerequisites to run local cluster:
+- [docker](https://docs.docker.com/engine/install/)
+
 
 # Build binary
 ```shell
