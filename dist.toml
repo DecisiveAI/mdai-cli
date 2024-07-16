@@ -28,5 +28,7 @@ targets = ["aarch64-apple-darwin", "x86_64-apple-darwin", "x86_64-unknown-linux-
 pr-run-mode = "plan"
 # Whether to install an updater program
 install-updater = false
-# where to install the cli
+# Path that installers should place binaries in
 install-path = ["$MDAI_CLI_HOME/bin", "~/.mdai/bin"]
+# need changes to github action to support private repo
+allow-dirty = ["ci"]
