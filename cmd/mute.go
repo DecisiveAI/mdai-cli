@@ -91,7 +91,7 @@ func NewMuteCommand() *cobra.Command {
 				return nil
 			}); err != nil {
 				for _, pipeline := range pipelines {
-					if strings.Contains(err.Error(), fmt.Sprintf("Pipeline %s not found in config", pipeline)) {
+					if strings.Contains(err.Error(), fmt.Sprintf("pipeline %s not found in config", pipeline)) {
 						return fmt.Errorf("pipeline %s not found in config", pipeline)
 					}
 				}

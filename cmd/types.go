@@ -13,6 +13,7 @@ const (
 
 	DatalyzerJSONPath      = "/spec/telemetryModule/collectors/0/measureVolumes"
 	MutedPipelinesJSONPath = "/spec/telemetryModule/collectors/0/telemetryFiltering/filters/%v"
+	OtelConfigJSONPath     = "/spec/telemetryModule/collectors/0/spec/config"
 )
 
 var (
@@ -22,8 +23,14 @@ var (
 )
 
 var (
-	SupportedModules         = []string{"datalyzer"}
-	SupportedConfigTypes     = []string{"mdai", "otel"}
+	SupportedModules = []string{"datalyzer"}
+
+	SupportedGetConfigTypes    = []string{"mdai", "otel"}
+	SupportedUpdateConfigTypes = []string{"otel"}
+
+	SupportedPhases = []string{"metrics", "logs", "traces"}
+	SupportedBlocks = []string{"receivers", "processors", "exporters"}
+
 	MutedPipelineEmptyFilter = []byte(`[{ "op": "add", "path": "/spec/telemetryModule/collectors/0/telemetryFiltering", "value": { "filters": [] } }]`)
 )
 
@@ -37,4 +44,10 @@ type datalyzerPatch struct {
 	Op    string `json:"op"`
 	Path  string `json:"path"`
 	Value bool   `json:"value"`
+}
+
+type mdaiOperatorOtelConfigPatch struct {
+	Op    string `json:"op"`
+	Path  string `json:"path"`
+	Value string `json:"value"`
 }

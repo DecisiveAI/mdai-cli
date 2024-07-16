@@ -10,18 +10,19 @@ import (
 type editorFinishedMsg struct{ err error }
 
 func openEditor(filename, block, phase string) tea.Cmd {
+	args := []string{filename}
 	editor := os.Getenv("EDITOR")
 	if editor == "" {
 		editor = "vim"
 	}
-	var jump string
-	if block != "" {
-		jump = "+/^" + block + ":"
-	} else if phase != "" {
-		jump = "+/^ .*" + phase + ":"
+	switch {
+	case block != "":
+		args = append(args, "+/^"+block+":")
+	case phase != "":
+		args = append(args, "+/^ .*"+phase+":")
 	}
 
-	c := exec.Command(editor, filename, jump) //nolint:gosec
+	c := exec.Command(editor, args...) //nolint:gosec
 	return tea.ExecProcess(c, func(err error) tea.Msg {
 		return editorFinishedMsg{err}
 	})

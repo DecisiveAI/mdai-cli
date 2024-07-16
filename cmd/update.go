@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -10,23 +11,18 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
-	"github.com/charmbracelet/huh/spinner"
 	"github.com/decisiveai/mdai-cli/internal/editor"
-	"github.com/decisiveai/mdai-cli/internal/oteloperator"
 	mdaitypes "github.com/decisiveai/mdai-cli/internal/types"
-	"github.com/pytimer/k8sutil/apply"
+	mydecisivev1 "github.com/decisiveai/mydecisive-engine-operator/api/v1"
 	"github.com/spf13/cobra"
-	"k8s.io/client-go/discovery"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/util/retry"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
-)
-
-// //go:embed templates/*.yaml
-// var embedFS embed.FS
-
-var (
-	validPhases = []string{"metrics", "logs", "traces"}
-	validBlocks = []string{"receivers", "processors", "exporters"}
 )
 
 func NewUpdateCommand() *cobra.Command {
@@ -49,11 +45,15 @@ func NewUpdateCommand() *cobra.Command {
 				return errors.New("cannot specify both --file and --config")
 			}
 
-			if phaseP != "" && !slices.Contains(validPhases, phaseP) {
+			if configP != "" && !slices.Contains(SupportedUpdateConfigTypes, configP) {
+				return fmt.Errorf("invalid config type: %s", configP)
+			}
+
+			if phaseP != "" && !slices.Contains(SupportedPhases, phaseP) {
 				return fmt.Errorf("invalid phase: %s", phaseP)
 			}
 
-			if blockP != "" && !slices.Contains(validBlocks, blockP) {
+			if blockP != "" && !slices.Contains(SupportedBlocks, blockP) {
 				return fmt.Errorf("invalid block: %s", blockP)
 			}
 
@@ -65,21 +65,36 @@ func NewUpdateCommand() *cobra.Command {
 			phaseP, _ := cmd.Flags().GetString("phase")
 			blockP, _ := cmd.Flags().GetString("block")
 
-			if configP != "" {
+			switch {
+			case configP != "":
 				var otelConfig string
-				var f *os.File
-				_ = spinner.New().Title(" fetching current collector configuration 🔧").Type(spinner.Meter).Action(
-					func() {
-						otelConfig = oteloperator.GetConfig()
-						f, _ = os.CreateTemp("", "otelconfig")
-						f.WriteString(otelConfig)
-						f.Close()
-					}).Run()
+
+				cfg := config.GetConfigOrDie()
+				s := scheme.Scheme
+				mydecisivev1.AddToScheme(s)
+				k8sClient, _ := client.New(cfg, client.Options{Scheme: s})
+				get := mydecisivev1.MyDecisiveEngine{}
+				if err := k8sClient.Get(context.TODO(), client.ObjectKey{
+					Namespace: Namespace,
+					Name:      mdaitypes.MDAIOperatorName,
+				}, &get); err != nil {
+					fmt.Printf("error getting %s config: %v\n", configP, err)
+					return
+				}
+				otelConfig = get.Spec.TelemetryModule.Collectors[0].Spec.Config
+				f, err := os.CreateTemp("", "otelconfig")
+				if err != nil {
+					fmt.Printf("error saving %s config temp file: %+v\n", configP, err)
+					return
+				}
+				f.WriteString(otelConfig)
+				f.Close()
+
 				defer os.Remove(f.Name())
 
 				m := editor.NewModel(f.Name(), blockP, phaseP)
 				if _, err := tea.NewProgram(m).Run(); err != nil {
-					fmt.Println("error running program: ", err)
+					fmt.Printf("error running program: %v\n", err)
 					os.Exit(1)
 				}
 				var applyConfig bool
@@ -93,47 +108,93 @@ func NewUpdateCommand() *cobra.Command {
 					),
 				)
 				form.Run()
-				if applyConfig {
-					_ = spinner.New().Title(" updating current collector configuration 🔧").Type(spinner.Meter).Action(
-						func() {
-							cfg := config.GetConfigOrDie()
-							dynamicClient, _ := dynamic.NewForConfig(cfg)
-							discoveryClient, _ := discovery.NewDiscoveryClientForConfig(cfg)
-							otelConfigBytes, _ := os.ReadFile(f.Name())
-							mdaiOperator := mdaitypes.NewMDAIOperator()
-							mdaiOperator.SetCollectorConfig(string(otelConfigBytes))
-							applyYaml, _ := mdaiOperator.ToYaml()
-							applyOptions := apply.NewApplyOptions(dynamicClient, discoveryClient)
-							if err := applyOptions.Apply(context.TODO(), applyYaml); err != nil {
-								panic(fmt.Sprintf("apply error: %v", err))
-							}
-						}).Run()
-				} else {
-					fmt.Println("oh well")
+				if !applyConfig {
+					fmt.Println(configP + " configuration not updated")
+					return
 				}
-			}
+				dynamicClient, _ := dynamic.NewForConfig(cfg)
+				gvr := schema.GroupVersionResource{
+					Group:    mdaitypes.MDAIOperatorGroup,
+					Version:  mdaitypes.MDAIOperatorVersion,
+					Resource: mdaitypes.MDAIOperatorResource,
+				}
+				otelConfigBytes, _ := os.ReadFile(f.Name())
+				patchBytes, err := json.Marshal([]mdaiOperatorOtelConfigPatch{
+					{
+						Op:    PatchOpReplace,
+						Path:  OtelConfigJSONPath,
+						Value: string(otelConfigBytes),
+					},
+				})
+				if err != nil {
+					fmt.Printf("failed to marshal mdai operator patch: %v\n", err)
+					return
+				}
 
-			if fileP != "" {
-				action := func() {
-					cfg := config.GetConfigOrDie()
-					dynamicClient, _ := dynamic.NewForConfig(cfg)
-					discoveryClient, _ := discovery.NewDiscoveryClientForConfig(cfg)
-					applyYaml, _ := os.ReadFile(fileP)
-					applyOptions := apply.NewApplyOptions(dynamicClient, discoveryClient)
-					if err := applyOptions.Apply(context.TODO(), applyYaml); err != nil {
-						panic(fmt.Sprintf("apply error: %v", err))
+				if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+					if _, err := dynamicClient.Resource(gvr).Namespace(Namespace).Patch(
+						context.TODO(),
+						mdaitypes.MDAIOperatorName,
+						types.JSONPatchType,
+						patchBytes,
+						metav1.PatchOptions{},
+					); err != nil {
+						return fmt.Errorf("failed to apply patch: %w", err)
 					}
+					return nil
+				}); err != nil {
+					fmt.Println(err)
+					return
 				}
-				_ = spinner.New().Title(" updating current collector configuration 🔧").Action(action).Type(spinner.Meter).Run()
+				fmt.Println(configP + " configuration updated")
+
+			case fileP != "":
+				cfg := config.GetConfigOrDie()
+				dynamicClient, _ := dynamic.NewForConfig(cfg)
+				gvr := schema.GroupVersionResource{
+					Group:    mdaitypes.MDAIOperatorGroup,
+					Version:  mdaitypes.MDAIOperatorVersion,
+					Resource: mdaitypes.MDAIOperatorResource,
+				}
+				otelConfigBytes, _ := os.ReadFile(fileP)
+				patchBytes, err := json.Marshal([]mdaiOperatorOtelConfigPatch{
+					{
+						Op:    PatchOpReplace,
+						Path:  OtelConfigJSONPath,
+						Value: string(otelConfigBytes),
+					},
+				})
+				if err != nil {
+					fmt.Printf("failed to marshal mdai operator patch: %v\n", err)
+					return
+				}
+
+				if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+					if _, err := dynamicClient.Resource(gvr).Namespace(Namespace).Patch(
+						context.TODO(),
+						mdaitypes.MDAIOperatorName,
+						types.JSONPatchType,
+						patchBytes,
+						metav1.PatchOptions{},
+					); err != nil {
+						return fmt.Errorf("failed to apply patch: %w", err)
+					}
+					return nil
+				}); err != nil {
+					fmt.Println(err)
+					return
+				}
+				fmt.Println(configP + " configuration updated")
 			}
 		},
 	}
 	cmd.Flags().StringP("file", "f", "", "file to update")
-	cmd.Flags().StringP("config", "c", "", "config type to update")
-	cmd.Flags().String("block", "", "block to jump to ["+strings.Join(validBlocks, ", ")+"]")
-	cmd.Flags().String("phase", "", "phase to jump to ["+strings.Join(validPhases, ", ")+"]")
+	cmd.Flags().StringP("config", "c", "", "config type to update ["+strings.Join(SupportedUpdateConfigTypes, ", ")+"]")
+	cmd.Flags().String("block", "", "block to jump to ["+strings.Join(SupportedBlocks, ", ")+"]")
+	cmd.Flags().String("phase", "", "phase to jump to ["+strings.Join(SupportedPhases, ", ")+"]")
 	cmd.Flags().SortFlags = true
 	cmd.DisableFlagsInUseLine = true
+	cmd.SilenceUsage = true
 
 	return cmd
 }

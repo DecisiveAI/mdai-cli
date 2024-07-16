@@ -8,11 +8,9 @@ require (
 	github.com/charmbracelet/bubbles v0.18.0
 	github.com/charmbracelet/bubbletea v0.26.3
 	github.com/charmbracelet/huh v0.4.2
-	github.com/charmbracelet/huh/spinner v0.0.0-20240527182036-3b0839577112
 	github.com/charmbracelet/lipgloss v0.11.0
 	github.com/decisiveai/opentelemetry-operator v0.93.0
 	github.com/pkg/errors v0.9.1
-	github.com/pytimer/k8sutil v0.0.0-20221114090626-86d6279d8e52
 	github.com/spf13/cobra v1.8.0
 	gopkg.in/yaml.v3 v3.0.1
 	helm.sh/helm/v3 v3.14.2

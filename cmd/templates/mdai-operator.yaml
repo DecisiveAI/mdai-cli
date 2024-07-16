@@ -91,7 +91,7 @@ spec:
                   action: insert
 
             exporters:
-              debug: 
+              debug:
                 verbosity: detailed
                 sampling_initial: 2
                 sampling_thereafter: 100
