@@ -45,7 +45,7 @@ on:
 
 env:
   TOKEN: ${{ secrets.TOKEN_OPERATOR }}
-  GOPRIVATE: github.com/decisiveai/mydecisive-engine-operator
+  GOPRIVATE: github.com/decisiveai/mydecisive-engine-operator,github.com/decisiveai/opentelemetry-operator
 
 jobs:
   # Run 'cargo dist plan' (or host) to determine what tasks we need to do
