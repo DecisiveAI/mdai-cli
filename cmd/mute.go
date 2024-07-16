@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	mdaitypes "github.com/decisiveai/mdai-cli/internal/types"
 	mydecisivev1 "github.com/decisiveai/mydecisive-engine-operator/api/v1"
@@ -85,11 +86,15 @@ func NewMuteCommand() *cobra.Command {
 					patchBytes,
 					metav1.PatchOptions{},
 				); err != nil {
-					return fmt.Errorf("failed to apply patch: %w", err)
+					return err // nolint: wrapcheck
 				}
 				return nil
 			}); err != nil {
-				return err // nolint: wrapcheck
+				for _, pipeline := range pipelines {
+					if strings.Contains(err.Error(), fmt.Sprintf("Pipeline %s not found in config", pipeline)) {
+						return fmt.Errorf("pipeline %s not found in config", pipeline)
+					}
+				}
 			}
 			fmt.Printf("pipeline(s) %v muted successfully as filter %s (%s).\n", pipelines, filterName, description)
 			return nil

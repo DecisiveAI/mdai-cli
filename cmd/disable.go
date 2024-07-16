@@ -59,7 +59,7 @@ func NewDisableCommand() *cobra.Command {
 					},
 				})
 				if err != nil {
-					fmt.Println(err)
+					fmt.Printf("failed to marshal datalyzer patch: %v\n", err)
 					return
 				}
 			}

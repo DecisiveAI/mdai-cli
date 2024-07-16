@@ -36,7 +36,7 @@ var chartSpecs = map[string]mdaitypes.ChartSpec{
 		Wait:            true,
 		Replace:         true,
 		CreateNamespace: true,
-		Timeout:         60 * time.Second, // nolint: mnd
+		Timeout:         120 * time.Second, // nolint: mnd
 	},
 
 	"prometheus": {
@@ -49,7 +49,7 @@ var chartSpecs = map[string]mdaitypes.ChartSpec{
 		Wait:            false,
 		Replace:         true,
 		CreateNamespace: true,
-		Timeout:         60 * time.Second, // nolint: mnd
+		Timeout:         120 * time.Second, // nolint: mnd
 	},
 
 	"metrics-server": {
@@ -62,7 +62,7 @@ var chartSpecs = map[string]mdaitypes.ChartSpec{
 		Wait:            true,
 		Replace:         true,
 		CreateNamespace: true,
-		Timeout:         60 * time.Second, // nolint: mnd
+		Timeout:         120 * time.Second, // nolint: mnd
 	},
 
 	"mdai-api": {
@@ -75,7 +75,7 @@ var chartSpecs = map[string]mdaitypes.ChartSpec{
 		Wait:            false,
 		Replace:         true,
 		CreateNamespace: true,
-		Timeout:         60 * time.Second, // nolint: mnd
+		Timeout:         120 * time.Second, // nolint: mnd
 	},
 
 	"mdai-console": {
@@ -88,7 +88,7 @@ var chartSpecs = map[string]mdaitypes.ChartSpec{
 		Wait:            false,
 		Replace:         true,
 		CreateNamespace: true,
-		Timeout:         60 * time.Second, // nolint: mnd
+		Timeout:         120 * time.Second, // nolint: mnd
 	},
 
 	"datalyzer": {
@@ -101,20 +101,20 @@ var chartSpecs = map[string]mdaitypes.ChartSpec{
 		Wait:            false,
 		Replace:         true,
 		CreateNamespace: true,
-		Timeout:         60 * time.Second, // nolint: mnd
+		Timeout:         120 * time.Second, // nolint: mnd
 	},
 
 	"mdai-operator": {
 		ReleaseName:     "mydecisive-engine-operator",
 		ChartName:       "mydecisive/mydecisive-engine-operator",
 		Namespace:       "mdai",
-		Version:         "0.0.7",
+		Version:         "0.0.8",
 		Values:          map[string]any{},
 		UpgradeCRDs:     true,
 		Wait:            true,
 		Replace:         true,
 		CreateNamespace: true,
-		Timeout:         60 * time.Second, // nolint: mnd
+		Timeout:         120 * time.Second, // nolint: mnd
 	},
 
 	"opentelemetry-demo": {

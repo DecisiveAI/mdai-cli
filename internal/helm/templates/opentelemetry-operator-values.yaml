@@ -1,13 +1,11 @@
 admissionWebhooks:
   certManager:
-    enabled: false
+    enabled: true
 manager:
   collectorImage:
     repository: otel/opentelemetry-collector-k8s
-    tag: 0.101.0
+    tag: 0.103.1
   leaderElection:
     enabled: false
   env:
     ENABLE_WEBHOOKS: "true"
-kubeRBACProxy:
-  enabled: false
