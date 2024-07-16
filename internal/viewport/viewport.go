@@ -51,7 +51,7 @@ func InitialModel(messages chan string, debug chan string, errs chan error, done
 		debugMode: debugMode,
 		quietMode: quietMode,
 		spinner:   spinner.New(spinner.WithSpinner(spinner.Meter), spinner.WithStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("#800080")))),
-		content:   "[" + time.Now().Format(time.DateTime) + "] installation started...",
+		content:   "[" + time.Now().Format(time.DateTime) + "] process started...",
 		start:     time.Now(),
 	}
 }
@@ -139,7 +139,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, tea.Quit
 	case responseDone:
-		m.title = "installation complete"
+		m.title = "process complete"
 		return m, tea.Quit
 	case responseTask:
 		m.title = string(msg)
