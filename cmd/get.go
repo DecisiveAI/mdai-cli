@@ -30,7 +30,7 @@ func NewGetCommand() *cobra.Command {
 			if configType == "" {
 				return errors.New("config is required")
 			}
-			if !slices.Contains(SupportedConfigTypes, configType) {
+			if !slices.Contains(SupportedGetConfigTypes, configType) {
 				return fmt.Errorf("config type %s is not supported", configType)
 			}
 			return nil
@@ -71,7 +71,7 @@ func NewGetCommand() *cobra.Command {
 			}
 		},
 	}
-	cmd.Flags().StringP("config", "c", "", "configuration to get ["+strings.Join(SupportedConfigTypes, ", ")+"]")
+	cmd.Flags().StringP("config", "c", "", "configuration to get ["+strings.Join(SupportedGetConfigTypes, ", ")+"]")
 	cmd.DisableFlagsInUseLine = true
 	cmd.SilenceUsage = true
 
