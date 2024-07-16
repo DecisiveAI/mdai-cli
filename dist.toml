@@ -6,7 +6,7 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/decisiveai/mdai-cli"
 homepage = "https://www.mydecisive.ai/"
 binaries = ["mdai"]
-build-command = ["make", "build"]
+build-command = ["./build.sh"]
 
 [package.metadata.wix]
 upgrade-guid = "9A4352DB-B302-4E7A-BFBD-DAD056AD6A34"
