@@ -1,6 +1,6 @@
 [package]
 name = "mdai"
-description = "Releaser for mdai-cli"
+description = "CLI for installing MyDecisiveAI Nucleus"
 version = "0.1.0"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/decisiveai/mdai-cli"
@@ -24,9 +24,13 @@ ci = "github"
 installers = ["shell", "powershell", "homebrew"]
 # Target platforms to build apps for (Rust target-triple syntax)
 targets = ["aarch64-apple-darwin", "x86_64-apple-darwin", "x86_64-unknown-linux-gnu", "x86_64-unknown-linux-musl", "x86_64-pc-windows-msvc"]
+# A GitHub repo to push Homebrew formulas to
+tap = "decisiveai/homebrew-tap"
+# Publish jobs to run in CI
+publish-jobs = ["homebrew"]
 # Publish jobs to run in CI
 pr-run-mode = "plan"
 # Whether to install an updater program
 install-updater = false
-# where to install the cli
+# Path that installers should place binaries in
 install-path = ["$MDAI_CLI_HOME/bin", "~/.mdai/bin"]
