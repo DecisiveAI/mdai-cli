@@ -46,6 +46,7 @@ on:
 env:
   TOKEN: ${{ secrets.TOKEN_OPERATOR }}
   GOPRIVATE: github.com/decisiveai/mydecisive-engine-operator,github.com/decisiveai/opentelemetry-operator
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
   # Run 'cargo dist plan' (or host) to determine what tasks we need to do
@@ -56,15 +57,11 @@ jobs:
       tag: ${{ !github.event.pull_request && github.ref_name || '' }}
       tag-flag: ${{ !github.event.pull_request && format('--tag={0}', github.ref_name) || '' }}
       publishing: ${{ !github.event.pull_request }}
-    env:
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-
-      - name: Configure git for private modules
-        run: git config --global url."https://user:${TOKEN}@github.com".insteadOf "https://github.com"
 
       - name: Install cargo-dist
         # we specify bash to get pipefail; it guards against the `curl` command
