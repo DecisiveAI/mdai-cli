@@ -103,6 +103,12 @@ func NewMuteCommand() *cobra.Command {
 	cmd.Flags().StringSliceP("pipeline", "p", []string{""}, "pipeline to mute")
 	cmd.Flags().StringP("name", "n", "", "name of the filter")
 	cmd.Flags().StringP("description", "d", "", "description of the filter")
+
+	cmd.MarkFlagsRequiredTogether("name", "description", "pipeline")
+	cmd.MarkFlagRequired("name")
+	cmd.MarkFlagRequired("description")
+	cmd.MarkFlagRequired("pipeline")
+
 	cmd.DisableFlagsInUseLine = true
 	cmd.SilenceUsage = true
 

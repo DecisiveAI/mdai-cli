@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -27,11 +26,8 @@ func NewDisableCommand() *cobra.Command {
 		Example: `  mdai disable --module datalyzer`,
 		PreRunE: func(cmd *cobra.Command, _ []string) error {
 			module, _ := cmd.Flags().GetString("module")
-			if module == "" {
-				return errors.New("module is required")
-			}
-			if !slices.Contains(SupportedModules, module) {
-				return fmt.Errorf("module %s is not supported for disabling", module)
+			if module != "" && !slices.Contains(SupportedModules, module) {
+				return fmt.Errorf(`module "%s" is not supported for disabling`, module)
 			}
 			return nil
 		},
@@ -83,7 +79,11 @@ func NewDisableCommand() *cobra.Command {
 		},
 	}
 	cmd.Flags().String("module", "", "module to disable ["+strings.Join(SupportedModules, ", ")+"]")
+
+	cmd.MarkFlagRequired("module")
+
 	cmd.DisableFlagsInUseLine = true
 	cmd.SilenceUsage = true
+
 	return cmd
 }

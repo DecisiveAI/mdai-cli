@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"slices"
@@ -36,24 +35,18 @@ func NewUpdateCommand() *cobra.Command {
 	mdai update --config=otel --phase=logs      # jump to logs block
 	mdai update --config=otel --block=receivers # jump to receivers block`,
 		PreRunE: func(cmd *cobra.Command, _ []string) error {
-			fileP, _ := cmd.Flags().GetString("file")
 			configP, _ := cmd.Flags().GetString("config")
 			phaseP, _ := cmd.Flags().GetString("phase")
 			blockP, _ := cmd.Flags().GetString("block")
 
-			if fileP != "" && configP != "" {
-				return errors.New("cannot specify both --file and --config")
-			}
-
-			if configP != "" && !slices.Contains(SupportedUpdateConfigTypes, configP) {
+			switch {
+			case configP != "" && !slices.Contains(SupportedUpdateConfigTypes, configP):
 				return fmt.Errorf("invalid config type: %s", configP)
-			}
 
-			if phaseP != "" && !slices.Contains(SupportedPhases, phaseP) {
+			case phaseP != "" && !slices.Contains(SupportedPhases, phaseP):
 				return fmt.Errorf("invalid phase: %s", phaseP)
-			}
 
-			if blockP != "" && !slices.Contains(SupportedBlocks, blockP) {
+			case blockP != "" && !slices.Contains(SupportedBlocks, blockP):
 				return fmt.Errorf("invalid block: %s", blockP)
 			}
 
@@ -192,7 +185,10 @@ func NewUpdateCommand() *cobra.Command {
 	cmd.Flags().StringP("config", "c", "", "config type to update ["+strings.Join(SupportedUpdateConfigTypes, ", ")+"]")
 	cmd.Flags().String("block", "", "block to jump to ["+strings.Join(SupportedBlocks, ", ")+"]")
 	cmd.Flags().String("phase", "", "phase to jump to ["+strings.Join(SupportedPhases, ", ")+"]")
-	cmd.Flags().SortFlags = true
+
+	cmd.MarkFlagsMutuallyExclusive("file", "config")
+	cmd.MarkFlagsOneRequired("file", "config")
+
 	cmd.DisableFlagsInUseLine = true
 	cmd.SilenceUsage = true
 

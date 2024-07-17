@@ -29,14 +29,12 @@ func NewUnmuteCommand() *cobra.Command {
 			var (
 				patchBytes []byte
 				err        error
-				action     string
 			)
 			filterName, _ := cmd.Flags().GetString("name")
 			removeFilter, _ := cmd.Flags().GetBool("remove")
+			action := "updated"
 			if removeFilter {
 				action = "removed"
-			} else {
-				action = "updated"
 			}
 
 			cfg := config.GetConfigOrDie()
@@ -111,6 +109,9 @@ func NewUnmuteCommand() *cobra.Command {
 	}
 	cmd.Flags().StringP("name", "n", "", "name of the filter")
 	cmd.Flags().Bool("remove", false, "remove the filter")
+
+	cmd.MarkFlagRequired("name")
+
 	cmd.DisableFlagsInUseLine = true
 	cmd.SilenceUsage = true
 

@@ -68,5 +68,6 @@ func NewRootCommand() (*cobra.Command, error) {
 		NewUnmuteCommand(),
 		NewUpdateCommand(),
 	)
+
 	return cmd, nil
 }
