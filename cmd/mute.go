@@ -90,11 +90,25 @@ func NewMuteCommand() *cobra.Command {
 				}
 				return nil
 			}); err != nil {
+				/*
+					pretty up the error message from mdai operator
+					* first, check if the error is about a unique filter name
+					* then, check if the error is about a pipeline not found
+					* then, check if the error is about a pipeline already muted in several filters
+					* finally, return the original error message
+				*/
+				if strings.Contains(err.Error(), fmt.Sprintf("Filter name %s is not unique", filterName)) {
+					return fmt.Errorf(`filter name "%s" already exists in config`, filterName)
+				}
 				for _, pipeline := range pipelines {
-					if strings.Contains(err.Error(), fmt.Sprintf("pipeline %s not found in config", pipeline)) {
-						return fmt.Errorf("pipeline %s not found in config", pipeline)
+					switch {
+					case strings.Contains(err.Error(), fmt.Sprintf("pipeline %s not found in config", pipeline)):
+						return fmt.Errorf(`pipeline "%s" not found in config`, pipeline)
+					case strings.Contains(err.Error(), fmt.Sprintf("Pipeline %s is muted in several filters", pipeline)):
+						return fmt.Errorf(`pipeline "%s" is muted in another filter`, pipeline)
 					}
 				}
+				return fmt.Errorf("failed to apply patch: %w", err)
 			}
 			fmt.Printf("pipeline(s) %v muted successfully as filter %s (%s).\n", pipelines, filterName, description)
 			return nil
