@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"slices"
 	"strconv"
@@ -27,10 +26,7 @@ func NewGetCommand() *cobra.Command {
   mdai get --config otel # get otel configuration`,
 		PreRunE: func(cmd *cobra.Command, _ []string) error {
 			configType, _ := cmd.Flags().GetString("config")
-			if configType == "" {
-				return errors.New("config is required")
-			}
-			if !slices.Contains(SupportedGetConfigTypes, configType) {
+			if configType != "" && !slices.Contains(SupportedGetConfigTypes, configType) {
 				return fmt.Errorf("config type %s is not supported", configType)
 			}
 			return nil
@@ -72,6 +68,9 @@ func NewGetCommand() *cobra.Command {
 		},
 	}
 	cmd.Flags().StringP("config", "c", "", "configuration to get ["+strings.Join(SupportedGetConfigTypes, ", ")+"]")
+
+	cmd.MarkFlagRequired("config")
+
 	cmd.DisableFlagsInUseLine = true
 	cmd.SilenceUsage = true
 

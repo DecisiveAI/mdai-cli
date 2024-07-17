@@ -1,26 +1,23 @@
 package cmd
 
 import (
-	"bytes"
 	"errors"
 	"testing"
-
-	"github.com/stretchr/testify/require"
 )
 
-func TestGetCmd(t *testing.T) {
-	cmd := NewGetCommand()
-	cmd.SetErr(new(bytes.Buffer))
+func TestGetCommandErr(t *testing.T) {
+	errTests := testCmdErrs{
+		{
+			name: "get command without config",
+			args: []string{"get"},
+			err:  errors.New(`required flag(s) "config" not set`),
+		},
+		{
+			name: "get command with invalid config",
+			args: []string{"get", "--config", "foo"},
+			err:  errors.New("config type foo is not supported"),
+		},
+	}
 
-	t.Run("get command without config", func(t *testing.T) {
-		cmd.SetArgs([]string{"get"})
-		err := cmd.Execute()
-		require.Equal(t, err, errors.New("config is required"))
-	})
-
-	t.Run("get command with invalid config", func(t *testing.T) {
-		cmd.SetArgs([]string{"get", "--config", "foo"})
-		err := cmd.Execute()
-		require.Equal(t, err, errors.New("config type foo is not supported"))
-	})
+	errTests.Run(t)
 }
