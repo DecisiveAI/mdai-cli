@@ -74,3 +74,13 @@ docker-demo: docker-build
 clean:
 	rm -f mdai
 	docker rmi -f mdai-cli:latest &> /dev/null
+
+.PHONY: ci-build
+.SILENT: ci-build
+ci-build: git-setup build
+
+.PHONY: git-setup
+.SILENT: git-setup
+git-setup:
+	git config --global url."https://user:${TOKEN}@github.com".insteadOf "https://github.com"
+
