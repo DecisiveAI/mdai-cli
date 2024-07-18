@@ -6,7 +6,7 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/decisiveai/mdai-cli"
 homepage = "https://www.mydecisive.ai/"
 binaries = ["mdai"]
-build-command = ["./build.sh"]
+build-command = ["make", "ci-build"]
 
 [package.metadata.wix]
 upgrade-guid = "9A4352DB-B302-4E7A-BFBD-DAD056AD6A34"
@@ -21,9 +21,9 @@ cargo-dist-version = "0.14.1"
 # CI backends to support
 ci = "github"
 # The installers to generate for each app
-installers = ["shell", "homebrew"]
+installers = ["shell", "powershell", "homebrew"]
 # Target platforms to build apps for (Rust target-triple syntax)
-targets = ["aarch64-apple-darwin", "x86_64-apple-darwin", "x86_64-unknown-linux-gnu", "x86_64-unknown-linux-musl"]
+targets = ["aarch64-apple-darwin", "x86_64-apple-darwin", "x86_64-unknown-linux-gnu", "x86_64-unknown-linux-musl", "x86_64-pc-windows-msvc"]
 # A GitHub repo to push Homebrew formulas to
 tap = "decisiveai/homebrew-tap"
 # Publish jobs to run in CI
