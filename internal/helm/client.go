@@ -1,10 +1,10 @@
 package helm
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
-	"github.com/pkg/errors"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/cli"
