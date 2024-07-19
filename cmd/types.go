@@ -40,6 +40,8 @@ var (
 		Version:  mdaitypes.MDAIOperatorVersion,
 		Resource: mdaitypes.MDAIOperatorResource,
 	}
+
+	mdaiHelmcharts = []string{"cert-manager", "prometheus", "opentelemetry-operator", "mdai-operator", "mdai-api", "mdai-console", "datalyzer"}
 )
 
 type mutePatch struct {
