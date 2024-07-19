@@ -9,7 +9,7 @@ import (
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/getter"
-	"helm.sh/helm/v3/pkg/repo"
+	helmrepo "helm.sh/helm/v3/pkg/repo"
 	"helm.sh/helm/v3/pkg/storage/driver"
 )
 
@@ -49,7 +49,7 @@ func (c *Client) AddRepos() error {
 
 func (c *Client) addRepo(name, url string) error {
 	file := c.cliEnvSettings.RepositoryConfig
-	repoFile, err := repo.LoadFile(file)
+	repoFile, err := helmrepo.LoadFile(file)
 	if err != nil && !os.IsNotExist(err) {
 		c.errs <- fmt.Errorf("failed to load helm repo index file: %w", err)
 		return fmt.Errorf("failed to load helm repo index file: %w", err)
@@ -60,12 +60,12 @@ func (c *Client) addRepo(name, url string) error {
 		return nil
 	}
 
-	entry := repo.Entry{
+	entry := helmrepo.Entry{
 		Name: name,
 		URL:  url,
 	}
 
-	repo, err := repo.NewChartRepository(&entry, getter.All(c.cliEnvSettings))
+	repo, err := helmrepo.NewChartRepository(&entry, getter.All(c.cliEnvSettings))
 	if err != nil {
 		c.errs <- fmt.Errorf("failed to create chart repository: %w", err)
 		return fmt.Errorf("failed to create chart repository: %w", err)
