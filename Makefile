@@ -1,34 +1,34 @@
-ifndef CARGO_DIST_TARGET
-	GOARCH = $(shell uname -m)
-	GOOS = $(shell uname -o | tr '[:upper:]' '[:lower:]')
-else
-ifeq ($(CARGO_DIST_TARGET),aarch64-apple-darwin)
-	GOARCH = arm64
-	GOOS = darwin
-else
-ifeq ($(CARGO_DIST_TARGET),x86_64-apple-darwin)
-	GOARCH = amd64
-	GOOS = darwin
-else
-ifeq ($(CARGO_DIST_TARGET),x86_64-unknown-linux-gnu)
-	GOARCH = amd64
-	GOOS = linux
-else
-ifeq ($(CARGO_DIST_TARGET),x86_64-unknown-linux-musl)
-	GOARCH = amd64
-	GOOS = linux
-else
-ifeq ($(CARGO_DIST_TARGET),x86_64-pc-windows-msvc)
-	GOARCH = amd64
-	GOOS = windows
-else
-$(error "unsupported target platform $(CARGO_DIST_TARGET)")
-endif
-endif
-endif
-endif
-endif
-endif
+#ifndef CARGO_DIST_TARGET
+#	GOARCH = $(shell uname -m)
+#	GOOS = $(shell uname -o | tr '[:upper:]' '[:lower:]')
+#else
+#ifeq ($(CARGO_DIST_TARGET),aarch64-apple-darwin)
+#	GOARCH = arm64
+#	GOOS = darwin
+#else
+#ifeq ($(CARGO_DIST_TARGET),x86_64-apple-darwin)
+#	GOARCH = amd64
+#	GOOS = darwin
+#else
+#ifeq ($(CARGO_DIST_TARGET),x86_64-unknown-linux-gnu)
+#	GOARCH = amd64
+#	GOOS = linux
+#else
+#ifeq ($(CARGO_DIST_TARGET),x86_64-unknown-linux-musl)
+#	GOARCH = amd64
+#	GOOS = linux
+#else
+#ifeq ($(CARGO_DIST_TARGET),x86_64-pc-windows-msvc)
+#	GOARCH = amd64
+#	GOOS = windows
+#else
+#$(error "unsupported target platform $(CARGO_DIST_TARGET)")
+#endif
+#endif
+#endif
+#endif
+#endif
+#endif
 
 
 .PHONY: build
