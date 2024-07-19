@@ -53,7 +53,7 @@ func NewInstallCommand() *cobra.Command {
 			messages := make(chan string)
 			debug := make(chan string)
 			errs := make(chan error)
-			done := make(chan bool)
+			done := make(chan struct{})
 			task := make(chan string)
 			defer func() {
 				close(messages)
@@ -168,7 +168,7 @@ func NewInstallCommand() *cobra.Command {
 				}
 
 				messages <- "installation completed successfully"
-				done <- true
+				done <- struct{}{}
 			}()
 
 			p := tea.NewProgram(

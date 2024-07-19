@@ -24,7 +24,7 @@ func NewUninstallCommand() *cobra.Command {
 			messages := make(chan string)
 			debug := make(chan string)
 			errs := make(chan error)
-			done := make(chan bool)
+			done := make(chan struct{})
 			task := make(chan string)
 			defer func() {
 				close(messages)
@@ -80,7 +80,7 @@ func NewUninstallCommand() *cobra.Command {
 				}
 				messages <- "CRDs deleted successfully."
 
-				done <- true
+				done <- struct{}{}
 				return nil
 			}()
 

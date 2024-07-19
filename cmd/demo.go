@@ -23,7 +23,7 @@ func NewDemoCommand() *cobra.Command {
 			messages := make(chan string)
 			debug := make(chan string)
 			errs := make(chan error)
-			done := make(chan bool)
+			done := make(chan struct{})
 			task := make(chan string)
 			defer func() {
 				close(messages)
@@ -57,7 +57,7 @@ func NewDemoCommand() *cobra.Command {
 							return
 						}
 					}
-					done <- true
+					done <- struct{}{}
 				}
 			case false:
 				action = func() {
@@ -87,7 +87,7 @@ func NewDemoCommand() *cobra.Command {
 							return
 						}
 					}
-					done <- true
+					done <- struct{}{}
 				}
 			}
 

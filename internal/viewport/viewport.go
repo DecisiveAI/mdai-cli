@@ -15,7 +15,7 @@ type channels struct {
 	messages chan string
 	debug    chan string
 	errs     chan error
-	done     chan bool
+	done     chan struct{}
 	task     chan string
 }
 
@@ -40,7 +40,7 @@ type (
 	responseMsg   string
 	responseDebug string
 	responseError error
-	responseDone  bool
+	responseDone  struct{}
 	responseTask  string
 )
 
@@ -52,7 +52,7 @@ type styles struct {
 	viewport lipgloss.Style
 }
 
-func InitialModel(messages chan string, debug chan string, errs chan error, done chan bool, task chan string, debugMode bool, quietMode bool) model {
+func InitialModel(messages chan string, debug chan string, errs chan error, done chan struct{}, task chan string, debugMode bool, quietMode bool) model {
 	return model{
 		channels: channels{messages, debug, errs, done, task},
 		modes:    modes{debugMode, quietMode},
@@ -126,7 +126,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case responseError:
 		m.hasError = true
-		m.channels.done <- true
+		m.channels.done <- struct{}{}
 		m.writeContent(msg.Error(), m.styles.err, false)
 		m.viewport.SetContent(m.content.String())
 		m.viewport.GotoBottom()
