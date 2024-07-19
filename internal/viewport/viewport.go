@@ -11,21 +11,31 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+type channels struct {
+	messages chan string
+	debug    chan string
+	errs     chan error
+	done     chan bool
+	task     chan string
+}
+
+type modes struct {
+	debug bool
+	quiet bool
+}
+
 type (
 	model struct {
-		viewport  viewport.Model
-		messages  chan string
-		debug     chan string
-		errs      chan error
-		done      chan bool
-		task      chan string
-		debugMode bool
-		quietMode bool
-		spinner   spinner.Model
-		title     string
-		ready     bool
-		content   string
-		start     time.Time
+		viewport viewport.Model
+		channels channels
+		modes    modes
+		styles   styles
+		spinner  spinner.Model
+		title    string
+		content  *strings.Builder
+		start    time.Time
+		ready    bool
+		hasError bool
 	}
 	responseMsg   string
 	responseDebug string
@@ -34,122 +44,102 @@ type (
 	responseTask  string
 )
 
-var (
-	errorStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("#FF0000"))
-	normalStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#d3d3d3"))
-	debugStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("#808080"))
-	titleStyle  = lipgloss.NewStyle().Bold(true).Underline(true).MarginBottom(0)
-)
+type styles struct {
+	err,
+	normal,
+	debug,
+	title,
+	viewport lipgloss.Style
+}
 
 func InitialModel(messages chan string, debug chan string, errs chan error, done chan bool, task chan string, debugMode bool, quietMode bool) model {
 	return model{
-		messages:  messages,
-		debug:     debug,
-		errs:      errs,
-		done:      done,
-		task:      task,
-		debugMode: debugMode,
-		quietMode: quietMode,
-		spinner:   spinner.New(spinner.WithSpinner(spinner.Meter), spinner.WithStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("#800080")))),
-		content:   "[" + time.Now().Format(time.DateTime) + "] process started...",
-		start:     time.Now(),
+		channels: channels{messages, debug, errs, done, task},
+		modes:    modes{debugMode, quietMode},
+		styles: styles{
+			lipgloss.NewStyle().Foreground(lipgloss.Color("#FF0000")),
+			lipgloss.NewStyle().Foreground(lipgloss.Color("#d3d3d3")),
+			lipgloss.NewStyle().Foreground(lipgloss.Color("#808080")),
+			lipgloss.NewStyle().Bold(true).Underline(true).MarginBottom(0),
+			lipgloss.NewStyle().Padding(0).MarginTop(0).MarginLeft(0),
+		},
+		spinner: spinner.New(spinner.WithSpinner(spinner.Meter), spinner.WithStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("#800080")))),
+		content: &strings.Builder{},
+		start:   time.Now(),
 	}
 }
 
 func (m model) Init() tea.Cmd {
+	m.writeContent("process started...", m.styles.normal, false)
 	return tea.Batch(
 		m.spinner.Tick,
-		waitForMessages(m.messages),
-		waitForDebug(m.debug),
-		waitForErrors(m.errs),
-		waitForTask(m.task),
-		waitForDone(m.done),
+		m.waitFor("message"),
+		m.waitFor("debug"),
+		m.waitFor("error"),
+		m.waitFor("task"),
+		m.waitFor("done"),
 	)
 }
 
-func waitForMessages(sub chan string) tea.Cmd {
-	return func() tea.Msg {
-		return responseMsg(<-sub)
+func (m model) waitFor(what string) tea.Cmd {
+	switch what {
+	case "message":
+		return func() tea.Msg { return responseMsg(<-m.channels.messages) }
+	case "error":
+		return func() tea.Msg { return responseError(<-m.channels.errs) }
+	case "debug":
+		return func() tea.Msg { return responseDebug(<-m.channels.debug) }
+	case "task":
+		return func() tea.Msg { return responseTask(<-m.channels.task) }
+	case "done":
+		return func() tea.Msg { return responseDone(<-m.channels.done) }
 	}
+	return nil
 }
 
-func waitForDebug(sub chan string) tea.Cmd {
-	return func() tea.Msg {
-		return responseDebug(<-sub)
+func (m model) writeContent(content string, style lipgloss.Style, timing bool) {
+	format := "[%s] %s"
+	args := []any{time.Now().Format(time.DateTime), content}
+	if timing {
+		format += " (%s)"
+		args = append(args, time.Since(m.start).String())
 	}
-}
-
-func waitForErrors(sub chan error) tea.Cmd {
-	return func() tea.Msg {
-		return responseError(<-sub)
-	}
-}
-
-func waitForDone(sub chan bool) tea.Cmd {
-	return func() tea.Msg {
-		return responseDone(<-sub)
-	}
-}
-
-func waitForTask(sub chan string) tea.Cmd {
-	return func() tea.Msg {
-		return responseTask(<-sub)
-	}
+	_, _ = fmt.Fprintln(m.content,
+		style.Width(m.viewport.Width-10).Render(
+			fmt.Sprintf(format, args...),
+		),
+	)
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case responseMsg:
-		ts := "[" + time.Now().Format(time.DateTime) + "] "
-		m.content = strings.Join([]string{m.content, normalStyle.Width(m.viewport.Width - 10).Render(ts + string(msg) + " (" + time.Since(m.start).String() + ")")}, "\n")
-		m.viewport.SetContent(m.content)
-		if len(m.content) > m.viewport.VisibleLineCount() {
-			m.viewport.GotoBottom()
-		}
+		m.writeContent(string(msg), m.styles.normal, true)
+		m.viewport.SetContent(m.content.String())
+		m.viewport.GotoBottom()
 		m.start = time.Now()
-		return m, tea.Batch(
-			waitForMessages(m.messages),
-			waitForDebug(m.debug),
-			waitForErrors(m.errs),
-			waitForTask(m.task),
-			waitForDone(m.done),
-		)
 	case responseDebug:
-		if m.debugMode {
-			ts := "[" + time.Now().Format(time.DateTime) + "] "
-			m.content = strings.Join([]string{m.content, debugStyle.Width(m.viewport.Width - 10).Render(ts + string(msg))}, "\n")
-			m.viewport.SetContent(m.content)
-			if len(m.content) > m.viewport.VisibleLineCount() {
-				m.viewport.GotoBottom()
-			}
-		}
-		return m, tea.Batch(
-			waitForMessages(m.messages),
-			waitForDebug(m.debug),
-			waitForErrors(m.errs),
-			waitForTask(m.task),
-			waitForDone(m.done),
-		)
-	case responseError:
-		ts := "[" + time.Now().Format(time.DateTime) + "] "
-		m.content = strings.Join([]string{m.content, errorStyle.Width(m.viewport.Width - 10).Render(ts + msg.Error())}, "\n")
-		m.viewport.SetContent(m.content)
-		if len(m.content) > m.viewport.VisibleLineCount() {
+		if m.modes.debug {
+			m.writeContent(string(msg), m.styles.debug, false)
+			m.viewport.SetContent(m.content.String())
 			m.viewport.GotoBottom()
 		}
-		return m, tea.Quit
+	case responseError:
+		m.hasError = true
+		m.channels.done <- true
+		m.writeContent(msg.Error(), m.styles.err, false)
+		m.viewport.SetContent(m.content.String())
+		m.viewport.GotoBottom()
+		return m, m.waitFor("done")
 	case responseDone:
 		m.title = "process complete"
+		if m.hasError {
+			m.title += " with error"
+		}
+		m.viewport.GotoBottom()
 		return m, tea.Quit
 	case responseTask:
 		m.title = string(msg)
-		return m, tea.Batch(
-			waitForMessages(m.messages),
-			waitForDebug(m.debug),
-			waitForErrors(m.errs),
-			waitForTask(m.task),
-			waitForDone(m.done),
-		)
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "q", "ctrl+c":
@@ -162,14 +152,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		if !m.ready {
 			m.viewport = viewport.New(msg.Width-2, msg.Height-3)
-			m.viewport.Style = lipgloss.NewStyle().
-				//	Border(lipgloss.RoundedBorder()).
-				Padding(0).
-				MarginTop(0).
-				MarginLeft(0)
+			m.viewport.Style = m.styles.viewport
 			m.viewport.YPosition = 0
 			m.viewport.HighPerformanceRendering = false
-			m.viewport.SetContent(m.content)
+			m.viewport.SetContent(m.content.String())
 			m.ready = true
 		} else {
 			m.viewport.Width = msg.Width
@@ -177,12 +163,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	return m, nil
+	return m, tea.Batch(
+		m.waitFor("message"),
+		m.waitFor("debug"),
+		m.waitFor("error"),
+		m.waitFor("task"),
+		m.waitFor("done"),
+	)
 }
 
 func (m model) View() string {
-	title := titleStyle.Render(m.title)
-	if m.quietMode {
+	title := m.styles.title.Render(m.title)
+	if m.modes.quiet {
 		return fmt.Sprintf("%s %s", m.spinner.View(), title)
 	}
 	return fmt.Sprintf(
