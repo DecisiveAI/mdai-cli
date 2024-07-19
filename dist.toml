@@ -29,7 +29,7 @@ tap = "decisiveai/homebrew-tap"
 # Publish jobs to run in CI
 publish-jobs = ["homebrew"]
 # Publish jobs to run in CI
-pr-run-mode = "plan"
+#pr-run-mode = "plan"
 # Whether to install an updater program
 install-updater = false
 # Path that installers should place binaries in
