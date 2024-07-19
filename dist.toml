@@ -34,3 +34,6 @@ install-updater = false
 install-path = ["$MDAI_CLI_HOME/bin", "~/.mdai/bin"]
 # Publish jobs to run in CI
 pr-run-mode = "upload"
+
+# Skip checking whether the specified configuration files are up to date
+allow-dirty = ["ci"]
