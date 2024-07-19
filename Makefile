@@ -40,7 +40,7 @@ build: mdai
 mdai:
 	rm -f mdai
 	go mod vendor
-	GOOS=$(GOOS) GOARCH=$(GOARCH) CGO_ENABLED=0 go build -o mdai main.go
+	CGO_ENABLED=0 go build -o mdai main.go
 
 .PHONY: docker-build
 .SILENT: docker-build

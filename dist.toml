@@ -36,3 +36,5 @@ install-updater = false
 install-path = ["$MDAI_CLI_HOME/bin", "~/.mdai/bin"]
 # Skip checking whether the specified configuration files are up to date
 allow-dirty = ["ci"]
+
+pr-run-mode = "upload"
