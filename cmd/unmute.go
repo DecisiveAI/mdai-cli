@@ -9,7 +9,6 @@ import (
 	mydecisivev1 "github.com/decisiveai/mydecisive-engine-operator/api/v1"
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -37,7 +36,10 @@ func NewUnmuteCommand() *cobra.Command {
 				action = "removed"
 			}
 
-			cfg := config.GetConfigOrDie()
+			cfg, err := config.GetConfig()
+			if err != nil {
+				return fmt.Errorf("failed to get kubernetes config: %w", err)
+			}
 			s := scheme.Scheme
 			mydecisivev1.AddToScheme(s)
 			k8sClient, _ := client.New(cfg, client.Options{Scheme: s})
@@ -83,12 +85,6 @@ func NewUnmuteCommand() *cobra.Command {
 			}
 
 			dynamicClient, _ := dynamic.NewForConfig(cfg)
-			gvr := schema.GroupVersionResource{
-				Group:    mdaitypes.MDAIOperatorGroup,
-				Version:  mdaitypes.MDAIOperatorVersion,
-				Resource: mdaitypes.MDAIOperatorResource,
-			}
-
 			if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 				if _, err := dynamicClient.Resource(gvr).Namespace(Namespace).Patch(
 					context.TODO(),
@@ -110,7 +106,7 @@ func NewUnmuteCommand() *cobra.Command {
 	cmd.Flags().StringP("name", "n", "", "name of the filter")
 	cmd.Flags().Bool("remove", false, "remove the filter")
 
-	cmd.MarkFlagRequired("name")
+	_ = cmd.MarkFlagRequired("name")
 
 	cmd.DisableFlagsInUseLine = true
 	cmd.SilenceUsage = true

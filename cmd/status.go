@@ -39,10 +39,13 @@ func NewStatusCommand() *cobra.Command {
 		Short: "show kubernetes deployment status",
 		Long:  `show installed helm charts, deployments with their statuses`,
 		RunE: func(_ *cobra.Command, _ []string) error {
-			cfg := config.GetConfigOrDie()
+			cfg, err := config.GetConfig()
+			if err != nil {
+				return fmt.Errorf("failed to get kubernetes config: %w", err)
+			}
 			actionConfig := new(action.Configuration)
 			settings := cli.New()
-			if err := actionConfig.Init(settings.RESTClientGetter(), "", "", nil); err != nil {
+			if err := actionConfig.Init(settings.RESTClientGetter(), Namespace, "", nil); err != nil {
 				return fmt.Errorf("failed to initialize helm client: %w", err)
 			}
 			client := action.NewList(actionConfig)

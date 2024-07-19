@@ -10,7 +10,6 @@ import (
 	mdaitypes "github.com/decisiveai/mdai-cli/internal/types"
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/util/retry"
@@ -31,7 +30,7 @@ func NewDisableCommand() *cobra.Command {
 			}
 			return nil
 		},
-		Run: func(cmd *cobra.Command, _ []string) {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			var (
 				patchBytes []byte
 				err        error
@@ -40,11 +39,6 @@ func NewDisableCommand() *cobra.Command {
 			cfg, _ := config.GetConfig()
 			dynamicClient, _ := dynamic.NewForConfig(cfg)
 
-			gvr := schema.GroupVersionResource{
-				Group:    mdaitypes.MDAIOperatorGroup,
-				Version:  mdaitypes.MDAIOperatorVersion,
-				Resource: mdaitypes.MDAIOperatorResource,
-			}
 			switch module {
 			case "datalyzer":
 				patchBytes, err = json.Marshal([]datalyzerPatch{
@@ -55,8 +49,7 @@ func NewDisableCommand() *cobra.Command {
 					},
 				})
 				if err != nil {
-					fmt.Printf("failed to marshal datalyzer patch: %v\n", err)
-					return
+					return fmt.Errorf("failed to marshal datalyzer patch: %w", err)
 				}
 			}
 
@@ -68,19 +61,19 @@ func NewDisableCommand() *cobra.Command {
 					patchBytes,
 					metav1.PatchOptions{},
 				); err != nil {
-					return fmt.Errorf("failed to apply patch: %w", err)
+					return err // nolint: wrapcheck
 				}
 				return nil
 			}); err != nil {
-				fmt.Println(err)
-				return
+				return fmt.Errorf("failed to apply patch: %w", err)
 			}
 			fmt.Printf("%s module disabled successfully.\n", module)
+			return nil
 		},
 	}
 	cmd.Flags().String("module", "", "module to disable ["+strings.Join(SupportedModules, ", ")+"]")
 
-	cmd.MarkFlagRequired("module")
+	_ = cmd.MarkFlagRequired("module")
 
 	cmd.DisableFlagsInUseLine = true
 	cmd.SilenceUsage = true

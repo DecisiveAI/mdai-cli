@@ -2,7 +2,9 @@ package cmd
 
 import (
 	"github.com/charmbracelet/lipgloss"
+	mdaitypes "github.com/decisiveai/mdai-cli/internal/types"
 	mydecisivev1 "github.com/decisiveai/mydecisive-engine-operator/api/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 const (
@@ -32,6 +34,12 @@ var (
 	SupportedBlocks = []string{"receivers", "processors", "exporters"}
 
 	MutedPipelineEmptyFilter = []byte(`[{ "op": "add", "path": "/spec/telemetryModule/collectors/0/telemetryFiltering", "value": { "filters": [] } }]`)
+
+	gvr = schema.GroupVersionResource{
+		Group:    mdaitypes.MDAIOperatorGroup,
+		Version:  mdaitypes.MDAIOperatorVersion,
+		Resource: mdaitypes.MDAIOperatorResource,
+	}
 )
 
 type mutePatch struct {

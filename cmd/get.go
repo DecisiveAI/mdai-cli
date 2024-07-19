@@ -31,9 +31,12 @@ func NewGetCommand() *cobra.Command {
 			}
 			return nil
 		},
-		Run: func(cmd *cobra.Command, _ []string) {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			configType, _ := cmd.Flags().GetString("config")
-			cfg := config.GetConfigOrDie()
+			cfg, err := config.GetConfig()
+			if err != nil {
+				return fmt.Errorf("failed to get kubernetes config: %w", err)
+			}
 			s := scheme.Scheme
 			mydecisivev1.AddToScheme(s)
 			k8sClient, _ := client.New(cfg, client.Options{Scheme: s})
@@ -44,8 +47,7 @@ func NewGetCommand() *cobra.Command {
 					Namespace: Namespace,
 					Name:      mdaitypes.MDAIOperatorName,
 				}, &get); err != nil {
-					fmt.Printf("error: %+v\n", err)
-					return
+					return fmt.Errorf("failed to get mdai operator: %w", err)
 				}
 				fmt.Printf("name           : %s\n", purple.Render(get.Name))
 				fmt.Printf("namespace      : %s\n", purple.Render(get.Namespace))
@@ -61,15 +63,18 @@ func NewGetCommand() *cobra.Command {
 						fmt.Println("\t--")
 					}
 				}
+				fmt.Printf("%+v\n", get.Spec.TelemetryModule.Collectors)
 			case "otel":
-				config := oteloperator.GetConfig()
-				fmt.Println(config)
+				otelConfig := oteloperator.GetConfig()
+				fmt.Println(otelConfig)
 			}
+
+			return nil
 		},
 	}
 	cmd.Flags().StringP("config", "c", "", "configuration to get ["+strings.Join(SupportedGetConfigTypes, ", ")+"]")
 
-	cmd.MarkFlagRequired("config")
+	_ = cmd.MarkFlagRequired("config")
 
 	cmd.DisableFlagsInUseLine = true
 	cmd.SilenceUsage = true

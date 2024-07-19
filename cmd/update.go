@@ -15,7 +15,6 @@ import (
 	mydecisivev1 "github.com/decisiveai/mydecisive-engine-operator/api/v1"
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -52,7 +51,7 @@ func NewUpdateCommand() *cobra.Command {
 
 			return nil
 		},
-		Run: func(cmd *cobra.Command, _ []string) {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			fileP, _ := cmd.Flags().GetString("file")
 			configP, _ := cmd.Flags().GetString("config")
 			phaseP, _ := cmd.Flags().GetString("phase")
@@ -62,7 +61,10 @@ func NewUpdateCommand() *cobra.Command {
 			case configP != "":
 				var otelConfig string
 
-				cfg := config.GetConfigOrDie()
+				cfg, err := config.GetConfig()
+				if err != nil {
+					return fmt.Errorf("failed to get kubernetes config: %w", err)
+				}
 				s := scheme.Scheme
 				mydecisivev1.AddToScheme(s)
 				k8sClient, _ := client.New(cfg, client.Options{Scheme: s})
@@ -71,17 +73,19 @@ func NewUpdateCommand() *cobra.Command {
 					Namespace: Namespace,
 					Name:      mdaitypes.MDAIOperatorName,
 				}, &get); err != nil {
-					fmt.Printf("error getting %s config: %v\n", configP, err)
-					return
+					return fmt.Errorf("error getting %s config: %w", configP, err)
 				}
 				otelConfig = get.Spec.TelemetryModule.Collectors[0].Spec.Config
 				f, err := os.CreateTemp("", "otelconfig")
 				if err != nil {
-					fmt.Printf("error saving %s config temp file: %+v\n", configP, err)
-					return
+					return fmt.Errorf("error saving %s config temp file: %w", configP, err)
 				}
-				f.WriteString(otelConfig)
-				f.Close()
+				if _, err := f.WriteString(otelConfig); err != nil {
+					return fmt.Errorf("error saving %s config temp file: %w", configP, err)
+				}
+				if err := f.Close(); err != nil {
+					return fmt.Errorf("error saving %s config temp file: %w", configP, err)
+				}
 
 				defer os.Remove(f.Name())
 
@@ -103,14 +107,9 @@ func NewUpdateCommand() *cobra.Command {
 				form.Run()
 				if !applyConfig {
 					fmt.Println(configP + " configuration not updated")
-					return
+					return nil
 				}
 				dynamicClient, _ := dynamic.NewForConfig(cfg)
-				gvr := schema.GroupVersionResource{
-					Group:    mdaitypes.MDAIOperatorGroup,
-					Version:  mdaitypes.MDAIOperatorVersion,
-					Resource: mdaitypes.MDAIOperatorResource,
-				}
 				otelConfigBytes, _ := os.ReadFile(f.Name())
 				patchBytes, err := json.Marshal([]mdaiOperatorOtelConfigPatch{
 					{
@@ -120,8 +119,7 @@ func NewUpdateCommand() *cobra.Command {
 					},
 				})
 				if err != nil {
-					fmt.Printf("failed to marshal mdai operator patch: %v\n", err)
-					return
+					return fmt.Errorf("failed to marshal mdai operator patch: %w", err)
 				}
 
 				if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
@@ -132,23 +130,20 @@ func NewUpdateCommand() *cobra.Command {
 						patchBytes,
 						metav1.PatchOptions{},
 					); err != nil {
-						return fmt.Errorf("failed to apply patch: %w", err)
+						return err // nolint: wrapcheck
 					}
 					return nil
 				}); err != nil {
-					fmt.Println(err)
-					return
+					return fmt.Errorf("failed to apply patch: %w", err)
 				}
 				fmt.Println(configP + " configuration updated")
 
 			case fileP != "":
-				cfg := config.GetConfigOrDie()
-				dynamicClient, _ := dynamic.NewForConfig(cfg)
-				gvr := schema.GroupVersionResource{
-					Group:    mdaitypes.MDAIOperatorGroup,
-					Version:  mdaitypes.MDAIOperatorVersion,
-					Resource: mdaitypes.MDAIOperatorResource,
+				cfg, err := config.GetConfig()
+				if err != nil {
+					return fmt.Errorf("failed to get kubernetes config: %w", err)
 				}
+				dynamicClient, _ := dynamic.NewForConfig(cfg)
 				otelConfigBytes, _ := os.ReadFile(fileP)
 				patchBytes, err := json.Marshal([]mdaiOperatorOtelConfigPatch{
 					{
@@ -158,8 +153,7 @@ func NewUpdateCommand() *cobra.Command {
 					},
 				})
 				if err != nil {
-					fmt.Printf("failed to marshal mdai operator patch: %v\n", err)
-					return
+					return fmt.Errorf("failed to marshal mdai operator patch: %w", err)
 				}
 
 				if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
@@ -170,15 +164,15 @@ func NewUpdateCommand() *cobra.Command {
 						patchBytes,
 						metav1.PatchOptions{},
 					); err != nil {
-						return fmt.Errorf("failed to apply patch: %w", err)
+						return err // nolint: wrapcheck
 					}
 					return nil
 				}); err != nil {
-					fmt.Println(err)
-					return
+					return fmt.Errorf("failed to apply patch: %w", err)
 				}
 				fmt.Println(configP + " configuration updated")
 			}
+			return nil
 		},
 	}
 	cmd.Flags().StringP("file", "f", "", "file to update")

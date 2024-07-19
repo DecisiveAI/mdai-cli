@@ -10,7 +10,6 @@ import (
 	mydecisivev1 "github.com/decisiveai/mydecisive-engine-operator/api/v1"
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -50,12 +49,6 @@ func NewMuteCommand() *cobra.Command {
 
 			cfg, _ := config.GetConfig()
 			dynamicClient, _ := dynamic.NewForConfig(cfg)
-
-			gvr := schema.GroupVersionResource{
-				Group:    mdaitypes.MDAIOperatorGroup,
-				Version:  mdaitypes.MDAIOperatorVersion,
-				Resource: mdaitypes.MDAIOperatorResource,
-			}
 
 			s := scheme.Scheme
 			mydecisivev1.AddToScheme(s)
@@ -119,9 +112,9 @@ func NewMuteCommand() *cobra.Command {
 	cmd.Flags().StringP("description", "d", "", "description of the filter")
 
 	cmd.MarkFlagsRequiredTogether("name", "description", "pipeline")
-	cmd.MarkFlagRequired("name")
-	cmd.MarkFlagRequired("description")
-	cmd.MarkFlagRequired("pipeline")
+	_ = cmd.MarkFlagRequired("name")
+	_ = cmd.MarkFlagRequired("description")
+	_ = cmd.MarkFlagRequired("pipeline")
 
 	cmd.DisableFlagsInUseLine = true
 	cmd.SilenceUsage = true

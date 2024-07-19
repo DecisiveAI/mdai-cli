@@ -55,7 +55,11 @@ func NewUninstallCommand() *cobra.Command {
 				}
 				messages <- "helm charts uninstalled successfully."
 
-				cfg := config.GetConfigOrDie()
+				cfg, err := config.GetConfig()
+				if err != nil {
+					errs <- fmt.Errorf("failed to get kubernetes config: %w", err)
+					return fmt.Errorf("failed to get kubernetes config: %w", err)
+				}
 				apiExtensionsClientset, _ := apiextensionsclient.NewForConfig(cfg)
 				crds := []string{
 					"opentelemetrycollectors.opentelemetry.io", "instrumentations.opentelemetry.io", "opampbridges.opentelemetry.io",
