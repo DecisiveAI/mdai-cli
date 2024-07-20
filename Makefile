@@ -1,3 +1,9 @@
+OSFLAG 				:=
+ifeq ($(OS),Windows_NT)
+	OSFLAG += WIN
+else
+	OSFLAG += OTHER
+endif
 #ifndef CARGO_DIST_TARGET
 #	GOARCH = $(shell uname -m)
 #	GOOS = $(shell uname -o | tr '[:upper:]' '[:lower:]')
@@ -29,7 +35,6 @@
 #endif
 #endif
 #endif
-
 
 .PHONY: build
 .SILENT: build
@@ -76,11 +81,12 @@ clean:
 	docker rmi -f mdai-cli:latest &> /dev/null
 
 .PHONY: ci-build
-.SILENT: ci-build
-ci-build: git-setup build
-
-.PHONY: git-setup
-.SILENT: git-setup
-git-setup:
+ci-build:
+	echo $(OSFLAG)
 	git config --global url."https://user:${TOKEN}@github.com".insteadOf "https://github.com"
-
+	go mod vendor
+ifeq ($(OSFLAG),WIN)
+	CGO_ENABLED=0 go build -o mdai.exe -v main.go
+else
+	CGO_ENABLED=0 go build -o mdai -v main.go
+endif
