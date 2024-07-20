@@ -1,8 +1,8 @@
 OSFLAG 				:=
 ifeq ($(OS),Windows_NT)
-	OSFLAG += WIN
+	OSFLAG = "WIN"
 else
-	OSFLAG += OTHER
+	OSFLAG = "OTHER"
 endif
 #ifndef CARGO_DIST_TARGET
 #	GOARCH = $(shell uname -m)
@@ -85,8 +85,8 @@ ci-build:
 	echo $(OSFLAG)
 	git config --global url."https://user:${TOKEN}@github.com".insteadOf "https://github.com"
 	go mod vendor
-ifeq ($(OSFLAG),WIN)
-	CGO_ENABLED=0 go build -o mdai.exe -v main.go
+ifeq ($(OSFLAG),"WIN")
+	CGO_ENABLED=0 go build -o mdai.exe main.go
 else
-	CGO_ENABLED=0 go build -o mdai -v main.go
+	CGO_ENABLED=0 go build -o mdai main.go
 endif
