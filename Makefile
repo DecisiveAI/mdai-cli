@@ -1,40 +1,8 @@
-OSFLAG 				:=
-ifeq ($(OS),Windows_NT)
-	OSFLAG = "WIN"
+ifeq ($(CARGO_DIST_TARGET),x86_64-pc-windows-msvc)
+    BUILD_TARGET  = "mdai.exe"
 else
-	OSFLAG = "OTHER"
+    BUILD_TARGET = "mdai"
 endif
-#ifndef CARGO_DIST_TARGET
-#	GOARCH = $(shell uname -m)
-#	GOOS = $(shell uname -o | tr '[:upper:]' '[:lower:]')
-#else
-#ifeq ($(CARGO_DIST_TARGET),aarch64-apple-darwin)
-#	GOARCH = arm64
-#	GOOS = darwin
-#else
-#ifeq ($(CARGO_DIST_TARGET),x86_64-apple-darwin)
-#	GOARCH = amd64
-#	GOOS = darwin
-#else
-#ifeq ($(CARGO_DIST_TARGET),x86_64-unknown-linux-gnu)
-#	GOARCH = amd64
-#	GOOS = linux
-#else
-#ifeq ($(CARGO_DIST_TARGET),x86_64-unknown-linux-musl)
-#	GOARCH = amd64
-#	GOOS = linux
-#else
-#ifeq ($(CARGO_DIST_TARGET),x86_64-pc-windows-msvc)
-#	GOARCH = amd64
-#	GOOS = windows
-#else
-#$(error "unsupported target platform $(CARGO_DIST_TARGET)")
-#endif
-#endif
-#endif
-#endif
-#endif
-#endif
 
 .PHONY: build
 .SILENT: build
@@ -82,11 +50,7 @@ clean:
 
 .PHONY: ci-build
 ci-build:
-	echo $(OSFLAG)
+	echo "BUILD_TARGET:"$(BUILD_TARGET)
 	git config --global url."https://user:${TOKEN}@github.com".insteadOf "https://github.com"
 	go mod vendor
-ifeq ($(OSFLAG),"WIN")
-	CGO_ENABLED=0 go build -o mdai.exe main.go
-else
-	CGO_ENABLED=0 go build -o mdai main.go
-endif
+	go build -o $(BUILD_TARGET)
