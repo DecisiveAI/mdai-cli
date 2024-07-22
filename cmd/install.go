@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"embed"
 	"fmt"
 	"os"
@@ -9,15 +8,10 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	mdaihelm "github.com/decisiveai/mdai-cli/internal/helm"
 	"github.com/decisiveai/mdai-cli/internal/kind"
+	"github.com/decisiveai/mdai-cli/internal/operator"
 	mdaitypes "github.com/decisiveai/mdai-cli/internal/types"
 	"github.com/decisiveai/mdai-cli/internal/viewport"
 	"github.com/spf13/cobra"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/kubernetes/scheme"
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
 )
 
 //go:embed templates/*
@@ -34,7 +28,8 @@ func NewInstallCommand() *cobra.Command {
 		Example: `  mdai install --cluster-name mdai-local # install locally on kind cluster mdai-local
   mdai install --debug                   # install in debug mode
   mdai install --quiet                   # install in quiet mode`,
-		PreRun: func(_ *cobra.Command, _ []string) {
+		Args: cobra.NoArgs,
+		PreRunE: func(_ *cobra.Command, _ []string) error {
 			/*
 				aws, _ := cmd.Flags().GetBool("aws")
 				local, _ := cmd.Flags().GetBool("local")
@@ -46,25 +41,18 @@ func NewInstallCommand() *cobra.Command {
 				}
 			*/
 			installationType = "kind"
+
+			return nil
 		},
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			messages := make(chan string)
-			debug := make(chan string)
-			errs := make(chan error)
-			done := make(chan bool)
-			task := make(chan string)
-			defer func() {
-				close(messages)
-				close(debug)
-				close(errs)
-				close(task)
-				close(done)
-			}()
+			channels := mdaitypes.NewChannels()
+			defer channels.Close()
 
 			debugMode, _ := cmd.Flags().GetBool("debug")
 			quietMode, _ := cmd.Flags().GetBool("quiet")
 			clusterName, _ := cmd.Flags().GetString("cluster-name")
 
+			modes := mdaitypes.NewModes(debugMode, quietMode)
 			/*
 				if installationType == "" {
 					s := huh.NewSelect[string]().
@@ -79,112 +67,51 @@ func NewInstallCommand() *cobra.Command {
 				}
 			*/
 
-			go func() error {
+			go func() {
 				switch installationType {
 				case "kind":
-					task <- "creating kubernetes cluster via kind"
-					kindclient := kind.NewClient(messages, debug, errs, clusterName)
+					channels.Task("creating kubernetes cluster via kind")
+					kindclient := kind.NewClient(channels, clusterName)
 					if _, err := kindclient.Install(); err != nil {
-						errs <- fmt.Errorf("failed to create kubernetes cluster: %w", err)
-						return fmt.Errorf("failed to create kubernetes cluster: %w", err)
+						channels.Error(fmt.Errorf("failed to create kubernetes cluster: %w", err))
+						return
 					}
 				}
 
 				tmpfile, err := os.CreateTemp(os.TempDir(), "mdai-cli")
 				if err != nil {
-					errs <- fmt.Errorf("failed to create temp dir: %w", err)
-					return fmt.Errorf("failed to create temp dir: %w", err)
+					channels.Error(fmt.Errorf("failed to create temp dir: %w", err))
+					return
 				}
 				defer os.Remove(tmpfile.Name())
-				helmclient := mdaihelm.NewClient(messages, debug, errs, tmpfile.Name())
-				task <- "adding helm repos"
+				helmclient := mdaihelm.NewClient(channels, tmpfile.Name())
+				channels.Task("adding helm repos")
 				if err := helmclient.AddRepos(); err != nil {
-					errs <- fmt.Errorf("failed to add helm repos: %w", err)
-					return fmt.Errorf("failed to add helm repos: %w", err)
+					channels.Error(fmt.Errorf("failed to add helm repos: %w", err))
+					return
 				}
 				for _, helmchart := range mdaiHelmcharts {
-					task <- "installing helm chart " + helmchart
+					channels.Task("installing helm chart " + helmchart)
 					if err := helmclient.InstallChart(helmchart); err != nil {
-						errs <- fmt.Errorf("failed to install helm chart %s: %w", helmchart, err)
-						return fmt.Errorf("failed to install helm chart %s: %w", helmchart, err)
+						channels.Error(fmt.Errorf("failed to install helm chart %s: %w", helmchart, err))
+						return
 					}
 				}
 
-				cfg, err := config.GetConfig()
-				if err != nil {
-					errs <- fmt.Errorf("failed to get kubernetes config: %w", err)
-					return fmt.Errorf("failed to get kubernetes config: %w", err)
-				}
-
-				dynamicClient, err := dynamic.NewForConfig(cfg)
-				if err != nil {
-					errs <- fmt.Errorf("failed to create dynamic client: %w", err)
-					return fmt.Errorf("failed to create dynamic client: %w", err)
-				}
-
-				gvr := schema.GroupVersionResource{
-					Group:    mdaitypes.MDAIOperatorGroup,
-					Version:  mdaitypes.MDAIOperatorVersion,
-					Resource: mdaitypes.MDAIOperatorResource,
-				}
-
-				obj := &unstructured.Unstructured{}
-				decoder := scheme.Codecs.UniversalDecoder()
 				manifest, _ := embedFS.ReadFile("templates/mdai-operator.yaml")
-				_, _, err = decoder.Decode(manifest, nil, obj)
-				if err != nil {
-					errs <- fmt.Errorf("failed to decode mdai-operator manifest: %w", err)
-					return fmt.Errorf("failed to decode mdai-operator manifest: %w", err)
+				if err := operator.Install(manifest); err != nil {
+					channels.Error(fmt.Errorf("failed to apply mdai operator manifest: %w", err))
+					return
 				}
 
-				mdaiOperator, err := dynamicClient.Resource(gvr).Namespace(obj.GetNamespace()).Get(
-					context.TODO(),
-					obj.GetName(),
-					metav1.GetOptions{},
-				)
-				if err != nil && err.Error() != fmt.Sprintf(`%s.%s "%s" not found`, mdaitypes.MDAIOperatorResource, mdaitypes.MDAIOperatorGroup, obj.GetName()) {
-					errs <- fmt.Errorf("failed to get mdai-operator: %w", err)
-					return fmt.Errorf("failed to get mdai-operator: %w", err)
-				}
-
-				if mdaiOperator == nil {
-					task <- "applying mdai-operator manifest"
-					if _, err = dynamicClient.Resource(gvr).Namespace(obj.GetNamespace()).Create(
-						context.TODO(),
-						obj,
-						metav1.CreateOptions{},
-					); err != nil {
-						errs <- fmt.Errorf("failed to apply mdai-operator manifest: %w", err)
-						return fmt.Errorf("failed to apply mdai-operator manifest: %w", err)
-					}
-					messages <- "mdai-operator manifest applied successfully"
-				} else {
-					task <- "updating mdai-operator manifest"
-					obj.SetResourceVersion(mdaiOperator.GetResourceVersion())
-					if _, err = dynamicClient.Resource(gvr).Namespace(obj.GetNamespace()).Update(
-						context.TODO(),
-						obj,
-						metav1.UpdateOptions{},
-					); err != nil {
-						errs <- fmt.Errorf("failed to update mdai-operator manifest: %w", err)
-						return fmt.Errorf("failed to update mdai-operator manifest: %w", err)
-					}
-					messages <- "mdai-operator manifest updated successfully"
-				}
-				messages <- "installation completed successfully"
-				done <- true
-				return nil
+				channels.Message("installation completed successfully")
+				channels.Done()
 			}()
 
 			p := tea.NewProgram(
 				viewport.InitialModel(
-					messages,
-					debug,
-					errs,
-					done,
-					task,
-					debugMode,
-					quietMode,
+					channels,
+					modes,
 				),
 			)
 			if _, err := p.Run(); err != nil {
@@ -199,7 +126,9 @@ func NewInstallCommand() *cobra.Command {
 	cmd.Flags().String("cluster-name", "mdai-local", "kubernetes cluster name")
 	cmd.Flags().Bool("debug", false, "debug mode")
 	cmd.Flags().Bool("quiet", false, "quiet mode")
+
 	cmd.DisableFlagsInUseLine = true
+	cmd.SilenceUsage = true
 
 	return cmd
 }

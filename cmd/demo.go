@@ -7,6 +7,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	mdaihelm "github.com/decisiveai/mdai-cli/internal/helm"
 	"github.com/decisiveai/mdai-cli/internal/kind"
+	mdaitypes "github.com/decisiveai/mdai-cli/internal/types"
 	"github.com/decisiveai/mdai-cli/internal/viewport"
 	"github.com/spf13/cobra"
 )
@@ -18,89 +19,75 @@ func NewDemoCommand() *cobra.Command {
 		Short:   "install OpenTelemetry Demo",
 		Long:    "install OpenTelemetry Demo",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			var action func() error
+			var action func()
 
-			messages := make(chan string)
-			debug := make(chan string)
-			errs := make(chan error)
-			done := make(chan bool)
-			task := make(chan string)
-			defer func() {
-				close(messages)
-				close(debug)
-				close(errs)
-				close(task)
-				close(done)
-			}()
+			channels := mdaitypes.NewChannels()
+			defer channels.Close()
 
-			debugMode := false
-			quietMode := false
 			clusterName, _ := cmd.Flags().GetString("cluster-name")
 			uninstall, _ := cmd.Flags().GetBool("uninstall")
+
+			modes := mdaitypes.NewModes(false, false)
 
 			helmcharts := []string{"opentelemetry-demo"}
 
 			switch uninstall {
 			case true:
-				action = func() error {
+				action = func() {
 					tmpfile, err := os.CreateTemp(os.TempDir(), "mdai-cli")
 					if err != nil {
-						errs <- fmt.Errorf("failed to create temp dir: %w", err)
-						return fmt.Errorf("failed to create temp dir: %w", err)
+						channels.Error(fmt.Errorf("failed to create temp dir: %w", err))
+						return
 					}
 					defer os.Remove(tmpfile.Name())
-					helmclient := mdaihelm.NewClient(messages, debug, errs, tmpfile.Name())
+					helmclient := mdaihelm.NewClient(channels, tmpfile.Name())
 					for _, helmchart := range helmcharts {
-						task <- "uninstalling helm chart " + helmchart
+						channels.Task("uninstalling helm chart " + helmchart)
 						if err := helmclient.UninstallChart(helmchart); err != nil {
-							errs <- fmt.Errorf("failed to uninstall helm chart %s: %w", helmchart, err)
-							return fmt.Errorf("failed to uninstall helm chart %s: %w", helmchart, err)
+							channels.Error(fmt.Errorf("failed to uninstall helm chart %s: %w", helmchart, err))
+							return
 						}
 					}
-					done <- true
-					return nil
+					channels.Done()
 				}
 			case false:
-				action = func() error {
-					task <- "creating kubernetes cluster via kind"
-					kindclient := kind.NewClient(messages, debug, errs, clusterName)
+				action = func() {
+					channels.Task("creating kubernetes cluster via kind")
+					kindclient := kind.NewClient(channels, clusterName)
 					if _, err := kindclient.Install(); err != nil {
-						errs <- fmt.Errorf("failed to create kubernetes cluster: %w", err)
-						return fmt.Errorf("failed to create kubernetes cluster: %w", err)
+						channels.Error(fmt.Errorf("failed to create kubernetes cluster: %w", err))
+						return
 					}
 
 					tmpfile, err := os.CreateTemp(os.TempDir(), "mdai-cli")
 					if err != nil {
-						errs <- fmt.Errorf("failed to create temp dir: %w", err)
-						return fmt.Errorf("failed to create temp dir: %w", err)
+						channels.Error(fmt.Errorf("failed to create temp dir: %w", err))
+						return
 					}
 					defer os.Remove(tmpfile.Name())
-					helmclient := mdaihelm.NewClient(messages, debug, errs, tmpfile.Name())
-					task <- "adding helm repos"
-					helmclient.AddRepos()
+					helmclient := mdaihelm.NewClient(channels, tmpfile.Name())
+					channels.Task("adding helm repos")
+					if err := helmclient.AddRepos(); err != nil {
+						channels.Error(fmt.Errorf("failed to add helm repos: %w", err))
+						return
+					}
 					for _, helmchart := range helmcharts {
-						task <- "installing helm chart " + helmchart
+						channels.Task("installing helm chart " + helmchart)
 						if err := helmclient.InstallChart(helmchart); err != nil {
-							errs <- fmt.Errorf("failed to install helm chart %s %w", helmchart, err)
-							return fmt.Errorf("failed to install helm chart %s: %w", helmchart, err)
+							channels.Error(fmt.Errorf("failed to install helm chart %s %w", helmchart, err))
+							return
 						}
 					}
-
-					done <- true
-					return nil
+					channels.Done()
 				}
 			}
+
 			go action()
 
 			p := tea.NewProgram(
 				viewport.InitialModel(
-					messages,
-					debug,
-					errs,
-					done,
-					task,
-					debugMode,
-					quietMode,
+					channels,
+					modes,
 				),
 			)
 			if _, err := p.Run(); err != nil {

@@ -1,21 +1,10 @@
 package cmd
 
 import (
-	"context"
-	"encoding/json"
 	"fmt"
 
-	mdaitypes "github.com/decisiveai/mdai-cli/internal/types"
-	mydecisivev1 "github.com/decisiveai/mydecisive-engine-operator/api/v1"
+	"github.com/decisiveai/mdai-cli/internal/operator"
 	"github.com/spf13/cobra"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/util/retry"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
 )
 
 func NewUnmuteCommand() *cobra.Command {
@@ -26,82 +15,15 @@ func NewUnmuteCommand() *cobra.Command {
 		Long:    `deactivate (delete from pipeline configuration) a telemetry muting filter`,
 		Example: `  mdai unmute --name test-filter # unmute the filter with name test-filter`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			var (
-				patchBytes []byte
-				err        error
-			)
 			filterName, _ := cmd.Flags().GetString("name")
 			removeFilter, _ := cmd.Flags().GetBool("remove")
-			action := "updated"
+			action := "unmuted"
 			if removeFilter {
 				action = "removed"
 			}
 
-			cfg := config.GetConfigOrDie()
-			s := scheme.Scheme
-			mydecisivev1.AddToScheme(s)
-			k8sClient, _ := client.New(cfg, client.Options{Scheme: s})
-			get := mydecisivev1.MyDecisiveEngine{}
-			if err := k8sClient.Get(context.TODO(), client.ObjectKey{
-				Namespace: Namespace,
-				Name:      mdaitypes.MDAIOperatorName,
-			}, &get); err != nil {
-				return fmt.Errorf("failed to get mdai operator: %w", err)
-			}
-
-			if get.Spec.TelemetryModule.Collectors[0].TelemetryFiltering == nil {
-				return fmt.Errorf("filter %s not found", filterName)
-			}
-
-			for i, filter := range *get.Spec.TelemetryModule.Collectors[0].TelemetryFiltering.Filters {
-				if filter.Name == filterName {
-					filter.Enabled = false
-					if removeFilter {
-						patchBytes, err = json.Marshal([]mutePatch{
-							{
-								Op:   PatchOpRemove,
-								Path: fmt.Sprintf(MutedPipelinesJSONPath, i),
-							},
-						})
-					} else {
-						patchBytes, err = json.Marshal([]mutePatch{
-							{
-								Op:    PatchOpReplace,
-								Path:  fmt.Sprintf(MutedPipelinesJSONPath, i),
-								Value: filter,
-							},
-						})
-					}
-					if err != nil {
-						return fmt.Errorf("failed to marshal patch: %w", err)
-					}
-					break
-				}
-			}
-			if patchBytes == nil {
-				return fmt.Errorf("filter %s not found", filterName)
-			}
-
-			dynamicClient, _ := dynamic.NewForConfig(cfg)
-			gvr := schema.GroupVersionResource{
-				Group:    mdaitypes.MDAIOperatorGroup,
-				Version:  mdaitypes.MDAIOperatorVersion,
-				Resource: mdaitypes.MDAIOperatorResource,
-			}
-
-			if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-				if _, err := dynamicClient.Resource(gvr).Namespace(Namespace).Patch(
-					context.TODO(),
-					mdaitypes.MDAIOperatorName,
-					types.JSONPatchType,
-					patchBytes,
-					metav1.PatchOptions{},
-				); err != nil {
-					return fmt.Errorf("failed to apply patch: %w", err)
-				}
-				return nil
-			}); err != nil {
-				return err // nolint: wrapcheck
+			if err := operator.Unmute(filterName, removeFilter); err != nil {
+				return fmt.Errorf("unmuting failed: %w", err)
 			}
 			fmt.Printf("%s filter %s successfully.\n", filterName, action)
 			return nil
@@ -110,7 +32,7 @@ func NewUnmuteCommand() *cobra.Command {
 	cmd.Flags().StringP("name", "n", "", "name of the filter")
 	cmd.Flags().Bool("remove", false, "remove the filter")
 
-	cmd.MarkFlagRequired("name")
+	_ = cmd.MarkFlagRequired("name")
 
 	cmd.DisableFlagsInUseLine = true
 	cmd.SilenceUsage = true

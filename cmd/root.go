@@ -6,8 +6,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var mdaiHelmcharts = []string{"cert-manager", "prometheus", "opentelemetry-operator", "mdai-operator", "mdai-api", "mdai-console", "datalyzer"}
-
 func Execute() {
 	rootCmd, err := NewRootCommand()
 	if err != nil {

@@ -16,6 +16,7 @@ type testCmdErr struct {
 type testCmdErrs []testCmdErr
 
 func (errTests testCmdErrs) Run(t *testing.T) {
+	t.Helper()
 	for _, tt := range errTests {
 		t.Run(tt.name, func(t *testing.T) {
 			cmd, err := NewRootCommand()

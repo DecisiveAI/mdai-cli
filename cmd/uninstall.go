@@ -7,11 +7,10 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	mdaihelm "github.com/decisiveai/mdai-cli/internal/helm"
+	"github.com/decisiveai/mdai-cli/internal/kubehelper"
+	mdaitypes "github.com/decisiveai/mdai-cli/internal/types"
 	"github.com/decisiveai/mdai-cli/internal/viewport"
 	"github.com/spf13/cobra"
-	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
 )
 
 func NewUninstallCommand() *cobra.Command {
@@ -21,74 +20,55 @@ func NewUninstallCommand() *cobra.Command {
 		Short:   "uninstall MyDecisive Cluster",
 		Long:    "uninstall MyDecisive Cluster",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			messages := make(chan string)
-			debug := make(chan string)
-			errs := make(chan error)
-			done := make(chan bool)
-			task := make(chan string)
-			defer func() {
-				close(messages)
-				close(debug)
-				close(errs)
-				close(task)
-				close(done)
-			}()
+			channels := mdaitypes.NewChannels()
+			defer channels.Close()
 
 			debugMode, _ := cmd.Flags().GetBool("debug")
 			quietMode, _ := cmd.Flags().GetBool("quiet")
 			// clusterName, _ := cmd.Flags().GetString("cluster-name")
 
-			go func() error {
+			modes := mdaitypes.NewModes(debugMode, quietMode)
+
+			go func() {
 				tmpfile, err := os.CreateTemp(os.TempDir(), "mdai-cli")
 				if err != nil {
-					errs <- fmt.Errorf("failed to create temp dir: %w", err)
-					return fmt.Errorf("failed to create temp dir: %w", err)
+					channels.Error(fmt.Errorf("failed to create temp dir: %w", err))
+					return
 				}
 				defer os.Remove(tmpfile.Name())
-				helmclient := mdaihelm.NewClient(messages, debug, errs, tmpfile.Name())
+				helmclient := mdaihelm.NewClient(channels, tmpfile.Name())
 				for _, helmchart := range mdaiHelmcharts {
-					task <- "uninstalling helm chart " + helmchart
+					channels.Task("uninstalling helm chart " + helmchart)
 					if err := helmclient.UninstallChart(helmchart); err != nil {
-						errs <- fmt.Errorf("failed to uninstall helm chart %s: %w", helmchart, err)
-						return fmt.Errorf("failed to uninstall helm chart %s: %w", helmchart, err)
+						channels.Error(fmt.Errorf("failed to uninstall helm chart %s: %w", helmchart, err))
+						return
 					}
 				}
-				messages <- "helm charts uninstalled successfully."
+				channels.Message("helm charts uninstalled successfully.")
 
-				cfg := config.GetConfigOrDie()
-				apiExtensionsClientset, _ := apiextensionsclient.NewForConfig(cfg)
-				crds := []string{
-					"opentelemetrycollectors.opentelemetry.io", "instrumentations.opentelemetry.io", "opampbridges.opentelemetry.io",
-					"certificaterequests.cert-manager.io", "certificates.cert-manager.io", "challenges.acme.cert-manager.io", "clusterissuers.cert-manager.io", "issuers.cert-manager.io", "orders.acme.cert-manager.io",
+				helper, err := kubehelper.New()
+				if err != nil {
+					channels.Error(fmt.Errorf("failed to initialize kubehelper: %w", err))
+					return
 				}
 
 				for _, crd := range crds {
-					task <- "deleting crd " + crd
-					if err = apiExtensionsClientset.ApiextensionsV1().CustomResourceDefinitions().Delete(
-						context.TODO(),
-						crd,
-						metav1.DeleteOptions{},
-					); err != nil {
-						messages <- "CRD " + crd + " not found, skipping deletion."
-					} else {
-						messages <- "CRD " + crd + " deleted successfully."
+					channels.Task("deleting crd " + crd)
+					if err = helper.DeleteCRD(context.TODO(), crd); err != nil {
+						channels.Message("CRD " + crd + " not found, skipping deletion.")
+						continue
 					}
+					channels.Message("CRD " + crd + " deleted successfully.")
 				}
-				messages <- "CRDs deleted successfully."
+				channels.Message("CRDs deleted successfully.")
 
-				done <- true
-				return nil
+				channels.Done()
 			}()
 
 			p := tea.NewProgram(
 				viewport.InitialModel(
-					messages,
-					debug,
-					errs,
-					done,
-					task,
-					debugMode,
-					quietMode,
+					channels,
+					modes,
 				),
 			)
 			if _, err := p.Run(); err != nil {

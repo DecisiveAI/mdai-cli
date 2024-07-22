@@ -1,19 +1,13 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 	"slices"
 	"strconv"
 	"strings"
 
-	"github.com/decisiveai/mdai-cli/internal/oteloperator"
-	mdaitypes "github.com/decisiveai/mdai-cli/internal/types"
-	mydecisivev1 "github.com/decisiveai/mydecisive-engine-operator/api/v1"
+	"github.com/decisiveai/mdai-cli/internal/operator"
 	"github.com/spf13/cobra"
-	"k8s.io/client-go/kubernetes/scheme"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
 )
 
 func NewGetCommand() *cobra.Command {
@@ -31,21 +25,13 @@ func NewGetCommand() *cobra.Command {
 			}
 			return nil
 		},
-		Run: func(cmd *cobra.Command, _ []string) {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			configType, _ := cmd.Flags().GetString("config")
-			cfg := config.GetConfigOrDie()
-			s := scheme.Scheme
-			mydecisivev1.AddToScheme(s)
-			k8sClient, _ := client.New(cfg, client.Options{Scheme: s})
 			switch configType {
 			case "mdai":
-				get := mydecisivev1.MyDecisiveEngine{}
-				if err := k8sClient.Get(context.TODO(), client.ObjectKey{
-					Namespace: Namespace,
-					Name:      mdaitypes.MDAIOperatorName,
-				}, &get); err != nil {
-					fmt.Printf("error: %+v\n", err)
-					return
+				get, err := operator.GetOperator()
+				if err != nil {
+					return err
 				}
 				fmt.Printf("name           : %s\n", purple.Render(get.Name))
 				fmt.Printf("namespace      : %s\n", purple.Render(get.Namespace))
@@ -62,14 +48,19 @@ func NewGetCommand() *cobra.Command {
 					}
 				}
 			case "otel":
-				config := oteloperator.GetConfig()
-				fmt.Println(config)
+				get, err := operator.GetOTELOperator()
+				if err != nil {
+					return err
+				}
+				fmt.Println(get.Spec.Config)
 			}
+
+			return nil
 		},
 	}
 	cmd.Flags().StringP("config", "c", "", "configuration to get ["+strings.Join(SupportedGetConfigTypes, ", ")+"]")
 
-	cmd.MarkFlagRequired("config")
+	_ = cmd.MarkFlagRequired("config")
 
 	cmd.DisableFlagsInUseLine = true
 	cmd.SilenceUsage = true
