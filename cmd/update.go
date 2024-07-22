@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"slices"
@@ -11,16 +9,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 	"github.com/decisiveai/mdai-cli/internal/editor"
-	mdaitypes "github.com/decisiveai/mdai-cli/internal/types"
-	mydecisivev1 "github.com/decisiveai/mydecisive-engine-operator/api/v1"
+	"github.com/decisiveai/mdai-cli/internal/operator"
 	"github.com/spf13/cobra"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/util/retry"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
 )
 
 func NewUpdateCommand() *cobra.Command {
@@ -61,39 +51,29 @@ func NewUpdateCommand() *cobra.Command {
 			case configP != "":
 				var otelConfig string
 
-				cfg, err := config.GetConfig()
+				get, err := operator.GetOperator()
 				if err != nil {
-					return fmt.Errorf("failed to get kubernetes config: %w", err)
-				}
-				s := scheme.Scheme
-				mydecisivev1.AddToScheme(s)
-				k8sClient, _ := client.New(cfg, client.Options{Scheme: s})
-				get := mydecisivev1.MyDecisiveEngine{}
-				if err := k8sClient.Get(context.TODO(), client.ObjectKey{
-					Namespace: Namespace,
-					Name:      mdaitypes.MDAIOperatorName,
-				}, &get); err != nil {
-					return fmt.Errorf("error getting %s config: %w", configP, err)
+					return err
 				}
 				otelConfig = get.Spec.TelemetryModule.Collectors[0].Spec.Config
 				f, err := os.CreateTemp("", "otelconfig")
 				if err != nil {
-					return fmt.Errorf("error saving %s config temp file: %w", configP, err)
+					return fmt.Errorf("error creating %s config temp file: %w", configP, err)
 				}
 				if _, err := f.WriteString(otelConfig); err != nil {
 					return fmt.Errorf("error saving %s config temp file: %w", configP, err)
 				}
 				if err := f.Close(); err != nil {
-					return fmt.Errorf("error saving %s config temp file: %w", configP, err)
+					return fmt.Errorf("error closing %s config temp file: %w", configP, err)
 				}
 
 				defer os.Remove(f.Name())
 
 				m := editor.NewModel(f.Name(), blockP, phaseP)
 				if _, err := tea.NewProgram(m).Run(); err != nil {
-					fmt.Printf("error running program: %v\n", err)
-					os.Exit(1)
+					return err
 				}
+
 				var applyConfig bool
 				form := huh.NewForm(
 					huh.NewGroup(
@@ -104,74 +84,31 @@ func NewUpdateCommand() *cobra.Command {
 							Negative("no."),
 					),
 				)
-				form.Run()
+				if err := form.Run(); err != nil {
+					return err
+				}
 				if !applyConfig {
 					fmt.Println(configP + " configuration not updated")
 					return nil
 				}
-				dynamicClient, _ := dynamic.NewForConfig(cfg)
-				otelConfigBytes, _ := os.ReadFile(f.Name())
-				patchBytes, err := json.Marshal([]mdaiOperatorOtelConfigPatch{
-					{
-						Op:    PatchOpReplace,
-						Path:  OtelConfigJSONPath,
-						Value: string(otelConfigBytes),
-					},
-				})
-				if err != nil {
-					return fmt.Errorf("failed to marshal mdai operator patch: %w", err)
-				}
 
-				if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-					if _, err := dynamicClient.Resource(gvr).Namespace(Namespace).Patch(
-						context.TODO(),
-						mdaitypes.MDAIOperatorName,
-						types.JSONPatchType,
-						patchBytes,
-						metav1.PatchOptions{},
-					); err != nil {
-						return err // nolint: wrapcheck
-					}
-					return nil
-				}); err != nil {
-					return fmt.Errorf("failed to apply patch: %w", err)
+				otelConfigBytes, _ := os.ReadFile(f.Name())
+				if err := operator.UpdateOTELConfig(string(otelConfigBytes)); err != nil {
+					return fmt.Errorf("error updating otel collector configuration: %w", err)
 				}
 				fmt.Println(configP + " configuration updated")
 
 			case fileP != "":
-				cfg, err := config.GetConfig()
+				otelConfigBytes, err := os.ReadFile(fileP)
 				if err != nil {
-					return fmt.Errorf("failed to get kubernetes config: %w", err)
+					return fmt.Errorf(`error reading file "%s": %w`, fileP, err)
 				}
-				dynamicClient, _ := dynamic.NewForConfig(cfg)
-				otelConfigBytes, _ := os.ReadFile(fileP)
-				patchBytes, err := json.Marshal([]mdaiOperatorOtelConfigPatch{
-					{
-						Op:    PatchOpReplace,
-						Path:  OtelConfigJSONPath,
-						Value: string(otelConfigBytes),
-					},
-				})
-				if err != nil {
-					return fmt.Errorf("failed to marshal mdai operator patch: %w", err)
-				}
-
-				if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-					if _, err := dynamicClient.Resource(gvr).Namespace(Namespace).Patch(
-						context.TODO(),
-						mdaitypes.MDAIOperatorName,
-						types.JSONPatchType,
-						patchBytes,
-						metav1.PatchOptions{},
-					); err != nil {
-						return err // nolint: wrapcheck
-					}
-					return nil
-				}); err != nil {
-					return fmt.Errorf("failed to apply patch: %w", err)
+				if err := operator.UpdateOTELConfig(string(otelConfigBytes)); err != nil {
+					return fmt.Errorf("error updating otel collector configuration: %w", err)
 				}
 				fmt.Println(configP + " configuration updated")
 			}
+
 			return nil
 		},
 	}

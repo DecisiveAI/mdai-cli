@@ -9,26 +9,14 @@ import (
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	mdaitypes "github.com/decisiveai/mdai-cli/internal/types"
 )
-
-type channels struct {
-	messages chan string
-	debug    chan string
-	errs     chan error
-	done     chan struct{}
-	task     chan string
-}
-
-type modes struct {
-	debug bool
-	quiet bool
-}
 
 type (
 	model struct {
 		viewport viewport.Model
-		channels channels
-		modes    modes
+		channels mdaitypes.Channels
+		modes    mdaitypes.Modes
 		styles   styles
 		spinner  spinner.Model
 		title    string
@@ -52,10 +40,10 @@ type styles struct {
 	viewport lipgloss.Style
 }
 
-func InitialModel(messages chan string, debug chan string, errs chan error, done chan struct{}, task chan string, debugMode bool, quietMode bool) model {
+func InitialModel(channels mdaitypes.Channels, modes mdaitypes.Modes) model {
 	return model{
-		channels: channels{messages, debug, errs, done, task},
-		modes:    modes{debugMode, quietMode},
+		channels: channels,
+		modes:    modes,
 		styles: styles{
 			lipgloss.NewStyle().Foreground(lipgloss.Color("#FF0000")),
 			lipgloss.NewStyle().Foreground(lipgloss.Color("#d3d3d3")),
@@ -84,15 +72,15 @@ func (m model) Init() tea.Cmd {
 func (m model) waitFor(what string) tea.Cmd {
 	switch what {
 	case "message":
-		return func() tea.Msg { return responseMsg(<-m.channels.messages) }
+		return func() tea.Msg { return responseMsg(m.channels.GetMessage()) }
 	case "error":
-		return func() tea.Msg { return responseError(<-m.channels.errs) }
+		return func() tea.Msg { return responseError(m.channels.GetError()) }
 	case "debug":
-		return func() tea.Msg { return responseDebug(<-m.channels.debug) }
+		return func() tea.Msg { return responseDebug(m.channels.GetDebug()) }
 	case "task":
-		return func() tea.Msg { return responseTask(<-m.channels.task) }
+		return func() tea.Msg { return responseTask(m.channels.GetTask()) }
 	case "done":
-		return func() tea.Msg { return responseDone(<-m.channels.done) }
+		return func() tea.Msg { return responseDone(m.channels.GetDone()) }
 	}
 	return nil
 }
@@ -119,14 +107,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.viewport.GotoBottom()
 		m.start = time.Now()
 	case responseDebug:
-		if m.modes.debug {
+		if m.modes.Debug() {
 			m.writeContent(string(msg), m.styles.debug, false)
 			m.viewport.SetContent(m.content.String())
 			m.viewport.GotoBottom()
 		}
 	case responseError:
 		m.hasError = true
-		m.channels.done <- struct{}{}
+		m.channels.Done()
 		m.writeContent(msg.Error(), m.styles.err, false)
 		m.viewport.SetContent(m.content.String())
 		m.viewport.GotoBottom()
@@ -174,7 +162,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m model) View() string {
 	title := m.styles.title.Render(m.title)
-	if m.modes.quiet {
+	if m.modes.Quiet() {
 		return fmt.Sprintf("%s %s", m.spinner.View(), title)
 	}
 	return fmt.Sprintf(

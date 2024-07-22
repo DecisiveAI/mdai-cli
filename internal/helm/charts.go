@@ -2,11 +2,11 @@ package helm
 
 import (
 	"embed"
+	"fmt"
 	"time"
 
-	"gopkg.in/yaml.v3"
-
 	mdaitypes "github.com/decisiveai/mdai-cli/internal/types"
+	"gopkg.in/yaml.v3"
 )
 
 //go:embed templates/*
@@ -131,9 +131,11 @@ var chartSpecs = map[string]mdaitypes.ChartSpec{
 	},
 }
 
-func getChartSpec(name string) mdaitypes.ChartSpec {
+func getChartSpec(name string) (*mdaitypes.ChartSpec, error) {
 	spec := chartSpecs[name]
 	valuesYaml, _ := embedFS.ReadFile("templates/" + name + "-values.yaml")
-	yaml.Unmarshal(valuesYaml, &spec.Values)
-	return spec
+	if err := yaml.Unmarshal(valuesYaml, &spec.Values); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal chart spec %s: %w", name, err)
+	}
+	return &spec, nil
 }

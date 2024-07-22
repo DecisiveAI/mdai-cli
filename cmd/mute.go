@@ -1,21 +1,10 @@
 package cmd
 
 import (
-	"context"
-	"encoding/json"
 	"fmt"
-	"strings"
 
-	mdaitypes "github.com/decisiveai/mdai-cli/internal/types"
-	mydecisivev1 "github.com/decisiveai/mydecisive-engine-operator/api/v1"
+	"github.com/decisiveai/mdai-cli/internal/operator"
 	"github.com/spf13/cobra"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/util/retry"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
 )
 
 func NewMuteCommand() *cobra.Command {
@@ -31,77 +20,8 @@ func NewMuteCommand() *cobra.Command {
 			pipelines, _ := cmd.Flags().GetStringSlice("pipeline")
 			description, _ := cmd.Flags().GetString("description")
 
-			patchBytes, err := json.Marshal([]mutePatch{
-				{
-					Op:   PatchOpAdd,
-					Path: fmt.Sprintf(MutedPipelinesJSONPath, "-"),
-					Value: mydecisivev1.TelemetryFilter{
-						Name:           filterName,
-						Description:    description,
-						Enabled:        true,
-						MutedPipelines: &pipelines,
-					},
-				},
-			})
-			if err != nil {
-				return fmt.Errorf("failed to marshal patch: %w", err)
-			}
-
-			cfg, _ := config.GetConfig()
-			dynamicClient, _ := dynamic.NewForConfig(cfg)
-
-			s := scheme.Scheme
-			mydecisivev1.AddToScheme(s)
-			k8sClient, _ := client.New(cfg, client.Options{Scheme: s})
-			get := mydecisivev1.MyDecisiveEngine{}
-			if err := k8sClient.Get(context.TODO(), client.ObjectKey{
-				Namespace: Namespace,
-				Name:      mdaitypes.MDAIOperatorName,
-			}, &get); err != nil {
-				return fmt.Errorf("failed to get mdai operator: %w", err)
-			}
-			if get.Spec.TelemetryModule.Collectors[0].TelemetryFiltering == nil {
-				if _, err := dynamicClient.Resource(gvr).Namespace(Namespace).Patch(
-					context.TODO(),
-					mdaitypes.MDAIOperatorName,
-					types.JSONPatchType,
-					MutedPipelineEmptyFilter,
-					metav1.PatchOptions{},
-				); err != nil {
-					return fmt.Errorf("failed to apply patch: %w", err)
-				}
-			}
-			if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-				if _, err := dynamicClient.Resource(gvr).Namespace(Namespace).Patch(
-					context.TODO(),
-					mdaitypes.MDAIOperatorName,
-					types.JSONPatchType,
-					patchBytes,
-					metav1.PatchOptions{},
-				); err != nil {
-					return err // nolint: wrapcheck
-				}
-				return nil
-			}); err != nil {
-				/*
-					pretty up the error message from mdai operator
-					* first, check if the error is about a unique filter name
-					* then, check if the error is about a pipeline not found
-					* then, check if the error is about a pipeline already muted in several filters
-					* finally, return the original error message
-				*/
-				if strings.Contains(err.Error(), fmt.Sprintf("Filter name %s is not unique", filterName)) {
-					return fmt.Errorf(`filter name "%s" already exists in config`, filterName)
-				}
-				for _, pipeline := range pipelines {
-					switch {
-					case strings.Contains(err.Error(), fmt.Sprintf("pipeline %s not found in config", pipeline)):
-						return fmt.Errorf(`pipeline "%s" not found in config`, pipeline)
-					case strings.Contains(err.Error(), fmt.Sprintf("Pipeline %s is muted in several filters", pipeline)):
-						return fmt.Errorf(`pipeline "%s" is muted in another filter`, pipeline)
-					}
-				}
-				return fmt.Errorf("failed to apply patch: %w", err)
+			if err := operator.Mute(filterName, description, pipelines); err != nil {
+				return fmt.Errorf("muting failed: %w", err)
 			}
 			fmt.Printf("pipeline(s) %v muted successfully as filter %s (%s).\n", pipelines, filterName, description)
 			return nil

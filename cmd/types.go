@@ -2,20 +2,10 @@ package cmd
 
 import (
 	"github.com/charmbracelet/lipgloss"
-	mdaitypes "github.com/decisiveai/mdai-cli/internal/types"
-	mydecisivev1 "github.com/decisiveai/mydecisive-engine-operator/api/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 const (
-	Namespace      = "mdai"
-	PatchOpAdd     = "add"
-	PatchOpReplace = "replace"
-	PatchOpRemove  = "remove"
-
-	DatalyzerJSONPath      = "/spec/telemetryModule/collectors/0/measureVolumes"
-	MutedPipelinesJSONPath = "/spec/telemetryModule/collectors/0/telemetryFiltering/filters/%v"
-	OtelConfigJSONPath     = "/spec/telemetryModule/collectors/0/spec/config"
+	Namespace = "mdai"
 )
 
 var (
@@ -33,31 +23,17 @@ var (
 	SupportedPhases = []string{"metrics", "logs", "traces"}
 	SupportedBlocks = []string{"receivers", "processors", "exporters"}
 
-	MutedPipelineEmptyFilter = []byte(`[{ "op": "add", "path": "/spec/telemetryModule/collectors/0/telemetryFiltering", "value": { "filters": [] } }]`)
-
-	gvr = schema.GroupVersionResource{
-		Group:    mdaitypes.MDAIOperatorGroup,
-		Version:  mdaitypes.MDAIOperatorVersion,
-		Resource: mdaitypes.MDAIOperatorResource,
-	}
-
 	mdaiHelmcharts = []string{"cert-manager", "prometheus", "opentelemetry-operator", "mdai-operator", "mdai-api", "mdai-console", "datalyzer"}
+	crds           = []string{
+		"opentelemetrycollectors.opentelemetry.io",
+		"instrumentations.opentelemetry.io",
+		"opampbridges.opentelemetry.io",
+
+		"certificaterequests.cert-manager.io",
+		"certificates.cert-manager.io",
+		"challenges.acme.cert-manager.io",
+		"clusterissuers.cert-manager.io",
+		"issuers.cert-manager.io",
+		"orders.acme.cert-manager.io",
+	}
 )
-
-type mutePatch struct {
-	Op    string                       `json:"op"`
-	Path  string                       `json:"path"`
-	Value mydecisivev1.TelemetryFilter `json:"value,omitempty"`
-}
-
-type datalyzerPatch struct {
-	Op    string `json:"op"`
-	Path  string `json:"path"`
-	Value bool   `json:"value"`
-}
-
-type mdaiOperatorOtelConfigPatch struct {
-	Op    string `json:"op"`
-	Path  string `json:"path"`
-	Value string `json:"value"`
-}
