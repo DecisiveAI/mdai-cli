@@ -53,4 +53,4 @@ ci-build:
 	echo "BUILD_TARGET:"$(BUILD_TARGET)
 	git config --global url."https://user:${TOKEN}@github.com".insteadOf "https://github.com"
 	go mod vendor
-	go build -o $(BUILD_TARGET)
+	CGO_ENABLED=0 go build -o $(BUILD_TARGET) main.go
