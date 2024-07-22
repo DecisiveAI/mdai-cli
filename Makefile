@@ -1,35 +1,8 @@
-ifndef CARGO_DIST_TARGET
-	GOARCH = $(shell uname -m)
-	GOOS = $(shell uname -o | tr '[:upper:]' '[:lower:]')
-else
-ifeq ($(CARGO_DIST_TARGET),aarch64-apple-darwin)
-	GOARCH = arm64
-	GOOS = darwin
-else
-ifeq ($(CARGO_DIST_TARGET),x86_64-apple-darwin)
-	GOARCH = amd64
-	GOOS = darwin
-else
-ifeq ($(CARGO_DIST_TARGET),x86_64-unknown-linux-gnu)
-	GOARCH = amd64
-	GOOS = linux
-else
-ifeq ($(CARGO_DIST_TARGET),x86_64-unknown-linux-musl)
-	GOARCH = amd64
-	GOOS = linux
-else
 ifeq ($(CARGO_DIST_TARGET),x86_64-pc-windows-msvc)
-	GOARCH = amd64
-	GOOS = windows
+    BUILD_TARGET  = "mdai.exe"
 else
-$(error "unsupported target platform $(CARGO_DIST_TARGET)")
+    BUILD_TARGET = "mdai"
 endif
-endif
-endif
-endif
-endif
-endif
-
 
 .PHONY: build
 .SILENT: build
@@ -40,7 +13,7 @@ build: mdai
 mdai:
 	rm -f mdai
 	go mod vendor
-	GOOS=$(GOOS) GOARCH=$(GOARCH) CGO_ENABLED=0 go build -o mdai main.go
+	CGO_ENABLED=0 go build -o mdai main.go
 
 .PHONY: docker-build
 .SILENT: docker-build
@@ -76,11 +49,8 @@ clean:
 	docker rmi -f mdai-cli:latest &> /dev/null
 
 .PHONY: ci-build
-.SILENT: ci-build
-ci-build: git-setup build
-
-.PHONY: git-setup
-.SILENT: git-setup
-git-setup:
+ci-build:
+	echo "BUILD_TARGET:"$(BUILD_TARGET)
 	git config --global url."https://user:${TOKEN}@github.com".insteadOf "https://github.com"
-
+	go mod vendor
+	CGO_ENABLED=0 go build -o $(BUILD_TARGET) main.go
