@@ -48,11 +48,11 @@ func NewGetCommand() *cobra.Command {
 					}
 				}
 			case "otel":
-				get, err := operator.GetOTELOperator()
+				get, err := operator.GetOperator()
 				if err != nil {
 					return err
 				}
-				fmt.Println(get.Spec.Config)
+				fmt.Println(get.Spec.TelemetryModule.Collectors[0].Spec.Config)
 			}
 
 			return nil
