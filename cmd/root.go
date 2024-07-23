@@ -1,9 +1,16 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
+)
+
+var (
+	Version   = "development"
+	GitSha    = "development"
+	BuildTime = "development"
 )
 
 func Execute() {
@@ -43,6 +50,13 @@ func NewRootCommand() (*cobra.Command, error) {
               🐙 MyDecisive.ai  
   
     `,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			showVersion, _ := cmd.Flags().GetBool("version")
+			if showVersion {
+				fmt.Printf("version: %s (git sha: %s), built: %s\n", Version, GitSha, BuildTime)
+			}
+			return nil
+		},
 	}
 
 	cmd.AddGroup(
@@ -66,6 +80,8 @@ func NewRootCommand() (*cobra.Command, error) {
 		NewUnmuteCommand(),
 		NewUpdateCommand(),
 	)
+
+	cmd.Flags().Bool("version", false, "Print version information")
 
 	return cmd, nil
 }
