@@ -82,7 +82,7 @@ var chartSpecs = map[string]mdaitypes.ChartSpec{
 		ReleaseName:     "mdai-console",
 		ChartName:       "mydecisive/mdai-console",
 		Namespace:       "mdai",
-		Version:         "0.2.1",
+		Version:         "0.2.4",
 		Values:          map[string]any{},
 		UpgradeCRDs:     true,
 		Wait:            false,
