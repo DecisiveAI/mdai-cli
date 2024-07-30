@@ -7,6 +7,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	mdaihelm "github.com/decisiveai/mdai-cli/internal/helm"
+	"github.com/decisiveai/mdai-cli/internal/kind"
 	"github.com/decisiveai/mdai-cli/internal/kubehelper"
 	mdaitypes "github.com/decisiveai/mdai-cli/internal/types"
 	"github.com/decisiveai/mdai-cli/internal/viewport"
@@ -25,7 +26,7 @@ func NewUninstallCommand() *cobra.Command {
 
 			debugMode, _ := cmd.Flags().GetBool("debug")
 			quietMode, _ := cmd.Flags().GetBool("quiet")
-			// clusterName, _ := cmd.Flags().GetString("cluster-name")
+			clusterName, _ := cmd.Flags().GetString("cluster-name")
 
 			modes := mdaitypes.NewModes(debugMode, quietMode)
 
@@ -61,6 +62,14 @@ func NewUninstallCommand() *cobra.Command {
 					channels.Message("CRD " + crd + " deleted successfully.")
 				}
 				channels.Message("CRDs deleted successfully.")
+
+				channels.Message("deleting kind cluster " + clusterName)
+				kindclient := kind.NewClient(channels, clusterName)
+				if err := kindclient.Delete(); err != nil {
+					channels.Error(fmt.Errorf("failed to delete kind cluster: %w", err))
+					return
+				}
+				channels.Message("kind cluster " + clusterName + " deleted successfully.")
 
 				channels.Done()
 			}()
