@@ -28,7 +28,7 @@ func NewClient(
 	}
 }
 
-func (c *Client) Install() (string, error) {
+func (c *Client) Create() (string, error) {
 	kindRawConfig, _ := embedFS.ReadFile("templates/kind-config.yaml")
 
 	f, err := os.CreateTemp("", "kubeconfig")
@@ -69,4 +69,20 @@ func (c *Client) Install() (string, error) {
 	}
 
 	return kubeconfig, nil
+}
+
+func (c *Client) Delete() error {
+	provider := cluster.NewProvider()
+	c.channels.Message("listing nodes in cluster " + c.clusterName + "...")
+	n, err := provider.ListNodes(c.clusterName)
+	if err != nil { // the error returned is already wrapped, `errors.Wrap(err, "failed to list nodes")`
+		c.channels.Error(err) // nolint: wrapcheck
+		return err            // nolint: wrapcheck
+	}
+	if len(n) == 0 {
+		c.channels.Message("cluster " + c.clusterName + " does not exist, skipping deletion...")
+		return nil
+	}
+	c.channels.Message(fmt.Sprintf("found %d node(s) in cluster %s to delete...", len(n), c.clusterName))
+	return provider.Delete(c.clusterName, "")
 }
