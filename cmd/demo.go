@@ -54,7 +54,7 @@ func NewDemoCommand() *cobra.Command {
 				action = func() {
 					channels.Task("creating kubernetes cluster via kind")
 					kindclient := kind.NewClient(channels, clusterName)
-					if _, err := kindclient.Install(); err != nil {
+					if _, err := kindclient.Create(); err != nil {
 						channels.Error(fmt.Errorf("failed to create kubernetes cluster: %w", err))
 						return
 					}
