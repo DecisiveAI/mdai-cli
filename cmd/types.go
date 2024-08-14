@@ -1,17 +1,7 @@
 package cmd
 
-import (
-	"github.com/charmbracelet/lipgloss"
-)
-
 const (
 	Namespace = "mdai"
-)
-
-var (
-	purple  = lipgloss.NewStyle().Foreground(lipgloss.Color("#BF40BF"))
-	white   = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
-	lpurple = lipgloss.NewStyle().Foreground(lipgloss.Color("#800080"))
 )
 
 var (
@@ -23,7 +13,7 @@ var (
 	SupportedPhases = []string{"metrics", "logs", "traces"}
 	SupportedBlocks = []string{"receivers", "processors", "exporters"}
 
-	mdaiHelmcharts = []string{"cert-manager", "prometheus", "opentelemetry-operator", "mdai-operator", "mdai-api", "mdai-console", "datalyzer"}
+	mdaiHelmcharts = []string{"cert-manager", "prometheus", "opentelemetry-operator", "mydecisive-engine-operator", "mdai-console", "datalyzer"}
 	crds           = []string{
 		"opentelemetrycollectors.opentelemetry.io",
 		"instrumentations.opentelemetry.io",

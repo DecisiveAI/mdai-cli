@@ -36,21 +36,23 @@ func (c *Client) Create() (string, error) {
 		c.channels.Error(fmt.Errorf("failed to create temporary kubeconfig file: %w", err))
 		return "", fmt.Errorf("failed to create temporary kubeconfig file: %w", err)
 	}
-	defer os.Remove(f.Name())
+	defer func() {
+		_ = os.Remove(f.Name())
+	}()
 
 	provider := cluster.NewProvider()
 	c.channels.Message("listing nodes in cluster " + c.clusterName + "...")
 	n, err := provider.ListNodes(c.clusterName)
 	if err != nil { // the error returned is already wrapped, `errors.Wrap(err, "failed to list nodes")`
-		c.channels.Error(err) // nolint: wrapcheck
-		return "", err        // nolint: wrapcheck
+		c.channels.Error(err) //nolint: wrapcheck
+		return "", err        //nolint: wrapcheck
 	}
 	if len(n) == 0 {
 		c.channels.Message("cluster " + c.clusterName + " does not exist, creating...")
 		if err := provider.Create(c.clusterName,
 			cluster.CreateWithDisplayUsage(false),
 			cluster.CreateWithDisplaySalutation(false),
-			cluster.CreateWithWaitForReady(30*time.Second), // nolint: mnd
+			cluster.CreateWithWaitForReady(30*time.Second), //nolint: mnd
 			cluster.CreateWithRawConfig(kindRawConfig),
 		); err != nil {
 			c.channels.Error(fmt.Errorf("error creating cluster: %w", err))
@@ -76,8 +78,8 @@ func (c *Client) Delete() error {
 	c.channels.Message("listing nodes in cluster " + c.clusterName + "...")
 	n, err := provider.ListNodes(c.clusterName)
 	if err != nil { // the error returned is already wrapped, `errors.Wrap(err, "failed to list nodes")`
-		c.channels.Error(err) // nolint: wrapcheck
-		return err            // nolint: wrapcheck
+		c.channels.Error(err) //nolint: wrapcheck
+		return err            //nolint: wrapcheck
 	}
 	if len(n) == 0 {
 		c.channels.Message("cluster " + c.clusterName + " does not exist, skipping deletion...")

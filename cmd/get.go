@@ -26,29 +26,31 @@ func NewGetCommand() *cobra.Command {
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, _ []string) error {
+			ctx := cmd.Context()
 			configType, _ := cmd.Flags().GetString("config")
 			switch configType {
 			case "mdai":
-				get, err := operator.GetOperator()
+				get, err := operator.GetOperator(ctx)
 				if err != nil {
 					return err
 				}
-				fmt.Printf("name           : %s\n", purple.Render(get.Name))
-				fmt.Printf("namespace      : %s\n", purple.Render(get.Namespace))
-				fmt.Printf("measure volumes: %v\n", purple.Render(strconv.FormatBool(get.Spec.TelemetryModule.Collectors[0].MeasureVolumes)))
-				fmt.Printf("enabled        : %v\n", purple.Render(strconv.FormatBool(get.Spec.TelemetryModule.Collectors[0].Enabled)))
-				if get.Spec.TelemetryModule.Collectors[0].TelemetryFiltering != nil {
+				fmt.Printf("name           : %s\n", PurpleStyle.Render(get.Name))
+				fmt.Printf("namespace      : %s\n", PurpleStyle.Render(get.Namespace))
+				fmt.Printf("measure volumes: %v\n", PurpleStyle.Render(strconv.FormatBool(get.Spec.TelemetryModule.Collectors[0].MeasureVolumes)))
+				fmt.Printf("enabled        : %v\n", PurpleStyle.Render(strconv.FormatBool(get.Spec.TelemetryModule.Collectors[0].Enabled)))
+				if get.Spec.TelemetryModule.Collectors[0].TelemetryFiltering != nil &&
+					len(*get.Spec.TelemetryModule.Collectors[0].TelemetryFiltering.Filters) > 0 {
 					fmt.Println("filters")
 					for _, filter := range *get.Spec.TelemetryModule.Collectors[0].TelemetryFiltering.Filters {
-						fmt.Printf("\tname       : %s\n", purple.Render(filter.Name))
-						fmt.Printf("\tdescription: %s\n", purple.Render(filter.Description))
-						fmt.Printf("\tenabled    : %v\n", purple.Render(strconv.FormatBool(filter.Enabled)))
-						fmt.Printf("\tpipelines  : %s\n", purple.Render(strings.Join(*filter.MutedPipelines, ", ")))
+						fmt.Printf("\tname       : %s\n", PurpleStyle.Render(filter.Name))
+						fmt.Printf("\tdescription: %s\n", PurpleStyle.Render(filter.Description))
+						fmt.Printf("\tenabled    : %v\n", PurpleStyle.Render(strconv.FormatBool(filter.Enabled)))
+						fmt.Printf("\tpipelines  : %s\n", PurpleStyle.Render(strings.Join(*filter.MutedPipelines, ", ")))
 						fmt.Println("\t--")
 					}
 				}
 			case "otel":
-				get, err := operator.GetOperator()
+				get, err := operator.GetOperator(ctx)
 				if err != nil {
 					return err
 				}

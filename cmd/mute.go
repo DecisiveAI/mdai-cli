@@ -16,11 +16,12 @@ func NewMuteCommand() *cobra.Command {
 		Example: `  mdai mute --name test-filter --description "test filter muting" --pipeline "logs"
   mdai mute --name another-filter --description "metrics pipeline muting" --pipeline "metrics"`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
+			ctx := cmd.Context()
 			filterName, _ := cmd.Flags().GetString("name")
 			pipelines, _ := cmd.Flags().GetStringSlice("pipeline")
 			description, _ := cmd.Flags().GetString("description")
 
-			if err := operator.Mute(filterName, description, pipelines); err != nil {
+			if err := operator.Mute(ctx, filterName, description, pipelines); err != nil {
 				return fmt.Errorf("muting failed: %w", err)
 			}
 			fmt.Printf("pipeline(s) %v muted successfully as filter %s (%s).\n", pipelines, filterName, description)

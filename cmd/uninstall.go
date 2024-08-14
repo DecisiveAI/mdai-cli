@@ -1,13 +1,12 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/huh"
 	mdaihelm "github.com/decisiveai/mdai-cli/internal/helm"
-	"github.com/decisiveai/mdai-cli/internal/kind"
 	"github.com/decisiveai/mdai-cli/internal/kubehelper"
 	mdaitypes "github.com/decisiveai/mdai-cli/internal/types"
 	"github.com/decisiveai/mdai-cli/internal/viewport"
@@ -20,13 +19,35 @@ func NewUninstallCommand() *cobra.Command {
 		Use:     "uninstall",
 		Short:   "uninstall MyDecisive Cluster",
 		Long:    "uninstall MyDecisive Cluster",
+		Example: `  mdai uninstall --kubecontext kind-mdai-local # uninstall from kind cluster mdai-local
+  mdai uninstall --debug                   # uninstall in debug mode
+  mdai uninstall --quiet                   # uninstall in quiet mode
+  mdai uninstall --confirm                 # uninstall, with confirmation`,
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
+			ctx := cmd.Context()
+			confirm, _ := cmd.Flags().GetBool("confirm")
+
+			if !confirm {
+				kubeconfig := ctx.Value(mdaitypes.Kubeconfig{}).(string)
+				kubecontext := ctx.Value(mdaitypes.Kubecontext{}).(string)
+				if err := huh.NewConfirm().
+					Title("Uninstall MDAI from this cluster?").
+					Description(fmt.Sprintf("kubeconfig: %s\nkubecontext: %s\n", kubeconfig, kubecontext)).
+					Negative("No!").
+					Affirmative("Yes.").
+					Value(&confirm).Run(); err != nil {
+					return fmt.Errorf("uninstall failed: %w", err)
+				}
+			}
+			if !confirm {
+				return fmt.Errorf("aborting uninstallation")
+			}
 			channels := mdaitypes.NewChannels()
 			defer channels.Close()
 
 			debugMode, _ := cmd.Flags().GetBool("debug")
 			quietMode, _ := cmd.Flags().GetBool("quiet")
-			clusterName, _ := cmd.Flags().GetString("cluster-name")
 
 			modes := mdaitypes.NewModes(debugMode, quietMode)
 
@@ -36,8 +57,16 @@ func NewUninstallCommand() *cobra.Command {
 					channels.Error(fmt.Errorf("failed to create temp dir: %w", err))
 					return
 				}
-				defer os.Remove(tmpfile.Name())
-				helmclient := mdaihelm.NewClient(channels, tmpfile.Name())
+				defer func() {
+					if err := os.Remove(tmpfile.Name()); err != nil {
+						channels.Error(fmt.Errorf("failed to remove temp file: %w", err))
+					}
+				}()
+				helmclient := mdaihelm.NewClient(
+					mdaihelm.WithContext(ctx),
+					mdaihelm.WithChannels(channels),
+					mdaihelm.WithRepositoryConfig(tmpfile.Name()),
+				)
 				for _, helmchart := range mdaiHelmcharts {
 					channels.Task("uninstalling helm chart " + helmchart)
 					if err := helmclient.UninstallChart(helmchart); err != nil {
@@ -47,7 +76,7 @@ func NewUninstallCommand() *cobra.Command {
 				}
 				channels.Message("helm charts uninstalled successfully.")
 
-				helper, err := kubehelper.New()
+				helper, err := kubehelper.New(kubehelper.WithContext(ctx))
 				if err != nil {
 					channels.Error(fmt.Errorf("failed to initialize kubehelper: %w", err))
 					return
@@ -55,22 +84,13 @@ func NewUninstallCommand() *cobra.Command {
 
 				for _, crd := range crds {
 					channels.Task("deleting crd " + crd)
-					if err = helper.DeleteCRD(context.TODO(), crd); err != nil {
+					if err = helper.DeleteCRD(ctx, crd); err != nil {
 						channels.Message("CRD " + crd + " not found, skipping deletion.")
 						continue
 					}
 					channels.Message("CRD " + crd + " deleted successfully.")
 				}
 				channels.Message("CRDs deleted successfully.")
-
-				channels.Message("deleting kind cluster " + clusterName)
-				kindclient := kind.NewClient(channels, clusterName)
-				if err := kindclient.Delete(); err != nil {
-					channels.Error(fmt.Errorf("failed to delete kind cluster: %w", err))
-					return
-				}
-				channels.Message("kind cluster " + clusterName + " deleted successfully.")
-
 				channels.Done()
 			}()
 
@@ -87,9 +107,11 @@ func NewUninstallCommand() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().String("cluster-name", "mdai-local", "kubernetes cluster name")
 	cmd.Flags().Bool("debug", false, "debug mode")
 	cmd.Flags().Bool("quiet", false, "quiet mode")
+	cmd.Flags().Bool("confirm", false, "confirm uninstallation")
+
+	cmd.MarkFlagsMutuallyExclusive("debug", "quiet")
 
 	return cmd
 }

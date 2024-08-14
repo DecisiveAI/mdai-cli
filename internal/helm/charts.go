@@ -23,7 +23,7 @@ var chartSpecs = map[string]mdaitypes.ChartSpec{
 		Wait:            true,
 		Replace:         true,
 		CreateNamespace: true,
-		Timeout:         120 * time.Second, // nolint: mnd
+		Timeout:         120 * time.Second, //nolint: mnd
 	},
 
 	"opentelemetry-operator": {
@@ -36,20 +36,20 @@ var chartSpecs = map[string]mdaitypes.ChartSpec{
 		Wait:            true,
 		Replace:         true,
 		CreateNamespace: true,
-		Timeout:         120 * time.Second, // nolint: mnd
+		Timeout:         120 * time.Second, //nolint: mnd
 	},
 
 	"prometheus": {
 		ReleaseName:     "prometheus",
 		ChartName:       "prometheus-community/prometheus",
 		Namespace:       "mdai",
-		Version:         "25.21.0",
+		Version:         "25.24.1",
 		Values:          map[string]any{},
 		UpgradeCRDs:     true,
 		Wait:            false,
 		Replace:         true,
 		CreateNamespace: true,
-		Timeout:         120 * time.Second, // nolint: mnd
+		Timeout:         120 * time.Second, //nolint: mnd
 	},
 
 	"metrics-server": {
@@ -62,7 +62,7 @@ var chartSpecs = map[string]mdaitypes.ChartSpec{
 		Wait:            true,
 		Replace:         true,
 		CreateNamespace: true,
-		Timeout:         120 * time.Second, // nolint: mnd
+		Timeout:         120 * time.Second, //nolint: mnd
 	},
 
 	"mdai-api": {
@@ -75,7 +75,7 @@ var chartSpecs = map[string]mdaitypes.ChartSpec{
 		Wait:            false,
 		Replace:         true,
 		CreateNamespace: true,
-		Timeout:         120 * time.Second, // nolint: mnd
+		Timeout:         120 * time.Second, //nolint: mnd
 	},
 
 	"mdai-console": {
@@ -88,7 +88,7 @@ var chartSpecs = map[string]mdaitypes.ChartSpec{
 		Wait:            false,
 		Replace:         true,
 		CreateNamespace: true,
-		Timeout:         120 * time.Second, // nolint: mnd
+		Timeout:         120 * time.Second, //nolint: mnd
 	},
 
 	"datalyzer": {
@@ -101,10 +101,10 @@ var chartSpecs = map[string]mdaitypes.ChartSpec{
 		Wait:            false,
 		Replace:         true,
 		CreateNamespace: true,
-		Timeout:         120 * time.Second, // nolint: mnd
+		Timeout:         120 * time.Second, //nolint: mnd
 	},
 
-	"mdai-operator": {
+	"mydecisive-engine-operator": {
 		ReleaseName:     "mydecisive-engine-operator",
 		ChartName:       "mydecisive/mydecisive-engine-operator",
 		Namespace:       "mdai",
@@ -114,7 +114,7 @@ var chartSpecs = map[string]mdaitypes.ChartSpec{
 		Wait:            true,
 		Replace:         true,
 		CreateNamespace: true,
-		Timeout:         120 * time.Second, // nolint: mnd
+		Timeout:         120 * time.Second, //nolint: mnd
 	},
 
 	"opentelemetry-demo": {
@@ -127,12 +127,15 @@ var chartSpecs = map[string]mdaitypes.ChartSpec{
 		Wait:            true,
 		Replace:         true,
 		CreateNamespace: true,
-		Timeout:         300 * time.Second, // nolint: mnd
+		Timeout:         300 * time.Second, //nolint: mnd
 	},
 }
 
 func getChartSpec(name string) (*mdaitypes.ChartSpec, error) {
-	spec := chartSpecs[name]
+	spec, ok := chartSpecs[name]
+	if !ok {
+		return nil, fmt.Errorf("chart %s not found", name)
+	}
 	valuesYaml, _ := embedFS.ReadFile("templates/" + name + "-values.yaml")
 	if err := yaml.Unmarshal(valuesYaml, &spec.Values); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal chart spec %s: %w", name, err)

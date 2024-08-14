@@ -1,34 +1,61 @@
 package helm
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 
 	mdaitypes "github.com/decisiveai/mdai-cli/internal/types"
+	"golang.org/x/mod/semver"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/getter"
+	"helm.sh/helm/v3/pkg/release"
 	helmrepo "helm.sh/helm/v3/pkg/repo"
 	"helm.sh/helm/v3/pkg/storage/driver"
 )
 
 type Client struct {
-	channels       mdaitypes.Channels
-	cliEnvSettings *cli.EnvSettings
+	channels    mdaitypes.Channels
+	envSettings *cli.EnvSettings
 }
 
-func NewClient(
-	channels mdaitypes.Channels,
-	repositoryConfig string,
-) *Client {
-	cliEnvSettings := cli.New()
-	cliEnvSettings.RepositoryConfig = repositoryConfig
-	return &Client{
-		channels:       channels,
-		cliEnvSettings: cliEnvSettings,
+type ClientOption func(*Client)
+
+func WithContext(ctx context.Context) ClientOption {
+	return func(client *Client) {
+		if kubeconfig, ok := ctx.Value(mdaitypes.Kubeconfig{}).(string); ok {
+			client.envSettings.KubeConfig = kubeconfig
+		}
+		if kubecontext, ok := ctx.Value(mdaitypes.Kubecontext{}).(string); ok {
+			client.envSettings.KubeContext = kubecontext
+		}
 	}
+}
+
+func WithChannels(channels mdaitypes.Channels) ClientOption {
+	return func(client *Client) {
+		client.channels = channels
+	}
+}
+
+func WithRepositoryConfig(repositoryConfig string) ClientOption {
+	return func(client *Client) {
+		client.envSettings.RepositoryConfig = repositoryConfig
+	}
+}
+
+func NewClient(options ...ClientOption) *Client {
+	client := new(Client)
+	client.envSettings = cli.New()
+	for _, option := range options {
+		option(client)
+	}
+
+	return client
 }
 
 func (c *Client) AddRepos() error {
@@ -43,7 +70,7 @@ func (c *Client) AddRepos() error {
 }
 
 func (c *Client) addRepo(name, url string) error {
-	file := c.cliEnvSettings.RepositoryConfig
+	file := c.envSettings.RepositoryConfig
 	repoFile, err := helmrepo.LoadFile(file)
 	if err != nil && !os.IsNotExist(err) {
 		c.channels.Error(fmt.Errorf("failed to load helm repo index file: %w", err))
@@ -60,7 +87,7 @@ func (c *Client) addRepo(name, url string) error {
 		URL:  url,
 	}
 
-	repo, err := helmrepo.NewChartRepository(&entry, getter.All(c.cliEnvSettings))
+	repo, err := helmrepo.NewChartRepository(&entry, getter.All(c.envSettings))
 	if err != nil {
 		c.channels.Error(fmt.Errorf("failed to create chart repository: %w", err))
 		return fmt.Errorf("failed to create chart repository: %w", err)
@@ -72,7 +99,7 @@ func (c *Client) addRepo(name, url string) error {
 	}
 
 	repoFile.Update(&entry)
-	if err = repoFile.WriteFile(file, 0o644); err != nil { // nolint: mnd
+	if err = repoFile.WriteFile(file, 0o644); err != nil { //nolint: mnd
 		c.channels.Error(fmt.Errorf("failed to write helm repo index file: %w", err))
 		return fmt.Errorf("failed to write helm repo index file: %w", err)
 	}
@@ -84,7 +111,7 @@ func (c *Client) InstallChart(helmchart string) error {
 	if err != nil {
 		return fmt.Errorf("failed to get chart spec: %w", err)
 	}
-	settings := c.cliEnvSettings
+	settings := c.envSettings
 	settings.SetNamespace(chartSpec.Namespace)
 	actionConfig := new(action.Configuration)
 	if err := actionConfig.Init(settings.RESTClientGetter(), chartSpec.Namespace, "", func(format string, v ...interface{}) { c.channels.Debug(fmt.Sprintf(format, v)) }); err != nil {
@@ -154,7 +181,7 @@ func (c *Client) UninstallChart(helmchart string) error {
 	if err != nil {
 		return fmt.Errorf("failed to get chart spec: %w", err)
 	}
-	settings := c.cliEnvSettings
+	settings := c.envSettings
 	settings.SetNamespace(chartSpec.Namespace)
 	actionConfig := new(action.Configuration)
 	if err := actionConfig.Init(settings.RESTClientGetter(), chartSpec.Namespace, "", func(format string, v ...interface{}) { c.channels.Debug(fmt.Sprintf(format, v)) }); err != nil {
@@ -177,4 +204,66 @@ func (c *Client) UninstallChart(helmchart string) error {
 	c.channels.Message("release " + chartSpec.ReleaseName + " in namespace " + chartSpec.Namespace + " uninstalled successfully")
 
 	return nil
+}
+
+func (c *Client) Outdated() ([][]string, error) {
+	releases, err := c.Releases()
+	if err != nil {
+		return nil, err
+	}
+
+	var rows [][]string
+	expectedCharts := []string{"cert-manager", "prometheus", "opentelemetry-operator", "mydecisive-engine-operator", "mdai-console", "datalyzer"}
+	seenCharts := make(map[string]bool, len(expectedCharts))
+
+	for _, rel := range releases {
+		chartSpec, err := getChartSpec(rel.Name)
+		if chartSpec == nil || err != nil {
+			continue
+		}
+		seenCharts[rel.Name] = true
+		var outdated string
+		current := rel.Chart.Metadata.Version
+		if !strings.HasPrefix(current, "v") {
+			current = "v" + current
+		}
+		wanted := chartSpec.Version
+		if !strings.HasPrefix(wanted, "v") {
+			wanted = "v" + wanted
+		}
+		switch semver.Compare(current, wanted) {
+		case -1: // v < w
+			outdated = "✗"
+		case 0, 1: // v == w, v > w
+			outdated = "✓"
+		}
+		rows = append(rows, []string{outdated, rel.Name, current, wanted})
+	}
+
+	for _, rel := range expectedCharts {
+		if ok := seenCharts[rel]; !ok {
+			chartSpec, err := getChartSpec(rel)
+			if chartSpec == nil || err != nil {
+				continue
+			}
+			rows = append(rows, []string{"✗", rel, "", "v" + chartSpec.Version})
+		}
+	}
+	return rows, nil
+}
+
+func (c *Client) Releases() ([]*release.Release, error) {
+	actionConfig := new(action.Configuration)
+	settings := c.envSettings
+	if err := actionConfig.Init(settings.RESTClientGetter(), "", "", nil); err != nil {
+		return nil, fmt.Errorf("failed to initialize helm client: %w", err)
+	}
+	client := action.NewList(actionConfig)
+	client.AllNamespaces = true
+
+	releases, err := client.Run()
+	if err != nil {
+		return nil, err
+	}
+	return releases, nil
 }

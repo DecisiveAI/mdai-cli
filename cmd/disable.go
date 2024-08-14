@@ -24,11 +24,12 @@ func NewDisableCommand() *cobra.Command {
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, _ []string) error {
+			ctx := cmd.Context()
 			module, _ := cmd.Flags().GetString("module")
 
 			switch module {
 			case "datalyzer":
-				if err := operator.DisableDatalyzer(); err != nil {
+				if err := operator.DisableDatalyzer(ctx); err != nil {
 					return err
 				}
 			}

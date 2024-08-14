@@ -19,6 +19,7 @@ func NewDemoCommand() *cobra.Command {
 		Short:   "install OpenTelemetry Demo",
 		Long:    "install OpenTelemetry Demo",
 		RunE: func(cmd *cobra.Command, _ []string) error {
+			ctx := cmd.Context()
 			var action func()
 
 			channels := mdaitypes.NewChannels()
@@ -39,8 +40,16 @@ func NewDemoCommand() *cobra.Command {
 						channels.Error(fmt.Errorf("failed to create temp dir: %w", err))
 						return
 					}
-					defer os.Remove(tmpfile.Name())
-					helmclient := mdaihelm.NewClient(channels, tmpfile.Name())
+					defer func() {
+						if err := os.Remove(tmpfile.Name()); err != nil {
+							channels.Error(fmt.Errorf("failed to remove temp file: %w", err))
+						}
+					}()
+					helmclient := mdaihelm.NewClient(
+						mdaihelm.WithContext(ctx),
+						mdaihelm.WithChannels(channels),
+						mdaihelm.WithRepositoryConfig(tmpfile.Name()),
+					)
 					for _, helmchart := range helmcharts {
 						channels.Task("uninstalling helm chart " + helmchart)
 						if err := helmclient.UninstallChart(helmchart); err != nil {
@@ -64,8 +73,16 @@ func NewDemoCommand() *cobra.Command {
 						channels.Error(fmt.Errorf("failed to create temp dir: %w", err))
 						return
 					}
-					defer os.Remove(tmpfile.Name())
-					helmclient := mdaihelm.NewClient(channels, tmpfile.Name())
+					defer func() {
+						if err := os.Remove(tmpfile.Name()); err != nil {
+							channels.Error(fmt.Errorf("failed to remove temp file: %w", err))
+						}
+					}()
+					helmclient := mdaihelm.NewClient(
+						mdaihelm.WithContext(ctx),
+						mdaihelm.WithChannels(channels),
+						mdaihelm.WithRepositoryConfig(tmpfile.Name()),
+					)
 					channels.Task("adding helm repos")
 					if err := helmclient.AddRepos(); err != nil {
 						channels.Error(fmt.Errorf("failed to add helm repos: %w", err))

@@ -5,8 +5,11 @@ import (
 	"context"
 	"fmt"
 
+	mdaitypes "github.com/decisiveai/mdai-cli/internal/types"
 	mydecisivev1 "github.com/decisiveai/mydecisive-engine-operator/api/v1"
 	opentelemetry "github.com/decisiveai/opentelemetry-operator/apis/v1alpha1"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -14,11 +17,13 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	yamlutil "k8s.io/apimachinery/pkg/util/yaml"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
@@ -36,16 +41,46 @@ var mdaiOperator = mydecisivev1.MyDecisiveEngine{
 }
 
 type Helper struct {
-	config                 *rest.Config
+	kubeconfig             string
+	kubecontext            string
+	restConfig             *rest.Config
+	apiConfig              *api.Config
 	apiExtensionsClientset *apiextensionsclient.Clientset
 	k8sClient              client.Client
+	clientset              *kubernetes.Clientset
 }
 
-func New() (*Helper, error) {
+type HelperOption func(*Helper)
+
+func WithContext(ctx context.Context) HelperOption {
+	return func(helper *Helper) {
+		if kubeconfig, ok := ctx.Value(mdaitypes.Kubeconfig{}).(string); ok {
+			helper.kubeconfig = kubeconfig
+		}
+		if kubecontext, ok := ctx.Value(mdaitypes.Kubecontext{}).(string); ok {
+			helper.kubecontext = kubecontext
+		}
+	}
+}
+
+func New(options ...HelperOption) (*Helper, error) {
+	helper := new(Helper)
+	for _, option := range options {
+		option(helper)
+	}
 	log.SetLogger(zap.New())
-	cfg, err := config.GetConfig()
+	apiConfig, err := clientcmd.LoadFromFile(helper.kubeconfig)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get config: %w", err)
+		return nil, fmt.Errorf("failed to load kubeconfig: %w", err)
+	}
+
+	clientConfig := clientcmd.NewDefaultClientConfig(*apiConfig,
+		&clientcmd.ConfigOverrides{
+			CurrentContext: helper.kubecontext,
+		})
+	restConfig, err := clientConfig.ClientConfig()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create rest config: %w", err)
 	}
 
 	s := scheme.Scheme
@@ -55,22 +90,27 @@ func New() (*Helper, error) {
 	if err := opentelemetry.AddToScheme(s); err != nil {
 		return nil, fmt.Errorf("failed to add opentelemetry scheme: %w", err)
 	}
-	k8sClient, err := client.New(cfg, client.Options{Scheme: s})
+
+	k8sClient, err := client.New(restConfig, client.Options{Scheme: s})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create k8s client: %w", err)
 	}
-	apiExtensionsClientset, err := apiextensionsclient.NewForConfig(cfg)
+	clientset, err := kubernetes.NewForConfig(restConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create k8s clientset: %w", err)
+	}
+	apiExtensionsClientset, err := apiextensionsclient.NewForConfig(restConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create api extensions client: %w", err)
 	}
 
-	helper := Helper{
-		config:                 cfg,
-		apiExtensionsClientset: apiExtensionsClientset,
-		k8sClient:              k8sClient,
-	}
+	helper.restConfig = restConfig
+	helper.apiConfig = apiConfig
+	helper.apiExtensionsClientset = apiExtensionsClientset
+	helper.k8sClient = k8sClient
+	helper.clientset = clientset
 
-	return &helper, nil
+	return helper, nil
 }
 
 func (helper *Helper) GetOperator(ctx context.Context) (*mydecisivev1.MyDecisiveEngine, error) {
@@ -156,9 +196,17 @@ func (helper *Helper) DeleteCRD(ctx context.Context, crd string) error {
 	return nil
 }
 
+func (helper *Helper) GetDeployment(ctx context.Context, deployment, namespace string) (*appsv1.Deployment, error) {
+	return helper.clientset.AppsV1().Deployments(namespace).Get(ctx, deployment, metav1.GetOptions{})
+}
+
+func (helper *Helper) GetPodByLabel(ctx context.Context, namespace, labelSelector string) (*corev1.PodList, error) {
+	return helper.clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{LabelSelector: labelSelector})
+}
+
 func getObject(manifest []byte) (*unstructured.Unstructured, error) {
 	var decodedObj map[string]interface{}
-	decoder := yamlutil.NewYAMLOrJSONDecoder(bytes.NewReader(manifest), 1024)
+	decoder := yamlutil.NewYAMLOrJSONDecoder(bytes.NewReader(manifest), 1024) //nolint: mnd
 	if err := decoder.Decode(&decodedObj); err != nil {
 		return nil, err
 	}
