@@ -106,6 +106,7 @@ func NewRootCommand() (*cobra.Command, error) {
 		NewGetCommand(),
 		NewInstallCommand(),
 		NewMuteCommand(),
+		NewOutdatedCommand(),
 		NewRemoveCommand(),
 		NewStatusCommand(),
 		NewUninstallCommand(),

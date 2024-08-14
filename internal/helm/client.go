@@ -205,3 +205,65 @@ func (c *Client) UninstallChart(helmchart string) error {
 
 	return nil
 }
+
+func (c *Client) Outdated() ([][]string, error) {
+	releases, err := c.Releases()
+	if err != nil {
+		return nil, err
+	}
+
+	var rows [][]string
+	expectedCharts := []string{"cert-manager", "prometheus", "opentelemetry-operator", "mydecisive-engine-operator", "mdai-console", "datalyzer"}
+	seenCharts := make(map[string]bool, len(expectedCharts))
+
+	for _, rel := range releases {
+		chartSpec, err := getChartSpec(rel.Name)
+		if chartSpec == nil || err != nil {
+			continue
+		}
+		seenCharts[rel.Name] = true
+		var outdated string
+		current := rel.Chart.Metadata.Version
+		if !strings.HasPrefix(current, "v") {
+			current = "v" + current
+		}
+		wanted := chartSpec.Version
+		if !strings.HasPrefix(wanted, "v") {
+			wanted = "v" + wanted
+		}
+		switch semver.Compare(current, wanted) {
+		case -1: // v < w
+			outdated = "✗"
+		case 0, 1: // v == w, v > w
+			outdated = "✓"
+		}
+		rows = append(rows, []string{outdated, rel.Name, current, wanted})
+	}
+
+	for _, rel := range expectedCharts {
+		if ok := seenCharts[rel]; !ok {
+			chartSpec, err := getChartSpec(rel)
+			if chartSpec == nil || err != nil {
+				continue
+			}
+			rows = append(rows, []string{"✗", rel, "", "v" + chartSpec.Version})
+		}
+	}
+	return rows, nil
+}
+
+func (c *Client) Releases() ([]*release.Release, error) {
+	actionConfig := new(action.Configuration)
+	settings := c.envSettings
+	if err := actionConfig.Init(settings.RESTClientGetter(), "", "", nil); err != nil {
+		return nil, fmt.Errorf("failed to initialize helm client: %w", err)
+	}
+	client := action.NewList(actionConfig)
+	client.AllNamespaces = true
+
+	releases, err := client.Run()
+	if err != nil {
+		return nil, err
+	}
+	return releases, nil
+}
