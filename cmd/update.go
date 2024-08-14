@@ -68,7 +68,9 @@ func NewUpdateCommand() *cobra.Command {
 					return fmt.Errorf("error closing %s config temp file: %w", configP, err)
 				}
 
-				defer os.Remove(f.Name())
+				defer func() {
+					_ = os.Remove(f.Name())
+				}()
 
 				m := editor.NewModel(f.Name(), blockP, phaseP)
 				if _, err := tea.NewProgram(m).Run(); err != nil {

@@ -36,7 +36,9 @@ func (c *Client) Create() (string, error) {
 		c.channels.Error(fmt.Errorf("failed to create temporary kubeconfig file: %w", err))
 		return "", fmt.Errorf("failed to create temporary kubeconfig file: %w", err)
 	}
-	defer os.Remove(f.Name())
+	defer func() {
+		_ = os.Remove(f.Name())
+	}()
 
 	provider := cluster.NewProvider()
 	c.channels.Message("listing nodes in cluster " + c.clusterName + "...")
