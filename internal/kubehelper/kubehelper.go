@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 
+	mdaitypes "github.com/decisiveai/mdai-cli/internal/types"
 	mydecisivev1 "github.com/decisiveai/mydecisive-engine-operator/api/v1"
 	opentelemetry "github.com/decisiveai/opentelemetry-operator/apis/v1alpha1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
@@ -14,11 +15,13 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	yamlutil "k8s.io/apimachinery/pkg/util/yaml"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
@@ -85,22 +88,27 @@ func New(options ...HelperOption) (*Helper, error) {
 	if err := opentelemetry.AddToScheme(s); err != nil {
 		return nil, fmt.Errorf("failed to add opentelemetry scheme: %w", err)
 	}
-	k8sClient, err := client.New(cfg, client.Options{Scheme: s})
+
+	k8sClient, err := client.New(restConfig, client.Options{Scheme: s})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create k8s client: %w", err)
 	}
-	apiExtensionsClientset, err := apiextensionsclient.NewForConfig(cfg)
+	clientset, err := kubernetes.NewForConfig(restConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create k8s clientset: %w", err)
+	}
+	apiExtensionsClientset, err := apiextensionsclient.NewForConfig(restConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create api extensions client: %w", err)
 	}
 
-	helper := Helper{
-		config:                 cfg,
-		apiExtensionsClientset: apiExtensionsClientset,
-		k8sClient:              k8sClient,
-	}
+	helper.restConfig = restConfig
+	helper.apiConfig = apiConfig
+	helper.apiExtensionsClientset = apiExtensionsClientset
+	helper.k8sClient = k8sClient
+	helper.clientset = clientset
 
-	return &helper, nil
+	return helper, nil
 }
 
 func (helper *Helper) GetOperator(ctx context.Context) (*mydecisivev1.MyDecisiveEngine, error) {
