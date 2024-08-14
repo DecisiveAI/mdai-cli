@@ -132,7 +132,10 @@ var chartSpecs = map[string]mdaitypes.ChartSpec{
 }
 
 func getChartSpec(name string) (*mdaitypes.ChartSpec, error) {
-	spec := chartSpecs[name]
+	spec, ok := chartSpecs[name]
+	if !ok {
+		return nil, fmt.Errorf("chart %s not found", name)
+	}
 	valuesYaml, _ := embedFS.ReadFile("templates/" + name + "-values.yaml")
 	if err := yaml.Unmarshal(valuesYaml, &spec.Values); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal chart spec %s: %w", name, err)
