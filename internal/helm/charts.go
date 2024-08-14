@@ -43,7 +43,7 @@ var chartSpecs = map[string]mdaitypes.ChartSpec{
 		ReleaseName:     "prometheus",
 		ChartName:       "prometheus-community/prometheus",
 		Namespace:       "mdai",
-		Version:         "25.21.0",
+		Version:         "25.24.1",
 		Values:          map[string]any{},
 		UpgradeCRDs:     true,
 		Wait:            false,
