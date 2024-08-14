@@ -104,7 +104,7 @@ var chartSpecs = map[string]mdaitypes.ChartSpec{
 		Timeout:         120 * time.Second, //nolint: mnd
 	},
 
-	"mdai-operator": {
+	"mydecisive-engine-operator": {
 		ReleaseName:     "mydecisive-engine-operator",
 		ChartName:       "mydecisive/mydecisive-engine-operator",
 		Namespace:       "mdai",
