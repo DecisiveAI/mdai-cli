@@ -188,7 +188,7 @@ func (helper *Helper) DeleteCRD(ctx context.Context, crd string) error {
 
 func getObject(manifest []byte) (*unstructured.Unstructured, error) {
 	var decodedObj map[string]interface{}
-	decoder := yamlutil.NewYAMLOrJSONDecoder(bytes.NewReader(manifest), 1024)
+	decoder := yamlutil.NewYAMLOrJSONDecoder(bytes.NewReader(manifest), 1024) //nolint: mnd
 	if err := decoder.Decode(&decodedObj); err != nil {
 		return nil, err
 	}

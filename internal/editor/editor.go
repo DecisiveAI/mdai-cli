@@ -22,7 +22,7 @@ func openEditor(filename, block, phase string) tea.Cmd {
 		args = append(args, "+/^ .*"+phase+":")
 	}
 
-	c := exec.Command(editor, args...) //nolint:gosec
+	c := exec.Command(editor, args...)
 	return tea.ExecProcess(c, func(err error) tea.Msg {
 		return editorFinishedMsg{err}
 	})

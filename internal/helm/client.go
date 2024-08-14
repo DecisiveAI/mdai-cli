@@ -99,7 +99,7 @@ func (c *Client) addRepo(name, url string) error {
 	}
 
 	repoFile.Update(&entry)
-	if err = repoFile.WriteFile(file, 0o644); err != nil { // nolint: mnd
+	if err = repoFile.WriteFile(file, 0o644); err != nil { //nolint: mnd
 		c.channels.Error(fmt.Errorf("failed to write helm repo index file: %w", err))
 		return fmt.Errorf("failed to write helm repo index file: %w", err)
 	}

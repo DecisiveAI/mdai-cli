@@ -93,7 +93,7 @@ func (m model) writeContent(content string, style lipgloss.Style, timing bool) {
 		args = append(args, time.Since(m.start).String())
 	}
 	_, _ = fmt.Fprintln(m.content,
-		style.Width(m.viewport.Width-10).Render(
+		style.Width(m.viewport.Width-10).Render( //nolint: mnd
 			fmt.Sprintf(format, args...),
 		),
 	)
@@ -139,7 +139,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, cmd
 	case tea.WindowSizeMsg:
 		if !m.ready {
-			m.viewport = viewport.New(msg.Width-2, msg.Height-3)
+			m.viewport = viewport.New(msg.Width-2, msg.Height-3) //nolint: mnd
 			m.viewport.Style = m.styles.viewport
 			m.viewport.YPosition = 0
 			m.viewport.HighPerformanceRendering = false
