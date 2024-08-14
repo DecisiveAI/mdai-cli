@@ -6,8 +6,8 @@ import (
 	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/huh"
 	mdaihelm "github.com/decisiveai/mdai-cli/internal/helm"
-	"github.com/decisiveai/mdai-cli/internal/kind"
 	"github.com/decisiveai/mdai-cli/internal/operator"
 	mdaitypes "github.com/decisiveai/mdai-cli/internal/types"
 	"github.com/decisiveai/mdai-cli/internal/viewport"
@@ -17,8 +17,6 @@ import (
 //go:embed templates/*
 var embedFS embed.FS
 
-var installationType string
-
 func NewInstallCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		GroupID: "installation",
@@ -27,57 +25,38 @@ func NewInstallCommand() *cobra.Command {
 		Long:    "install MyDecisive Cluster",
 		Example: `  mdai install --kubecontext kind-mdai-local # install on kind cluster mdai-local
   mdai install --debug                   # install in debug mode
-  mdai install --quiet                   # install in quiet mode`,
+  mdai install --quiet                   # install in quiet mode
+  mdai install --confirm                 # install, with confirmation`,
 		Args: cobra.NoArgs,
-		PreRunE: func(_ *cobra.Command, _ []string) error {
-			/*
-				aws, _ := cmd.Flags().GetBool("aws")
-				local, _ := cmd.Flags().GetBool("local")
-				if aws {
-					installationType = "aws"
-				}
-				if local {
-					installationType = "kind"
-				}
-			*/
-			installationType = "kind"
-
-			return nil
-		},
 		RunE: func(cmd *cobra.Command, _ []string) error {
+			ctx := cmd.Context()
+			confirm, _ := cmd.Flags().GetBool("confirm")
+
+			if !confirm {
+				kubeconfig := ctx.Value(mdaitypes.Kubeconfig{}).(string)
+				kubecontext := ctx.Value(mdaitypes.Kubecontext{}).(string)
+				if err := huh.NewConfirm().
+					Title("Install MDAI into this cluster?").
+					Description(fmt.Sprintf("kubeconfig: %s\nkubecontext: %s\n", kubeconfig, kubecontext)).
+					Affirmative("Yes!").
+					Negative("No.").
+					Value(&confirm).Run(); err != nil {
+					return fmt.Errorf("install failed: %w", err)
+				}
+			}
+			if !confirm {
+				return fmt.Errorf("aborting installation")
+			}
+
 			channels := mdaitypes.NewChannels()
 			defer channels.Close()
 
 			debugMode, _ := cmd.Flags().GetBool("debug")
 			quietMode, _ := cmd.Flags().GetBool("quiet")
-			clusterName, _ := cmd.Flags().GetString("cluster-name")
 
 			modes := mdaitypes.NewModes(debugMode, quietMode)
-			/*
-				if installationType == "" {
-					s := huh.NewSelect[string]().
-						Title("Installation Type").
-						Options(
-							huh.NewOption("Local Installation via kind", "kind"),
-							huh.NewOption("AWS Installation via eks", "aws"),
-						).
-						Value(&installationType)
-
-					huh.NewForm(huh.NewGroup(s)).Run()
-				}
-			*/
 
 			go func() {
-				switch installationType {
-				case "kind":
-					channels.Task("creating kubernetes cluster via kind")
-					kindclient := kind.NewClient(channels, clusterName)
-					if _, err := kindclient.Create(); err != nil {
-						channels.Error(fmt.Errorf("failed to create kubernetes cluster: %w", err))
-						return
-					}
-				}
-
 				tmpfile, err := os.CreateTemp(os.TempDir(), "mdai-cli")
 				if err != nil {
 					channels.Error(fmt.Errorf("failed to create temp dir: %w", err))
@@ -129,11 +108,11 @@ func NewInstallCommand() *cobra.Command {
 			return nil
 		},
 	}
-	// cmd.Flags().Bool("aws", false, "aws installation type")
-	// cmd.Flags().Bool("local", false, "local installation type")
-	cmd.Flags().String("cluster-name", "mdai-local", "kubernetes cluster name")
 	cmd.Flags().Bool("debug", false, "debug mode")
 	cmd.Flags().Bool("quiet", false, "quiet mode")
+	cmd.Flags().Bool("confirm", false, "confirm installation")
+
+	cmd.MarkFlagsMutuallyExclusive("debug", "quiet")
 
 	cmd.DisableFlagsInUseLine = true
 	cmd.SilenceUsage = true

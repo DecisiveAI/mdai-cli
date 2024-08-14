@@ -5,8 +5,8 @@ import (
 	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/huh"
 	mdaihelm "github.com/decisiveai/mdai-cli/internal/helm"
-	"github.com/decisiveai/mdai-cli/internal/kind"
 	"github.com/decisiveai/mdai-cli/internal/kubehelper"
 	mdaitypes "github.com/decisiveai/mdai-cli/internal/types"
 	"github.com/decisiveai/mdai-cli/internal/viewport"
@@ -19,13 +19,35 @@ func NewUninstallCommand() *cobra.Command {
 		Use:     "uninstall",
 		Short:   "uninstall MyDecisive Cluster",
 		Long:    "uninstall MyDecisive Cluster",
+		Example: `  mdai uninstall --kubecontext kind-mdai-local # uninstall from kind cluster mdai-local
+  mdai uninstall --debug                   # uninstall in debug mode
+  mdai uninstall --quiet                   # uninstall in quiet mode
+  mdai uninstall --confirm                 # uninstall, with confirmation`,
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
+			ctx := cmd.Context()
+			confirm, _ := cmd.Flags().GetBool("confirm")
+
+			if !confirm {
+				kubeconfig := ctx.Value(mdaitypes.Kubeconfig{}).(string)
+				kubecontext := ctx.Value(mdaitypes.Kubecontext{}).(string)
+				if err := huh.NewConfirm().
+					Title("Uninstall MDAI from this cluster?").
+					Description(fmt.Sprintf("kubeconfig: %s\nkubecontext: %s\n", kubeconfig, kubecontext)).
+					Negative("No!").
+					Affirmative("Yes.").
+					Value(&confirm).Run(); err != nil {
+					return fmt.Errorf("uninstall failed: %w", err)
+				}
+			}
+			if !confirm {
+				return fmt.Errorf("aborting uninstallation")
+			}
 			channels := mdaitypes.NewChannels()
 			defer channels.Close()
 
 			debugMode, _ := cmd.Flags().GetBool("debug")
 			quietMode, _ := cmd.Flags().GetBool("quiet")
-			clusterName, _ := cmd.Flags().GetString("cluster-name")
 
 			modes := mdaitypes.NewModes(debugMode, quietMode)
 
@@ -85,9 +107,11 @@ func NewUninstallCommand() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().String("cluster-name", "mdai-local", "kubernetes cluster name")
 	cmd.Flags().Bool("debug", false, "debug mode")
 	cmd.Flags().Bool("quiet", false, "quiet mode")
+	cmd.Flags().Bool("confirm", false, "confirm uninstallation")
+
+	cmd.MarkFlagsMutuallyExclusive("debug", "quiet")
 
 	return cmd
 }
