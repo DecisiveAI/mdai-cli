@@ -42,6 +42,7 @@ func NewUpdateCommand() *cobra.Command {
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, _ []string) error {
+			ctx := cmd.Context()
 			fileP, _ := cmd.Flags().GetString("file")
 			configP, _ := cmd.Flags().GetString("config")
 			phaseP, _ := cmd.Flags().GetString("phase")
@@ -51,7 +52,7 @@ func NewUpdateCommand() *cobra.Command {
 			case configP != "":
 				var otelConfig string
 
-				get, err := operator.GetOperator()
+				get, err := operator.GetOperator(ctx)
 				if err != nil {
 					return err
 				}
@@ -93,7 +94,7 @@ func NewUpdateCommand() *cobra.Command {
 				}
 
 				otelConfigBytes, _ := os.ReadFile(f.Name())
-				if err := operator.UpdateOTELConfig(string(otelConfigBytes)); err != nil {
+				if err := operator.UpdateOTELConfig(ctx, string(otelConfigBytes)); err != nil {
 					return fmt.Errorf("error updating otel collector configuration: %w", err)
 				}
 				fmt.Println(configP + " configuration updated")
@@ -103,7 +104,7 @@ func NewUpdateCommand() *cobra.Command {
 				if err != nil {
 					return fmt.Errorf(`error reading file "%s": %w`, fileP, err)
 				}
-				if err := operator.UpdateOTELConfig(string(otelConfigBytes)); err != nil {
+				if err := operator.UpdateOTELConfig(ctx, string(otelConfigBytes)); err != nil {
 					return fmt.Errorf("error updating otel collector configuration: %w", err)
 				}
 				fmt.Println(configP + " configuration updated")

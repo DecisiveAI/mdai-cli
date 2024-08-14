@@ -25,7 +25,7 @@ func NewInstallCommand() *cobra.Command {
 		Use:     "install [--cluster-name CLUSTER-NAME] [--debug] [--quiet]",
 		Short:   "install MyDecisive Cluster",
 		Long:    "install MyDecisive Cluster",
-		Example: `  mdai install --cluster-name mdai-local # install locally on kind cluster mdai-local
+		Example: `  mdai install --kubecontext kind-mdai-local # install on kind cluster mdai-local
   mdai install --debug                   # install in debug mode
   mdai install --quiet                   # install in quiet mode`,
 		Args: cobra.NoArgs,
@@ -83,8 +83,16 @@ func NewInstallCommand() *cobra.Command {
 					channels.Error(fmt.Errorf("failed to create temp dir: %w", err))
 					return
 				}
-				defer os.Remove(tmpfile.Name())
-				helmclient := mdaihelm.NewClient(channels, tmpfile.Name())
+				defer func() {
+					if err := os.Remove(tmpfile.Name()); err != nil {
+						channels.Error(fmt.Errorf("failed to remove temp file: %w", err))
+					}
+				}()
+				helmclient := mdaihelm.NewClient(
+					mdaihelm.WithContext(ctx),
+					mdaihelm.WithChannels(channels),
+					mdaihelm.WithRepositoryConfig(tmpfile.Name()),
+				)
 				channels.Task("adding helm repos")
 				if err := helmclient.AddRepos(); err != nil {
 					channels.Error(fmt.Errorf("failed to add helm repos: %w", err))
@@ -99,7 +107,7 @@ func NewInstallCommand() *cobra.Command {
 				}
 
 				manifest, _ := embedFS.ReadFile("templates/mdai-operator.yaml")
-				if err := operator.Install(manifest); err != nil {
+				if err := operator.Install(ctx, manifest); err != nil {
 					channels.Error(fmt.Errorf("failed to apply mdai operator manifest: %w", err))
 					return
 				}

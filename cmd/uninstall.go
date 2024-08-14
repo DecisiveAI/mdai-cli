@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 	"os"
 
@@ -36,8 +35,16 @@ func NewUninstallCommand() *cobra.Command {
 					channels.Error(fmt.Errorf("failed to create temp dir: %w", err))
 					return
 				}
-				defer os.Remove(tmpfile.Name())
-				helmclient := mdaihelm.NewClient(channels, tmpfile.Name())
+				defer func() {
+					if err := os.Remove(tmpfile.Name()); err != nil {
+						channels.Error(fmt.Errorf("failed to remove temp file: %w", err))
+					}
+				}()
+				helmclient := mdaihelm.NewClient(
+					mdaihelm.WithContext(ctx),
+					mdaihelm.WithChannels(channels),
+					mdaihelm.WithRepositoryConfig(tmpfile.Name()),
+				)
 				for _, helmchart := range mdaiHelmcharts {
 					channels.Task("uninstalling helm chart " + helmchart)
 					if err := helmclient.UninstallChart(helmchart); err != nil {
@@ -47,7 +54,7 @@ func NewUninstallCommand() *cobra.Command {
 				}
 				channels.Message("helm charts uninstalled successfully.")
 
-				helper, err := kubehelper.New()
+				helper, err := kubehelper.New(kubehelper.WithContext(ctx))
 				if err != nil {
 					channels.Error(fmt.Errorf("failed to initialize kubehelper: %w", err))
 					return
@@ -55,22 +62,13 @@ func NewUninstallCommand() *cobra.Command {
 
 				for _, crd := range crds {
 					channels.Task("deleting crd " + crd)
-					if err = helper.DeleteCRD(context.TODO(), crd); err != nil {
+					if err = helper.DeleteCRD(ctx, crd); err != nil {
 						channels.Message("CRD " + crd + " not found, skipping deletion.")
 						continue
 					}
 					channels.Message("CRD " + crd + " deleted successfully.")
 				}
 				channels.Message("CRDs deleted successfully.")
-
-				channels.Message("deleting kind cluster " + clusterName)
-				kindclient := kind.NewClient(channels, clusterName)
-				if err := kindclient.Delete(); err != nil {
-					channels.Error(fmt.Errorf("failed to delete kind cluster: %w", err))
-					return
-				}
-				channels.Message("kind cluster " + clusterName + " deleted successfully.")
-
 				channels.Done()
 			}()
 

@@ -8,37 +8,27 @@ import (
 
 	"github.com/decisiveai/mdai-cli/internal/kubehelper"
 	mydecisivev1 "github.com/decisiveai/mydecisive-engine-operator/api/v1"
-	opentelemetry "github.com/decisiveai/opentelemetry-operator/apis/v1alpha1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 )
 
-func EnableDatalyzer() error {
-	return setMeasureVolumes(true)
+func EnableDatalyzer(ctx context.Context) error {
+	return setMeasureVolumes(ctx, true)
 }
 
-func DisableDatalyzer() error {
-	return setMeasureVolumes(false)
+func DisableDatalyzer(ctx context.Context) error {
+	return setMeasureVolumes(ctx, false)
 }
 
-func GetOperator() (*mydecisivev1.MyDecisiveEngine, error) {
-	helper, err := kubehelper.New()
+func GetOperator(ctx context.Context) (*mydecisivev1.MyDecisiveEngine, error) {
+	helper, err := kubehelper.New(kubehelper.WithContext(ctx))
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize kubehelper: %w", err)
 	}
-	return helper.GetOperator(context.TODO())
+	return helper.GetOperator(ctx)
 }
 
-func GetOTELOperator() (*opentelemetry.OpenTelemetryCollector, error) {
-	helper, err := kubehelper.New()
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize kubehelper: %w", err)
-	}
-	return helper.GetOTELOperator(context.TODO())
-}
-
-func Mute(name string, description string, pipelines []string) error {
-	helper, err := kubehelper.New()
+func Mute(ctx context.Context, name string, description string, pipelines []string) error {
+	helper, err := kubehelper.New(kubehelper.WithContext(ctx))
 	if err != nil {
 		return fmt.Errorf("failed to initialize kubehelper: %w", err)
 	}
@@ -62,17 +52,17 @@ func Mute(name string, description string, pipelines []string) error {
 		return fmt.Errorf("failed to marshal patch: %w", err)
 	}
 
-	telemetryFiltering, err := helper.GetTelemetryFiltering(context.TODO())
+	telemetryFiltering, err := helper.GetTelemetryFiltering(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get telemetry filtering: %w", err)
 	}
 	if telemetryFiltering == nil {
-		if err := helper.Patch(context.TODO(), types.JSONPatchType, MutedPipelineEmptyFilter); err != nil {
+		if err := helper.Patch(ctx, types.JSONPatchType, MutedPipelineEmptyFilter); err != nil {
 			return fmt.Errorf("failed to patch telemetry filtering: %w", err)
 		}
 	}
 
-	if err := helper.Patch(context.TODO(), types.JSONPatchType, patchBytes); err != nil {
+	if err := helper.Patch(ctx, types.JSONPatchType, patchBytes); err != nil {
 		if strings.Contains(err.Error(), fmt.Sprintf("Filter name %s is not unique", tf.Name)) {
 			return fmt.Errorf(`filter name "%s" already exists in config`, tf.Name)
 		}
@@ -89,18 +79,18 @@ func Mute(name string, description string, pipelines []string) error {
 	return nil
 }
 
-func Unmute(name string, remove bool) error {
+func Unmute(ctx context.Context, name string, remove bool) error {
 	var (
 		patchBytes []byte
 		err        error
 	)
 
-	helper, err := kubehelper.New()
+	helper, err := kubehelper.New(kubehelper.WithContext(ctx))
 	if err != nil {
 		return fmt.Errorf("failed to initialize api: %w", err)
 	}
 
-	telemetryFiltering, err := helper.GetTelemetryFiltering(context.TODO())
+	telemetryFiltering, err := helper.GetTelemetryFiltering(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get telemetry filtering: %w", err)
 	}
@@ -139,14 +129,14 @@ func Unmute(name string, remove bool) error {
 		return fmt.Errorf("filter %s not found", name)
 	}
 
-	if err := helper.Patch(context.TODO(), types.JSONPatchType, patchBytes); err != nil {
+	if err := helper.Patch(ctx, types.JSONPatchType, patchBytes); err != nil {
 		return fmt.Errorf("failed to patch telemetry filtering: %w", err)
 	}
 	return nil
 }
 
-func UpdateOTELConfig(config string) error {
-	helper, err := kubehelper.New()
+func UpdateOTELConfig(ctx context.Context, config string) error {
+	helper, err := kubehelper.New(kubehelper.WithContext(ctx))
 	if err != nil {
 		return fmt.Errorf("failed to initialize kubehelper: %w", err)
 	}
@@ -163,30 +153,27 @@ func UpdateOTELConfig(config string) error {
 		return fmt.Errorf("failed to marshal patch: %w", err)
 	}
 
-	if err := helper.Patch(context.TODO(), types.JSONPatchType, patchBytes); err != nil {
+	if err := helper.Patch(ctx, types.JSONPatchType, patchBytes); err != nil {
 		return fmt.Errorf("failed to apply otel collector config: %w", err)
 	}
 
 	return nil
 }
 
-func Install(manifest []byte) error {
-	helper, err := kubehelper.New()
+func Install(ctx context.Context, manifest []byte) error {
+	helper, err := kubehelper.New(kubehelper.WithContext(ctx))
 	if err != nil {
 		return fmt.Errorf("failed to initialize kubehelper: %w", err)
 	}
-	return helper.Apply(context.TODO(),
+	gvk := mydecisivev1.GroupVersion.WithKind("MyDecisiveEngine")
+	return helper.Apply(ctx,
 		manifest,
-		&schema.GroupVersionKind{
-			Group:   mydecisivev1.GroupVersion.Group,
-			Version: mydecisivev1.GroupVersion.Version,
-			Kind:    "MyDecisiveEngine",
-		},
+		&gvk,
 	)
 }
 
-func setMeasureVolumes(v bool) error {
-	helper, err := kubehelper.New()
+func setMeasureVolumes(ctx context.Context, v bool) error {
+	helper, err := kubehelper.New(kubehelper.WithContext(ctx))
 	if err != nil {
 		return fmt.Errorf("failed to initialize kubehelper: %w", err)
 	}
@@ -208,7 +195,7 @@ func setMeasureVolumes(v bool) error {
 		action = "enable"
 	}
 
-	if err := helper.Patch(context.TODO(), types.JSONPatchType, patchBytes); err != nil {
+	if err := helper.Patch(ctx, types.JSONPatchType, patchBytes); err != nil {
 		return fmt.Errorf("failed to %s datalyzer: %w", action, err)
 	}
 

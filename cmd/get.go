@@ -26,10 +26,11 @@ func NewGetCommand() *cobra.Command {
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, _ []string) error {
+			ctx := cmd.Context()
 			configType, _ := cmd.Flags().GetString("config")
 			switch configType {
 			case "mdai":
-				get, err := operator.GetOperator()
+				get, err := operator.GetOperator(ctx)
 				if err != nil {
 					return err
 				}
@@ -48,7 +49,7 @@ func NewGetCommand() *cobra.Command {
 					}
 				}
 			case "otel":
-				get, err := operator.GetOperator()
+				get, err := operator.GetOperator(ctx)
 				if err != nil {
 					return err
 				}

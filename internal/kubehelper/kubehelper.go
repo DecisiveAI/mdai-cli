@@ -36,16 +36,46 @@ var mdaiOperator = mydecisivev1.MyDecisiveEngine{
 }
 
 type Helper struct {
-	config                 *rest.Config
+	kubeconfig             string
+	kubecontext            string
+	restConfig             *rest.Config
+	apiConfig              *api.Config
 	apiExtensionsClientset *apiextensionsclient.Clientset
 	k8sClient              client.Client
+	clientset              *kubernetes.Clientset
 }
 
-func New() (*Helper, error) {
+type HelperOption func(*Helper)
+
+func WithContext(ctx context.Context) HelperOption {
+	return func(helper *Helper) {
+		if kubeconfig, ok := ctx.Value(mdaitypes.Kubeconfig{}).(string); ok {
+			helper.kubeconfig = kubeconfig
+		}
+		if kubecontext, ok := ctx.Value(mdaitypes.Kubecontext{}).(string); ok {
+			helper.kubecontext = kubecontext
+		}
+	}
+}
+
+func New(options ...HelperOption) (*Helper, error) {
+	helper := new(Helper)
+	for _, option := range options {
+		option(helper)
+	}
 	log.SetLogger(zap.New())
-	cfg, err := config.GetConfig()
+	apiConfig, err := clientcmd.LoadFromFile(helper.kubeconfig)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get config: %w", err)
+		return nil, fmt.Errorf("failed to load kubeconfig: %w", err)
+	}
+
+	clientConfig := clientcmd.NewDefaultClientConfig(*apiConfig,
+		&clientcmd.ConfigOverrides{
+			CurrentContext: helper.kubecontext,
+		})
+	restConfig, err := clientConfig.ClientConfig()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create rest config: %w", err)
 	}
 
 	s := scheme.Scheme

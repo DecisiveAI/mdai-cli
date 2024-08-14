@@ -1,5 +1,10 @@
 package types
 
+type (
+	Kubeconfig  struct{}
+	Kubecontext struct{}
+)
+
 type Channels struct {
 	messages chan string
 	debug    chan string

@@ -15,6 +15,7 @@ func NewUnmuteCommand() *cobra.Command {
 		Long:    `deactivate (delete from pipeline configuration) a telemetry muting filter`,
 		Example: `  mdai unmute --name test-filter # unmute the filter with name test-filter`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
+			ctx := cmd.Context()
 			filterName, _ := cmd.Flags().GetString("name")
 			removeFilter, _ := cmd.Flags().GetBool("remove")
 			action := "unmuted"
@@ -22,7 +23,7 @@ func NewUnmuteCommand() *cobra.Command {
 				action = "removed"
 			}
 
-			if err := operator.Unmute(filterName, removeFilter); err != nil {
+			if err := operator.Unmute(ctx, filterName, removeFilter); err != nil {
 				return fmt.Errorf("unmuting failed: %w", err)
 			}
 			fmt.Printf("%s filter %s successfully.\n", filterName, action)
