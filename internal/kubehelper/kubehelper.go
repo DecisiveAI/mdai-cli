@@ -8,6 +8,8 @@ import (
 	mdaitypes "github.com/decisiveai/mdai-cli/internal/types"
 	mydecisivev1 "github.com/decisiveai/mydecisive-engine-operator/api/v1"
 	opentelemetry "github.com/decisiveai/opentelemetry-operator/apis/v1alpha1"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -192,6 +194,14 @@ func (helper *Helper) DeleteCRD(ctx context.Context, crd string) error {
 		return fmt.Errorf("failed to delete crd: %w", err)
 	}
 	return nil
+}
+
+func (helper *Helper) GetDeployment(ctx context.Context, deployment, namespace string) (*appsv1.Deployment, error) {
+	return helper.clientset.AppsV1().Deployments(namespace).Get(ctx, deployment, metav1.GetOptions{})
+}
+
+func (helper *Helper) GetPodByLabel(ctx context.Context, namespace, labelSelector string) (*corev1.PodList, error) {
+	return helper.clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{LabelSelector: labelSelector})
 }
 
 func getObject(manifest []byte) (*unstructured.Unstructured, error) {
