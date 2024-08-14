@@ -1,17 +1,7 @@
 package cmd
 
-import (
-	"github.com/charmbracelet/lipgloss"
-)
-
 const (
 	Namespace = "mdai"
-)
-
-var (
-	purple  = lipgloss.NewStyle().Foreground(lipgloss.Color("#BF40BF"))
-	white   = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
-	lpurple = lipgloss.NewStyle().Foreground(lipgloss.Color("#800080"))
 )
 
 var (
