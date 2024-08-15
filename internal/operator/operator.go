@@ -28,6 +28,7 @@ func GetOperator(ctx context.Context) (*mydecisivev1.MyDecisiveEngine, error) {
 }
 
 func Mute(ctx context.Context, name string, description string, pipelines []string) error {
+	var patchBytes []byte
 	helper, err := kubehelper.New(kubehelper.WithContext(ctx))
 	if err != nil {
 		return fmt.Errorf("failed to initialize kubehelper: %w", err)
@@ -40,16 +41,12 @@ func Mute(ctx context.Context, name string, description string, pipelines []stri
 		MutedPipelines: &pipelines,
 	}
 
-	patchBytes, err := json.Marshal(
-		[]mutePatch{
-			{
-				Op:    PatchOpAdd,
-				Path:  fmt.Sprintf(MutedPipelinesJSONPath, "-"),
-				Value: tf,
-			},
-		})
-	if err != nil {
-		return fmt.Errorf("failed to marshal patch: %w", err)
+	patch := []mutePatch{
+		{
+			Op:    PatchOpAdd,
+			Path:  fmt.Sprintf(MutedPipelinesJSONPath, "-"),
+			Value: tf,
+		},
 	}
 
 	telemetryFiltering, err := helper.GetTelemetryFiltering(ctx)
@@ -60,6 +57,27 @@ func Mute(ctx context.Context, name string, description string, pipelines []stri
 		if err := helper.Patch(ctx, types.JSONPatchType, MutedPipelineEmptyFilter); err != nil {
 			return fmt.Errorf("failed to patch telemetry filtering: %w", err)
 		}
+		telemetryFiltering, err = helper.GetTelemetryFiltering(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to get telemetry filtering: %w", err)
+		}
+	}
+
+	for i, filter := range *telemetryFiltering.Filters {
+		if filter.Name == name {
+			patch = []mutePatch{
+				{
+					Op:    PatchOpReplace,
+					Path:  fmt.Sprintf(MutedPipelinesJSONPath, i),
+					Value: tf,
+				},
+			}
+			break
+		}
+	}
+
+	if patchBytes, err = json.Marshal(patch); err != nil {
+		return fmt.Errorf("failed to marshal patch: %w", err)
 	}
 
 	if err := helper.Patch(ctx, types.JSONPatchType, patchBytes); err != nil {
