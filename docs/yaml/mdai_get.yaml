@@ -5,11 +5,16 @@ usage: mdai get -c|--config MODULE-NAME
 options:
     - name: config
       shorthand: c
-      usage: configuration to get [mdai, otel]
+      usage: configuration to get [mdai, otel, ingress]
     - name: help
       shorthand: h
       default_value: "false"
       usage: help for get
+inherited_options:
+    - name: kubeconfig
+      usage: Path to a kubeconfig
+    - name: kubecontext
+      usage: Kubernetes context to use
 example: |4-
       mdai get --config mdai # get mdai configuration
       mdai get --config otel # get otel configuration

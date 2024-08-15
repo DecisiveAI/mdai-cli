@@ -1,19 +1,27 @@
 name: mdai
 synopsis: MyDecisive.ai CLI
-description: "\n                -*#%%#*-                \n              .#%%%%%%%%#.              \n              *%%%%%%%%%%#              \n              %%%%%%%%%%%%              \n              %%%%%%%%%%%%              \n              #%%%%%%%%%%#     .==.     \n     .==.     -#=*%%%%#=*=     +%%+     \n     +%%+     - ^ %%%% ^ -     +%%+ .%%#\n     +%%+  =+- :%%%%%%%%= .-:  +%%+ :%%%\n     +%%+ :%%% .%%%%%%%%: %%%: +%%+ :%%%\n+#*  +%%+ :%%% .%%%: %%%: %%%: +%%+  -=:\n%%%: +%%+ :%%% .%%%. %%%: %%%: +%%+     \n%%%: +%%+ .%%% .%%%. %%%- *%#. +%%+     \n-*+  +%%+  :-. .%%%. %%%-       --      \n      ::       .%%%. #%%-               \n               .%%%. =%%%-              \n               *%%*   -%%%%%#=          \n          :+*#%%%*      -+*#*=          \n              \n            \U0001F419 MyDecisive.ai  \n\n\t"
+description: "\n                  -*#%%#*-                \n                .#%%%%%%%%#.              \n                *%%%%%%%%%%#              \n                %%%%%%%%%%%%              \n                %%%%%%%%%%%%              \n                #%%%%%%%%%%#     .==.     \n       .==.     -#=*%%%%#=*=     +%%+     \n       +%%+     - ^ %%%% ^ -     +%%+ .%%#\n       +%%+  =+- :%%%%%%%%= .-:  +%%+ :%%%\n       +%%+ :%%% .%%%%%%%%: %%%: +%%+ :%%%\n  +#*  +%%+ :%%% .%%%: %%%: %%%: +%%+  -=:\n  %%%: +%%+ :%%% .%%%. %%%: %%%: +%%+     \n  %%%: +%%+ .%%% .%%%. %%%- *%#. +%%+     \n  -*+  +%%+  :-. .%%%. %%%-       --      \n        ::       .%%%. #%%-               \n                 .%%%. =%%%-              \n                 *%%*   -%%%%%#=          \n            :+*#%%%*      -+*#*=          \n                \n              \U0001F419 MyDecisive.ai  \n  \n    "
+usage: mdai [flags]
 options:
     - name: help
       shorthand: h
       default_value: "false"
       usage: help for mdai
+    - name: kubeconfig
+      usage: Path to a kubeconfig
+    - name: kubecontext
+      usage: Kubernetes context to use
+    - name: version
+      default_value: "false"
+      usage: Print version information
 see_also:
-    - mdai completion - Generate the autocompletion script for the specified shell
     - mdai demo - install OpenTelemetry Demo
     - mdai disable - disable a module
     - mdai enable - enable a module
     - mdai get - get a configuration
     - mdai install - install MyDecisive Cluster
     - mdai mute - mute a telemetry pipeline
+    - mdai outdated - shows current and wanted versions of MDAI installation packages
     - mdai uninstall - uninstall MyDecisive Cluster
     - mdai unmute - unmute a telemetry muting filter
     - mdai update - update a configuration

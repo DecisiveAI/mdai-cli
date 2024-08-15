@@ -9,6 +9,11 @@ options:
       usage: help for disable
     - name: module
       usage: module to disable [datalyzer]
+inherited_options:
+    - name: kubeconfig
+      usage: Path to a kubeconfig
+    - name: kubecontext
+      usage: Kubernetes context to use
 example: '  mdai disable --module datalyzer'
 see_also:
     - mdai - MyDecisive.ai CLI

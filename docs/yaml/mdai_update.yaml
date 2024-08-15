@@ -8,7 +8,7 @@ options:
       usage: block to jump to [receivers, processors, exporters]
     - name: config
       shorthand: c
-      usage: config type to update
+      usage: config type to update [otel]
     - name: file
       shorthand: f
       usage: file to update
@@ -18,6 +18,11 @@ options:
       usage: help for update
     - name: phase
       usage: phase to jump to [metrics, logs, traces]
+inherited_options:
+    - name: kubeconfig
+      usage: Path to a kubeconfig
+    - name: kubecontext
+      usage: Kubernetes context to use
 example: |-
     	mdai update -f /path/to/mdai-operator.yaml  # update mdai-operator configuration from file
     	mdai update --config=otel                   # edit otel collector configuration in $EDITOR
