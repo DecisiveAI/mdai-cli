@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"strings"
 
 	mdaitypes "github.com/decisiveai/mdai-cli/internal/types"
 	mydecisivev1 "github.com/decisiveai/mydecisive-engine-operator/api/v1"
@@ -114,14 +115,25 @@ func New(options ...HelperOption) (*Helper, error) {
 }
 
 func (helper *Helper) GetOperator(ctx context.Context) (*mydecisivev1.MyDecisiveEngine, error) {
-	get := mydecisivev1.MyDecisiveEngine{}
-	if err := helper.k8sClient.Get(ctx, client.ObjectKey{
-		Namespace: namespace,
-		Name:      operatorName,
-	}, &get); err != nil {
-		return nil, fmt.Errorf("failed to get mdai operator: %w", err)
+	list := mydecisivev1.MyDecisiveEngineList{}
+	if err := helper.k8sClient.List(
+		ctx,
+		&list,
+		&client.ListOptions{
+			Namespace: namespace,
+		},
+	); err != nil {
+		return nil, fmt.Errorf("failed to get operator list: %w", err)
 	}
-	return &get, nil
+	if len(list.Items) > 1 {
+		operatorNames := make([]string, len(list.Items))
+		for i, item := range list.Items {
+			operatorNames[i] = item.GetName()
+		}
+		return nil, fmt.Errorf("more than one mydecisivev1.MyDecisiveEngine found [%s]", strings.Join(operatorNames, ", "))
+	}
+
+	return &list.Items[0], nil
 }
 
 func (helper *Helper) GetOTELOperator(ctx context.Context) (*opentelemetry.OpenTelemetryCollector, error) {
