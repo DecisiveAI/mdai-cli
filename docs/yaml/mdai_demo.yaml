@@ -13,5 +13,10 @@ options:
     - name: uninstall
       default_value: "false"
       usage: uninstall OpenTelemetry Demo
+inherited_options:
+    - name: kubeconfig
+      usage: Path to a kubeconfig
+    - name: kubecontext
+      usage: Kubernetes context to use
 see_also:
     - mdai - MyDecisive.ai CLI

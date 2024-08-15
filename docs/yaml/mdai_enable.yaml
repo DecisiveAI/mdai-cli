@@ -9,6 +9,11 @@ options:
       usage: help for enable
     - name: module
       usage: module to enable [datalyzer]
+inherited_options:
+    - name: kubeconfig
+      usage: Path to a kubeconfig
+    - name: kubecontext
+      usage: Kubernetes context to use
 example: '  mdai enable --module datalyzer'
 see_also:
     - mdai - MyDecisive.ai CLI

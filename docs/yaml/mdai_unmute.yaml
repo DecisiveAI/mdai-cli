@@ -14,6 +14,11 @@ options:
     - name: remove
       default_value: "false"
       usage: remove the filter
+inherited_options:
+    - name: kubeconfig
+      usage: Path to a kubeconfig
+    - name: kubecontext
+      usage: Kubernetes context to use
 example: '  mdai unmute --name test-filter # unmute the filter with name test-filter'
 see_also:
     - mdai - MyDecisive.ai CLI

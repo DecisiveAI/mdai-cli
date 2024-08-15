@@ -18,6 +18,11 @@ options:
       shorthand: p
       default_value: '[]'
       usage: pipeline to mute
+inherited_options:
+    - name: kubeconfig
+      usage: Path to a kubeconfig
+    - name: kubecontext
+      usage: Kubernetes context to use
 example: |4-
       mdai mute --name test-filter --description "test filter muting" --pipeline "logs"
       mdai mute --name another-filter --description "metrics pipeline muting" --pipeline "metrics"
