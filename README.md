@@ -1,49 +1,18 @@
 # MDAI CLI
+
 MDAI command line tool that allows to install, update and manage MDAI clusters locally.
 
-Prerequisites to build:
-- [go](https://go.dev/doc/install)
-- [docker](https://docs.docker.com/engine/install/)
-- access to https://github.com/DecisiveAI/opentelemetry-operator 
+## Prerequisite
+Since we are using [kind](https://kind.sigs.k8s.io/docs/user/quick-start/) cluster you have to have [Docker](https://docs.docker.com/engine/install/) installed.
 
-Prerequisites to run local cluster:
-- [docker](https://docs.docker.com/engine/install/)
-
-
-# Build binary
+## Download and install MDAI CLI 
+### Install prebuilt binary via shell script
+This command will download and install release v.0.1.0, you can check and download the latest release [here](https://github.com/DecisiveAI/mdai-cli/releases).
 ```shell
-make build
+curl --proto '=https' --tlsv1.2 -LsSf https://github.com/decisiveai/mdai-cli/releases/download/v0.1.0/mdai-installer.sh | sh
 ```
-
-# Build docker image
-```shell
-make docker-build
+### Install via Homebrew
+To install prebuilt binaries via homebrew
+```Shell
+brew install decisiveai/tap/mdai
 ```
-
-# Local install
-## go run
-```shell
-go mod vendor
-GOPRIVATE=github.com/decisiveai/opentelemetry-operator go run main.go install
-```
-
-
-## binary
-```shell
-./mdai install
-```
-
-## docker
-```shell
-docker run --network host -v /var/run/docker.sock:/var/run/docker.sock -it --rm mdai-cli:latest install
-```
-
-# Remove kind cluster
-```shell
-kind delete cluster -n mdai-local
-```
- ------
-
-# Usage docs
-
-See [Usage Docs Guide](https://github.com/DecisiveAI/mdai-cli/blob/main/docs/md/mdai.md)
