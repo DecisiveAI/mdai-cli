@@ -3,27 +3,23 @@
 
 .SH NAME
 .PP
-mdai-get - get a configuration
+mdai-outdated - shows current and wanted versions of MDAI installation packages
 
 
 .SH SYNOPSIS
 .PP
-\fBmdai get -c|--config MODULE-NAME\fP
+\fBmdai outdated [flags]\fP
 
 
 .SH DESCRIPTION
 .PP
-get mdai or otel collector configuration
+shows current and wanted versions of MDAI installation packages
 
 
 .SH OPTIONS
 .PP
-\fB-c\fP, \fB--config\fP=""
-	configuration to get [mdai, otel]
-
-.PP
 \fB-h\fP, \fB--help\fP[=false]
-	help for get
+	help for outdated
 
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
@@ -34,13 +30,6 @@ get mdai or otel collector configuration
 .PP
 \fB--kubecontext\fP=""
 	Kubernetes context to use
-
-
-.SH EXAMPLE
-.EX
-  mdai get --config mdai # get mdai configuration
-  mdai get --config otel # get otel configuration
-.EE
 
 
 .SH SEE ALSO

@@ -1,0 +1,20 @@
+name: mdai filter
+synopsis: telemetry filtering
+description: telemetry filtering
+options:
+    - name: help
+      shorthand: h
+      default_value: "false"
+      usage: help for filter
+inherited_options:
+    - name: kubeconfig
+      usage: Path to a kubeconfig
+    - name: kubecontext
+      usage: Kubernetes context to use
+see_also:
+    - mdai - MyDecisive.ai CLI
+    - mdai filter add - add telemetry filter
+    - mdai filter disable - disable a telemetry filter
+    - mdai filter enable - enable a telemetry filter
+    - mdai filter list - list telemetry filters
+    - mdai filter remove - remove a telemetry filter

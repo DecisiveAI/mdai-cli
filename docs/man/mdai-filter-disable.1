@@ -3,27 +3,27 @@
 
 .SH NAME
 .PP
-mdai-get - get a configuration
+mdai-filter-disable - disable a telemetry filter
 
 
 .SH SYNOPSIS
 .PP
-\fBmdai get -c|--config MODULE-NAME\fP
+\fBmdai filter disable\fP
 
 
 .SH DESCRIPTION
 .PP
-get mdai or otel collector configuration
+disable a telemetry filter
 
 
 .SH OPTIONS
 .PP
-\fB-c\fP, \fB--config\fP=""
-	configuration to get [mdai, otel]
+\fB-h\fP, \fB--help\fP[=false]
+	help for disable
 
 .PP
-\fB-h\fP, \fB--help\fP[=false]
-	help for get
+\fB-n\fP, \fB--name\fP=""
+	name of the filter
 
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
@@ -38,14 +38,13 @@ get mdai or otel collector configuration
 
 .SH EXAMPLE
 .EX
-  mdai get --config mdai # get mdai configuration
-  mdai get --config otel # get otel configuration
+  disable --name filter-1
 .EE
 
 
 .SH SEE ALSO
 .PP
-\fBmdai(1)\fP
+\fBmdai-filter(1)\fP
 
 
 .SH HISTORY

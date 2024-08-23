@@ -3,27 +3,29 @@
 
 .SH NAME
 .PP
-mdai-get - get a configuration
+mdai-filter-list - list telemetry filters
 
 
 .SH SYNOPSIS
 .PP
-\fBmdai get -c|--config MODULE-NAME\fP
+\fBmdai filter list\fP
 
 
 .SH DESCRIPTION
 .PP
-get mdai or otel collector configuration
+list telemetry filters
 
 
 .SH OPTIONS
 .PP
-\fB-c\fP, \fB--config\fP=""
-	configuration to get [mdai, otel]
+\fB-h\fP, \fB--help\fP[=false]
+	help for list
 
 .PP
-\fB-h\fP, \fB--help\fP[=false]
-	help for get
+\fB--pipeline\fP[=false]
+
+.PP
+\fB--service\fP[=false]
 
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
@@ -36,16 +38,9 @@ get mdai or otel collector configuration
 	Kubernetes context to use
 
 
-.SH EXAMPLE
-.EX
-  mdai get --config mdai # get mdai configuration
-  mdai get --config otel # get otel configuration
-.EE
-
-
 .SH SEE ALSO
 .PP
-\fBmdai(1)\fP
+\fBmdai-filter(1)\fP
 
 
 .SH HISTORY

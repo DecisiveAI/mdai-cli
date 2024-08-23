@@ -1,0 +1,36 @@
+name: mdai filter add
+synopsis: add telemetry filter
+usage: mdai filter add
+options:
+    - name: description
+      shorthand: d
+      usage: description of the filter
+    - name: help
+      shorthand: h
+      default_value: "false"
+      usage: help for add
+    - name: name
+      shorthand: "n"
+      usage: name of the filter
+    - name: pipeline
+      shorthand: p
+      default_value: '[]'
+      usage: pipeline to mute
+    - name: service
+      shorthand: s
+      usage: service pattern
+    - name: telemetry
+      shorthand: t
+      default_value: '[]'
+      usage: telemetry type
+inherited_options:
+    - name: kubeconfig
+      usage: Path to a kubeconfig
+    - name: kubecontext
+      usage: Kubernetes context to use
+example: |4-
+      add --name filter-1 --description filter-1 --pipeline logs
+      add --name filter-1 --description filter-1 --pipeline logs --service service-1
+      add --name filter-1 --description filter-1 --telemetry logs --service service-1
+see_also:
+    - mdai filter - telemetry filtering

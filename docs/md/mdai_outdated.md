@@ -1,26 +1,19 @@
-## mdai disable
+## mdai outdated
 
-disable a module
+shows current and wanted versions of MDAI installation packages
 
 ### Synopsis
 
-disable a module
+shows current and wanted versions of MDAI installation packages
 
 ```
-mdai disable -m|--module MODULE
-```
-
-### Examples
-
-```
-  mdai disable --module datalyzer
+mdai outdated [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help            help for disable
-      --module string   module to disable [datalyzer]
+  -h, --help   help for outdated
 ```
 
 ### Options inherited from parent commands
