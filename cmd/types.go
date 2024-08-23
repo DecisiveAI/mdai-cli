@@ -1,9 +1,5 @@
 package cmd
 
-const (
-	Namespace = "mdai"
-)
-
 var (
 	SupportedModules = []string{"datalyzer"}
 
@@ -15,6 +11,8 @@ var (
 
 	mdaiHelmcharts = []string{"cert-manager", "prometheus", "opentelemetry-operator", "mydecisive-engine-operator", "mdai-console", "datalyzer"}
 	crds           = []string{
+		"mydecisiveengines.mydecisive.ai",
+
 		"opentelemetrycollectors.opentelemetry.io",
 		"instrumentations.opentelemetry.io",
 		"opampbridges.opentelemetry.io",

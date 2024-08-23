@@ -97,14 +97,13 @@ func NewRootCommand() (*cobra.Command, error) {
 		NewDisableCommand(),
 		NewDocsCommand(),
 		NewEnableCommand(),
+		NewFilterCommand(),
 		NewGetCommand(),
 		NewInstallCommand(),
-		NewMuteCommand(),
 		NewOutdatedCommand(),
 		NewRemoveCommand(),
 		NewStatusCommand(),
 		NewUninstallCommand(),
-		NewUnmuteCommand(),
 		NewUpdateCommand(),
 	)
 
