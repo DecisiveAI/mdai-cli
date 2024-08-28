@@ -86,8 +86,9 @@ func NewRootCommand() (*cobra.Command, error) {
 			showVersion, _ := cmd.Flags().GetBool("version")
 			if showVersion {
 				fmt.Printf("version: %s (git sha: %s), built: %s\n", Version, GitSha, BuildTime)
+				return nil
 			}
-			return nil
+			return cmd.Help()
 		},
 	}
 
