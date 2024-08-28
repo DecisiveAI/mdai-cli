@@ -82,14 +82,7 @@ func NewRootCommand() (*cobra.Command, error) {
 			cmd.SetContext(ctx)
 			return nil
 		},
-		RunE: func(cmd *cobra.Command, _ []string) error {
-			showVersion, _ := cmd.Flags().GetBool("version")
-			if showVersion {
-				fmt.Printf("version: %s (git sha: %s), built: %s\n", Version, GitSha, BuildTime)
-				return nil
-			}
-			return cmd.Help()
-		},
+		Version: fmt.Sprintf("version: %s (git sha: %s), built: %s\n", Version, GitSha, BuildTime),
 	}
 
 	cmd.AddGroup(
