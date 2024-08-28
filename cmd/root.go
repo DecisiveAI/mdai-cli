@@ -82,7 +82,7 @@ func NewRootCommand() (*cobra.Command, error) {
 			cmd.SetContext(ctx)
 			return nil
 		},
-		Version: fmt.Sprintf("version: %s (git sha: %s), built: %s\n", Version, GitSha, BuildTime),
+		Version: fmt.Sprintf("version: %s (git sha: %s), built: %s", Version, GitSha, BuildTime),
 	}
 
 	cmd.AddGroup(
