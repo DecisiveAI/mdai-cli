@@ -16,3 +16,7 @@ To install prebuilt binaries via homebrew
 ```Shell
 brew install decisiveai/tap/mdai
 ```
+
+## Usage
+
+Interested in using the MDAI Infrastructure to it's full potential? Check out our [usage guide](usage/USAGE.md)
