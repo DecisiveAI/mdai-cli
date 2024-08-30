@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -16,10 +17,6 @@ func NewFilterCommand() *cobra.Command {
 		Use:     "filter",
 		Short:   "telemetry filtering",
 		Long:    `telemetry filtering`,
-		// Example: ``,
-		/*RunE: func(cmd *cobra.Command, _ []string) error {
-			return nil
-		},*/
 	}
 
 	cmd.DisableFlagsInUseLine = true
@@ -160,66 +157,93 @@ var (
 	WithTelemetry       = operator.WithTelemetry
 )
 
+type filterAddFlags struct {
+	name        string
+	description string
+	pipeline    []string
+	service     string
+	telemetry   []string
+}
+
+func (f filterAddFlags) toTelemetryFilterOptions() []operator.TelemetryFilterOption {
+	funcs := []operator.TelemetryFilterOption{
+		WithName(f.name),
+		WithDescription(f.description),
+	}
+	if f.service != "" {
+		funcs = append(funcs, WithService(f.service))
+		if len(f.pipeline) > 0 {
+			funcs = append(funcs, WithServicePipeline(f.pipeline))
+		}
+		if len(f.telemetry) > 0 {
+			funcs = append(funcs, WithTelemetry(f.telemetry))
+		}
+	} else {
+		if len(f.pipeline) > 0 {
+			funcs = append(funcs, WithPipeline(f.pipeline))
+		}
+	}
+	return funcs
+}
+
+func (f filterAddFlags) successString() string {
+	var sb strings.Builder
+	if f.service != "" {
+		_, _ = fmt.Fprintf(&sb, `service pattern "%s" added successfully as filter "%s" (%s)`, f.service, f.name, f.description)
+		if len(f.pipeline) > 0 {
+			_, _ = fmt.Fprintf(&sb, " for pipelines %v\n", f.pipeline)
+		}
+		if len(f.telemetry) > 0 {
+			_, _ = fmt.Fprintf(&sb, " for telemetry types %v\n", f.telemetry)
+		}
+	} else {
+		_, _ = fmt.Fprintf(&sb, `pipeline(s) %v added successfully as filter "%s" (%s).`, f.pipeline, f.name, f.description)
+		_, _ = fmt.Fprintln(&sb)
+	}
+	return sb.String()
+}
+
 func NewFilterAddCommand() *cobra.Command {
+	f := filterAddFlags{}
+
 	cmd := &cobra.Command{
 		Use:   "add",
-		Short: "add telemetry filter",
-		Long:  ``,
+		Short: "add a telemetry filter",
+		Long:  `add a telemetry filter`,
 		Example: `  add --name filter-1 --description filter-1 --pipeline logs
   add --name filter-1 --description filter-1 --pipeline logs --service service-1
   add --name filter-1 --description filter-1 --telemetry logs --service service-1`,
-		RunE: func(cmd *cobra.Command, _ []string) error {
-			ctx := cmd.Context()
-			filterName, _ := cmd.Flags().GetString("name")
-			pipelines, _ := cmd.Flags().GetStringSlice("pipeline")
-			description, _ := cmd.Flags().GetString("description")
-			servicePattern, _ := cmd.Flags().GetString("service")
-			telemetryTypes, _ := cmd.Flags().GetStringSlice("telemetry")
-
-			funcs := []operator.TelemetryFilterOption{
-				WithName(filterName),
-				WithDescription(description),
-			}
-			if servicePattern != "" {
-				funcs = append(funcs, WithService(servicePattern))
-				if len(pipelines) > 0 {
-					funcs = append(funcs, WithServicePipeline(pipelines))
-				}
-				if len(telemetryTypes) > 0 {
-					funcs = append(funcs, WithTelemetry(telemetryTypes))
-				}
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			if f.service == "" {
+				cmd.MarkFlagsRequiredTogether("name", "description", "pipeline")
 			} else {
-				if len(pipelines) > 0 {
-					funcs = append(funcs, WithPipeline(pipelines))
-				}
+				cmd.MarkFlagsRequiredTogether("name", "description", "service")
 			}
+			return nil
+		},
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			if cmd.Flags().NFlag() == 0 {
+				return errors.New(cmd.UsageString())
+			}
+			ctx := cmd.Context()
 
-			if err := operator.CreateTelemetryFilter(ctx, funcs...); err != nil {
+			if err := operator.CreateTelemetryFilter(ctx, f.toTelemetryFilterOptions()...); err != nil {
 				return fmt.Errorf("adding filter failed: %w", err)
 			}
 
-			if servicePattern != "" {
-				fmt.Printf(`service pattern "%s" added successfully as filter "%s" (%s)`, servicePattern, filterName, description)
-				if len(pipelines) > 0 {
-					fmt.Printf(" for pipelines %v\n", pipelines)
-				}
-				if len(telemetryTypes) > 0 {
-					fmt.Printf(" for telemetry types %v\n", telemetryTypes)
-				}
-			} else {
-				fmt.Printf(`pipeline(s) %v added successfully as filter "%s" (%s).`, pipelines, filterName, description)
-				fmt.Println()
-			}
+			fmt.Println(f.successString())
 
 			return nil
 		},
 	}
 
-	cmd.Flags().StringSliceP("pipeline", "p", []string{""}, "pipeline to mute")
-	cmd.Flags().StringP("name", "n", "", "name of the filter")
-	cmd.Flags().StringP("description", "d", "", "description of the filter")
-	cmd.Flags().StringP("service", "s", "", "service pattern")
-	cmd.Flags().StringSliceP("telemetry", "t", []string{""}, "telemetry type")
+	cmd.Flags().StringSliceVarP(&f.pipeline, "pipeline", "p", []string{}, "pipeline to mute")
+	cmd.Flags().StringVarP(&f.name, "name", "n", "", "name of the filter")
+	cmd.Flags().StringVarP(&f.description, "description", "d", "", "description of the filter")
+	cmd.Flags().StringVarP(&f.service, "service", "s", "", "service pattern")
+	cmd.Flags().StringSliceVarP(&f.telemetry, "telemetry", "t", []string{}, "telemetry type")
+
+	cmd.MarkFlagsMutuallyExclusive("pipeline", "telemetry")
 
 	cmd.DisableFlagsInUseLine = true
 	cmd.SilenceUsage = true

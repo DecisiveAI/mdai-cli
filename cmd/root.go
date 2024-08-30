@@ -116,6 +116,7 @@ func NewRootCommand() (*cobra.Command, error) {
 	_ = viper.BindPFlag("kubecontext", cmd.PersistentFlags().Lookup("kubecontext"))
 
 	cmd.SilenceUsage = true
+	cmd.DisableFlagsInUseLine = true
 
 	err := cmd.RegisterFlagCompletionFunc("kubecontext", func(cmd *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 		loadingRules := &clientcmd.ClientConfigLoadingRules{ExplicitPath: cmd.Context().Value(mdaitypes.Kubeconfig{}).(string)}
