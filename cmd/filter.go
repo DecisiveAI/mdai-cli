@@ -8,6 +8,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
 	"github.com/decisiveai/mdai-cli/internal/operator"
+	v1 "github.com/decisiveai/mydecisive-engine-operator/api/v1"
 	"github.com/spf13/cobra"
 )
 
@@ -38,101 +39,95 @@ func NewFilterListCommand() *cobra.Command {
 		Use:   "list",
 		Short: "list telemetry filters",
 		Long:  `list telemetry filters`,
-		// Example: `  list`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			ctx := cmd.Context()
 			onlyService, _ := cmd.Flags().GetBool("service")
 			onlyPipeline, _ := cmd.Flags().GetBool("pipeline")
-			get, err := operator.GetOperator(ctx)
+			mdaiOperator, err := operator.GetOperator(ctx)
 			if err != nil {
 				return err
 			}
-			var prows [][]string
-			var frows [][]string
-			if get.Spec.TelemetryModule.Collectors[0].TelemetryFiltering != nil &&
-				len(*get.Spec.TelemetryModule.Collectors[0].TelemetryFiltering.Filters) > 0 {
-				for _, filter := range *get.Spec.TelemetryModule.Collectors[0].TelemetryFiltering.Filters {
-					if onlyService && filter.FilteredServices == nil {
-						continue
-					}
-					if onlyPipeline && filter.MutedPipelines == nil {
-						continue
-					}
-					var row []string
-					row = append(row, filter.Name, filter.Description)
-					if filter.Enabled {
-						row = append(row, "✓")
+
+			hasTelemetryFilters := func(mdaiOperator *v1.MyDecisiveEngine) bool {
+				return mdaiOperator.Spec.TelemetryModule.Collectors[0].TelemetryFiltering != nil &&
+					len(*mdaiOperator.Spec.TelemetryModule.Collectors[0].TelemetryFiltering.Filters) > 0
+			}
+
+			if !hasTelemetryFilters(mdaiOperator) {
+				fmt.Println("No filters found.")
+				return nil
+			}
+
+			var pipelineFilterRows, filterServicerRows [][]string
+
+			for _, filter := range *mdaiOperator.Spec.TelemetryModule.Collectors[0].TelemetryFiltering.Filters {
+				isServiceFilter := filter.FilteredServices != nil
+				if onlyService && filter.FilteredServices == nil {
+					continue
+				}
+				if onlyPipeline && filter.MutedPipelines == nil {
+					continue
+				}
+				var row []string
+				row = append(row, filter.Name, filter.Description)
+				if filter.Enabled {
+					row = append(row, EnabledString)
+				} else {
+					row = append(row, DisabledString)
+				}
+				if filter.MutedPipelines != nil {
+					row = append(row, strings.Join(*filter.MutedPipelines, ", "))
+				}
+				if isServiceFilter {
+					if filter.FilteredServices.Pipelines != nil {
+						row = append(row, strings.Join(*filter.FilteredServices.Pipelines, ", "))
 					} else {
-						row = append(row, "✗")
+						row = append(row, NoDataString)
 					}
-					if filter.MutedPipelines != nil {
-						row = append(row, strings.Join(*filter.MutedPipelines, ", "))
-					}
-					if filter.FilteredServices != nil {
-						if filter.FilteredServices.Pipelines != nil {
-							row = append(row, strings.Join(*filter.FilteredServices.Pipelines, ", "))
-						} else {
-							row = append(row, "")
-						}
-						if filter.FilteredServices.TelemetryTypes != nil {
-							row = append(row, strings.Join(*filter.FilteredServices.TelemetryTypes, ", "))
-						} else {
-							row = append(row, "")
-						}
-						row = append(row, filter.FilteredServices.ServiceNamePattern)
-					}
-					if len(row) == 4 {
-						prows = append(prows, row)
+					if filter.FilteredServices.TelemetryTypes != nil {
+						row = append(row, strings.Join(*filter.FilteredServices.TelemetryTypes, ", "))
 					} else {
-						frows = append(frows, row)
+						row = append(row, NoDataString)
 					}
+					row = append(row, filter.FilteredServices.ServiceNamePattern)
+					filterServicerRows = append(filterServicerRows, row)
+				} else {
+					pipelineFilterRows = append(pipelineFilterRows, row)
 				}
 			}
 
-			if !onlyService {
-				pt := table.New().
+			printFilterTable := func(headers []string, rows [][]string) {
+				if len(rows) == 0 {
+					return
+				}
+				filterTableOutput := table.New().
 					BorderHeader(false).
 					Border(lipgloss.HiddenBorder()).
 					StyleFunc(func(row, col int) lipgloss.Style {
 						switch {
 						case row == 0:
 							return HeaderStyle
-						case prows[row-1][col] == "✗":
-							return OutdatedStyle.Align(lipgloss.Center)
-						case prows[row-1][col] == "✓":
-							return UpToDateStyle.Align(lipgloss.Center)
+						case rows[row-1][col] == DisabledString:
+							return DisabledStyle.Align(lipgloss.Center)
+						case rows[row-1][col] == EnabledString:
+							return EnabledStyle.Align(lipgloss.Center)
 						case row%2 == 0:
 							return EvenRowStyle
 						default:
 							return OddRowStyle
 						}
 					}).
-					Headers("NAME", "DESCRIPTION", "ENABLED", "MUTED PIPELINES").
-					Rows(prows...)
-				fmt.Println(pt)
+					Headers(headers...).
+					Rows(rows...)
+				fmt.Println(filterTableOutput)
+			}
+
+			if !onlyService {
+				printFilterTable(pipelineFilterHeaders, pipelineFilterRows)
 			}
 
 			if !onlyPipeline {
-				ft := table.New().
-					BorderHeader(false).
-					Border(lipgloss.HiddenBorder()).
-					StyleFunc(func(row, col int) lipgloss.Style {
-						switch {
-						case row == 0:
-							return HeaderStyle
-						case frows[row-1][col] == "✗":
-							return OutdatedStyle.Align(lipgloss.Center)
-						case frows[row-1][col] == "✓":
-							return UpToDateStyle.Align(lipgloss.Center)
-						case row%2 == 0:
-							return EvenRowStyle
-						default:
-							return OddRowStyle
-						}
-					}).
-					Headers("NAME", "DESCRIPTION", "ENABLED", "FILTERED PIPELINES", "FILTERED TELEMETRY", "SERVICE PATTERN").
-					Rows(frows...)
-				fmt.Println(ft)
+				printFilterTable(filterServiceHeaders, filterServicerRows)
 			}
 
 			return nil
@@ -178,11 +173,10 @@ func (f filterAddFlags) toTelemetryFilterOptions() []operator.TelemetryFilterOpt
 		if len(f.telemetry) > 0 {
 			funcs = append(funcs, WithTelemetry(f.telemetry))
 		}
-	} else {
-		if len(f.pipeline) > 0 {
-			funcs = append(funcs, WithPipeline(f.pipeline))
-		}
+	} else if len(f.pipeline) > 0 {
+		funcs = append(funcs, WithPipeline(f.pipeline))
 	}
+
 	return funcs
 }
 
@@ -213,7 +207,7 @@ func NewFilterAddCommand() *cobra.Command {
 		Example: `  add --name filter-1 --description filter-1 --pipeline logs
   add --name filter-1 --description filter-1 --pipeline logs --service service-1
   add --name filter-1 --description filter-1 --telemetry logs --service service-1`,
-		PreRunE: func(cmd *cobra.Command, args []string) error {
+		PreRunE: func(cmd *cobra.Command, _ []string) error {
 			if f.service == "" {
 				cmd.MarkFlagsRequiredTogether("name", "description", "pipeline")
 			} else {

@@ -19,6 +19,8 @@ var (
 	EvenRowStyle  = CellStyle.Foreground(gray)
 	UpToDateStyle = CellStyle.Foreground(green)
 	OutdatedStyle = CellStyle.Foreground(red)
+	EnabledStyle  = CellStyle.Foreground(green)
+	DisabledStyle = CellStyle.Foreground(red)
 
 	PurpleStyle      = lipgloss.NewStyle().Foreground(purple)
 	LightPurpleStyle = lipgloss.NewStyle().Foreground(lightPurple)

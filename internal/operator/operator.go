@@ -29,10 +29,10 @@ func GetOperator(ctx context.Context) (*mydecisivev1.MyDecisiveEngine, error) {
 }
 
 func CreateTelemetryFilter(ctx context.Context, options ...TelemetryFilterOption) error {
-	tf := new(telemetryFilter)
+	newTelemetryFilter := new(telemetryFilter)
 	options = append(options, WithEnable())
 	for _, option := range options {
-		option(tf)
+		option(newTelemetryFilter)
 	}
 	var patchBytes []byte
 	helper, err := kubehelper.New(WithContext(ctx))
@@ -44,7 +44,7 @@ func CreateTelemetryFilter(ctx context.Context, options ...TelemetryFilterOption
 		{
 			Op:    PatchOpAdd,
 			Path:  fmt.Sprintf(MutedPipelinesJSONPath, "-"),
-			Value: tf.filter,
+			Value: newTelemetryFilter.filter,
 		},
 	}
 
@@ -63,12 +63,12 @@ func CreateTelemetryFilter(ctx context.Context, options ...TelemetryFilterOption
 	}
 
 	for i, filter := range *telemetryFiltering.Filters {
-		if filter.Name == tf.filter.Name {
+		if filter.Name == newTelemetryFilter.filter.Name {
 			patch = []mutePatch{
 				{
 					Op:    PatchOpReplace,
 					Path:  fmt.Sprintf(MutedPipelinesJSONPath, i),
-					Value: tf.filter,
+					Value: newTelemetryFilter.filter,
 				},
 			}
 			break

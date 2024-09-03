@@ -1,5 +1,11 @@
 package cmd
 
+const (
+	DisabledString = "✗"
+	EnabledString  = "✓"
+	NoDataString   = "--"
+)
+
 var (
 	SupportedModules = []string{"datalyzer"}
 
@@ -24,4 +30,7 @@ var (
 		"issuers.cert-manager.io",
 		"orders.acme.cert-manager.io",
 	}
+
+	pipelineFilterHeaders = []string{"NAME", "DESCRIPTION", "ENABLED", "MUTED PIPELINES"}
+	filterServiceHeaders  = []string{"NAME", "DESCRIPTION", "ENABLED", "FILTERED PIPELINES", "FILTERED TELEMETRY", "SERVICE PATTERN"}
 )
