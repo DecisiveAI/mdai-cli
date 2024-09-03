@@ -1,0 +1,20 @@
+name: mdai filter remove
+synopsis: remove a telemetry filter
+description: remove a telemetry filter
+usage: mdai filter remove
+options:
+    - name: help
+      shorthand: h
+      default_value: "false"
+      usage: help for remove
+    - name: name
+      shorthand: "n"
+      usage: name of the filter
+inherited_options:
+    - name: kubeconfig
+      usage: Path to a kubeconfig
+    - name: kubecontext
+      usage: Kubernetes context to use
+example: '  remove --name filter-1'
+see_also:
+    - mdai filter - telemetry filtering

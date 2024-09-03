@@ -8,9 +8,10 @@ import (
 )
 
 type testCmdErr struct {
-	name string
-	args []string
-	err  error
+	name   string
+	args   []string
+	output string
+	err    error
 }
 
 type testCmdErrs []testCmdErr
@@ -26,7 +27,7 @@ func (errTests testCmdErrs) Run(t *testing.T) {
 			cmd.SetOut(o)
 			cmd.SetArgs(tt.args)
 			err = cmd.Execute()
-			require.Equal(t, "", o.String(), "unexpected output")
+			require.Equal(t, tt.output, o.String(), "unexpected output")
 			require.Equal(t, tt.err, err)
 		})
 	}

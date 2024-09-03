@@ -1,7 +1,9 @@
 package cmd
 
 const (
-	Namespace = "mdai"
+	DisabledString = "✗"
+	EnabledString  = "✓"
+	NoDataString   = "--"
 )
 
 var (
@@ -15,6 +17,8 @@ var (
 
 	mdaiHelmcharts = []string{"cert-manager", "prometheus", "opentelemetry-operator", "mydecisive-engine-operator", "mdai-console", "datalyzer"}
 	crds           = []string{
+		"mydecisiveengines.mydecisive.ai",
+
 		"opentelemetrycollectors.opentelemetry.io",
 		"instrumentations.opentelemetry.io",
 		"opampbridges.opentelemetry.io",
@@ -26,4 +30,7 @@ var (
 		"issuers.cert-manager.io",
 		"orders.acme.cert-manager.io",
 	}
+
+	pipelineFilterHeaders = []string{"NAME", "DESCRIPTION", "ENABLED", "MUTED PIPELINES"}
+	filterServiceHeaders  = []string{"NAME", "DESCRIPTION", "ENABLED", "FILTERED PIPELINES", "FILTERED TELEMETRY", "SERVICE PATTERN"}
 )

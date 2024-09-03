@@ -38,17 +38,6 @@ func NewGetCommand() *cobra.Command {
 				fmt.Printf("namespace      : %s\n", PurpleStyle.Render(get.Namespace))
 				fmt.Printf("measure volumes: %v\n", PurpleStyle.Render(strconv.FormatBool(get.Spec.TelemetryModule.Collectors[0].MeasureVolumes)))
 				fmt.Printf("enabled        : %v\n", PurpleStyle.Render(strconv.FormatBool(get.Spec.TelemetryModule.Collectors[0].Enabled)))
-				if get.Spec.TelemetryModule.Collectors[0].TelemetryFiltering != nil &&
-					len(*get.Spec.TelemetryModule.Collectors[0].TelemetryFiltering.Filters) > 0 {
-					fmt.Println("filters")
-					for _, filter := range *get.Spec.TelemetryModule.Collectors[0].TelemetryFiltering.Filters {
-						fmt.Printf("\tname       : %s\n", PurpleStyle.Render(filter.Name))
-						fmt.Printf("\tdescription: %s\n", PurpleStyle.Render(filter.Description))
-						fmt.Printf("\tenabled    : %v\n", PurpleStyle.Render(strconv.FormatBool(filter.Enabled)))
-						fmt.Printf("\tpipelines  : %s\n", PurpleStyle.Render(strings.Join(*filter.MutedPipelines, ", ")))
-						fmt.Println("\t--")
-					}
-				}
 			case "otel":
 				get, err := operator.GetOperator(ctx)
 				if err != nil {

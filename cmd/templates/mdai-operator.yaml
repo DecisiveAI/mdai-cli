@@ -19,6 +19,7 @@ spec:
         name: "gateway"
         enabled: true
         measureVolumes: true
+        telemetryFiltering:
         spec:
           ingress:
             annotations:
@@ -99,6 +100,14 @@ spec:
                   processors: [resource]
                   exporters: [debug]
                 logs/foobar:
+                  receivers: [otlp]
+                  processors: [resource]
+                  exporters: [debug]
+                metrics/foobar:
+                  receivers: [otlp]
+                  processors: [resource]
+                  exporters: [debug]
+                traces/foobar:
                   receivers: [otlp]
                   processors: [resource]
                   exporters: [debug]
