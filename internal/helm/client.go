@@ -4,23 +4,22 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 
+	"github.com/charmbracelet/log"
 	mdaitypes "github.com/decisiveai/mdai-cli/internal/types"
 	"golang.org/x/mod/semver"
 	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/cli"
-	"helm.sh/helm/v3/pkg/getter"
 	"helm.sh/helm/v3/pkg/release"
-	helmrepo "helm.sh/helm/v3/pkg/repo"
 	"helm.sh/helm/v3/pkg/storage/driver"
 )
 
 type Client struct {
-	channels    mdaitypes.Channels
 	envSettings *cli.EnvSettings
+	logger      *log.Logger
 }
 
 type ClientOption func(*Client)
@@ -33,18 +32,7 @@ func WithContext(ctx context.Context) ClientOption {
 		if kubecontext, ok := ctx.Value(mdaitypes.Kubecontext{}).(string); ok {
 			client.envSettings.KubeContext = kubecontext
 		}
-	}
-}
-
-func WithChannels(channels mdaitypes.Channels) ClientOption {
-	return func(client *Client) {
-		client.channels = channels
-	}
-}
-
-func WithRepositoryConfig(repositoryConfig string) ClientOption {
-	return func(client *Client) {
-		client.envSettings.RepositoryConfig = repositoryConfig
+		client.logger = log.FromContext(ctx)
 	}
 }
 
@@ -58,122 +46,49 @@ func NewClient(options ...ClientOption) *Client {
 	return client
 }
 
-func (c *Client) AddRepos() error {
-	for _, repo := range repos {
-		if err := c.addRepo(repo.Name, repo.URL); err != nil {
-			c.channels.Error(fmt.Errorf("failed to add repo %s: %w", repo.Name, err))
-			return fmt.Errorf("failed to add repo %s: %w", repo.Name, err)
-		}
-		c.channels.Message("added repo " + repo.Name)
-	}
-	return nil
-}
-
-func (c *Client) addRepo(name, url string) error {
-	file := c.envSettings.RepositoryConfig
-	repoFile, err := helmrepo.LoadFile(file)
-	if err != nil && !os.IsNotExist(err) {
-		c.channels.Error(fmt.Errorf("failed to load helm repo index file: %w", err))
-		return fmt.Errorf("failed to load helm repo index file: %w", err)
-	}
-
-	if repoFile.Has(name) {
-		c.channels.Message("repo " + name + " already exists. skipping.")
-		return nil
-	}
-
-	entry := helmrepo.Entry{
-		Name: name,
-		URL:  url,
-	}
-
-	repo, err := helmrepo.NewChartRepository(&entry, getter.All(c.envSettings))
-	if err != nil {
-		c.channels.Error(fmt.Errorf("failed to create chart repository: %w", err))
-		return fmt.Errorf("failed to create chart repository: %w", err)
-	}
-
-	if _, err := repo.DownloadIndexFile(); err != nil {
-		c.channels.Error(fmt.Errorf("failed to download helm repo index file: %w", err))
-		return fmt.Errorf("failed to download helm repo index file: %w", err)
-	}
-
-	repoFile.Update(&entry)
-	if err = repoFile.WriteFile(file, 0o644); err != nil { //nolint: mnd
-		c.channels.Error(fmt.Errorf("failed to write helm repo index file: %w", err))
-		return fmt.Errorf("failed to write helm repo index file: %w", err)
-	}
-	return nil
-}
-
 func (c *Client) InstallChart(helmchart string) error {
 	chartSpec, err := getChartSpec(helmchart)
 	if err != nil {
 		return fmt.Errorf("failed to get chart spec: %w", err)
 	}
-	settings := c.envSettings
-	settings.SetNamespace(chartSpec.Namespace)
-	actionConfig := new(action.Configuration)
-	if err := actionConfig.Init(settings.RESTClientGetter(), chartSpec.Namespace, "", func(format string, v ...interface{}) { c.channels.Debug(fmt.Sprintf(format, v)) }); err != nil {
-		c.channels.Error(fmt.Errorf("failed to initialize helm client: %w", err))
-		return fmt.Errorf("failed to initialize helm client: %w", err)
+
+	actionConfig, settings, err := c.getActionConfig(chartSpec.Namespace)
+	if err != nil {
+		return fmt.Errorf("failed to get action config: %w", err)
 	}
 
-	histClient := action.NewHistory(actionConfig)
-	histClient.Max = 1
-	_, err = histClient.Run(chartSpec.ReleaseName)
-	switch {
-	case errors.Is(err, driver.ErrReleaseNotFound):
-		client := action.NewInstall(actionConfig)
-		client.ReleaseName = chartSpec.ReleaseName
-		client.Namespace = chartSpec.Namespace
-		client.CreateNamespace = chartSpec.CreateNamespace
-		client.Wait = chartSpec.Wait
-		client.Timeout = chartSpec.Timeout
+	helmChart, err := loadChart(fmt.Sprintf(chartSpec.ChartURL, chartSpec.ReleaseName, chartSpec.Version), settings)
+	if err != nil {
+		return fmt.Errorf("failed to load chart: %w", err)
+	}
 
-		chartPath, err := client.ChartPathOptions.LocateChart(chartSpec.ChartName, settings)
-		if err != nil {
-			c.channels.Error(fmt.Errorf("failed to locate chart: %w", err))
-			return fmt.Errorf("failed to locate chart: %w", err)
-		}
+	getClient := action.NewGet(actionConfig)
+	helmRelease, err := getClient.Run(chartSpec.ReleaseName)
+	if errors.Is(err, driver.ErrReleaseNotFound) {
+		installClient := action.NewInstall(actionConfig)
+		installClient.ReleaseName = chartSpec.ReleaseName
+		installClient.Namespace = chartSpec.Namespace
+		installClient.CreateNamespace = chartSpec.CreateNamespace
+		installClient.Wait = chartSpec.Wait
+		installClient.Timeout = chartSpec.Timeout
 
-		chart, err := loader.Load(chartPath)
-		if err != nil {
-			c.channels.Error(fmt.Errorf("failed to load chart: %w", err))
-			return fmt.Errorf("failed to load chart: %w", err)
-		}
-
-		if _, err = client.Run(chart, chartSpec.Values); err != nil {
-			c.channels.Error(fmt.Errorf("failed to install chart %s in namespace %s: %w", chartSpec.ReleaseName, chartSpec.Namespace, err))
+		if _, err = installClient.Run(helmChart, chartSpec.Values); err != nil {
 			return fmt.Errorf("failed to install chart %s in namespace %s: %w", chartSpec.ReleaseName, chartSpec.Namespace, err)
 		}
-		c.channels.Message("chart " + chartSpec.ReleaseName + " in namespace " + chartSpec.Namespace + " installed successfully")
-		return nil
-	default:
-		client := action.NewUpgrade(actionConfig)
-		client.Namespace = chartSpec.Namespace
-		client.Wait = chartSpec.Wait
-		client.Timeout = chartSpec.Timeout
-
-		chartPath, err := client.ChartPathOptions.LocateChart(chartSpec.ChartName, settings)
-		if err != nil {
-			c.channels.Error(fmt.Errorf("failed to locate chart: %w", err))
-			return fmt.Errorf("failed to locate chart: %w", err)
-		}
-
-		chart, err := loader.Load(chartPath)
-		if err != nil {
-			c.channels.Error(fmt.Errorf("failed to load chart: %w", err))
-			return fmt.Errorf("failed to load chart: %w", err)
-		}
-
-		if _, err = client.Run(chartSpec.ReleaseName, chart, chartSpec.Values); err != nil {
-			c.channels.Error(fmt.Errorf("failed to upgrade chart %s in namespace %s: %w", chartSpec.ReleaseName, chartSpec.Namespace, err))
-			return fmt.Errorf("failed to upgrade chart %s in namespace %s: %w", chartSpec.ReleaseName, chartSpec.Namespace, err)
-		}
-		c.channels.Message("chart " + chartSpec.ReleaseName + " in namespace " + chartSpec.Namespace + " upgraded successfully")
 		return nil
 	}
+
+	if semver.Compare(helmRelease.Chart.Metadata.Version, chartSpec.Version) < 0 {
+		upgradeClient := action.NewUpgrade(actionConfig)
+		upgradeClient.Namespace = chartSpec.Namespace
+		upgradeClient.Wait = chartSpec.Wait
+		upgradeClient.Timeout = chartSpec.Timeout
+
+		if _, err = upgradeClient.Run(chartSpec.ReleaseName, helmChart, chartSpec.Values); err != nil {
+			return fmt.Errorf("failed to upgrade chart %s in namespace %s: %w", chartSpec.ReleaseName, chartSpec.Namespace, err)
+		}
+	}
+	return nil
 }
 
 func (c *Client) UninstallChart(helmchart string) error {
@@ -181,27 +96,22 @@ func (c *Client) UninstallChart(helmchart string) error {
 	if err != nil {
 		return fmt.Errorf("failed to get chart spec: %w", err)
 	}
-	settings := c.envSettings
-	settings.SetNamespace(chartSpec.Namespace)
-	actionConfig := new(action.Configuration)
-	if err := actionConfig.Init(settings.RESTClientGetter(), chartSpec.Namespace, "", func(format string, v ...interface{}) { c.channels.Debug(fmt.Sprintf(format, v)) }); err != nil {
-		c.channels.Error(fmt.Errorf("failed to initialize helm client: %w", err))
-		return fmt.Errorf("failed to initialize helm client: %w", err)
+
+	actionConfig, _, err := c.getActionConfig(chartSpec.Namespace)
+	if err != nil {
+		return fmt.Errorf("failed to get action config: %w", err)
 	}
 
 	histClient := action.NewHistory(actionConfig)
 	histClient.Max = 1
 	if _, err := histClient.Run(chartSpec.ReleaseName); errors.Is(err, driver.ErrReleaseNotFound) {
-		c.channels.Message("chart " + chartSpec.ReleaseName + " in namespace " + chartSpec.Namespace + " not found. skipping uninstall.")
 		return nil
 	}
 
-	uninstall := action.NewUninstall(actionConfig)
-	if _, err := uninstall.Run(chartSpec.ReleaseName); err != nil {
-		c.channels.Error(fmt.Errorf("failed to uninstall chart %s in namespace %s: %w", chartSpec.ReleaseName, chartSpec.Namespace, err))
+	uninstallClient := action.NewUninstall(actionConfig)
+	if _, err := uninstallClient.Run(chartSpec.ReleaseName); err != nil {
 		return fmt.Errorf("failed to uninstall chart %s in namespace %s: %w", chartSpec.ReleaseName, chartSpec.Namespace, err)
 	}
-	c.channels.Message("release " + chartSpec.ReleaseName + " in namespace " + chartSpec.Namespace + " uninstalled successfully")
 
 	return nil
 }
@@ -213,7 +123,7 @@ func (c *Client) Outdated() ([][]string, error) {
 	}
 
 	var rows [][]string
-	expectedCharts := []string{"cert-manager", "prometheus", "opentelemetry-operator", "mydecisive-engine-operator", "mdai-console", "datalyzer"}
+	expectedCharts := []string{"prometheus", "opentelemetry-operator", "mydecisive-engine-operator", "mdai-console", "datalyzer"}
 	seenCharts := make(map[string]bool, len(expectedCharts))
 
 	for _, rel := range releases {
@@ -266,4 +176,28 @@ func (c *Client) Releases() ([]*release.Release, error) {
 		return nil, err
 	}
 	return releases, nil
+}
+
+func loadChart(chartURL string, settings *cli.EnvSettings) (*chart.Chart, error) {
+	chartPath, err := (&action.ChartPathOptions{}).LocateChart(chartURL, settings)
+	if err != nil {
+		return nil, fmt.Errorf("failed to locate chart: %w", err)
+	}
+	helmChart, err := loader.Load(chartPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load chart: %w", err)
+	}
+	return helmChart, nil
+}
+
+func (c *Client) getActionConfig(namespace string) (*action.Configuration, *cli.EnvSettings, error) {
+	settings := c.envSettings
+	settings.SetNamespace(namespace)
+	actionConfig := new(action.Configuration)
+
+	logFunc := func(format string, v ...interface{}) { c.logger.Debugf(format+"\r", v...) }
+	if err := actionConfig.Init(settings.RESTClientGetter(), namespace, "", logFunc); err != nil {
+		return nil, nil, fmt.Errorf("failed to initialize helm client: %w", err)
+	}
+	return actionConfig, settings, nil
 }

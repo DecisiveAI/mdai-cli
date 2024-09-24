@@ -4,7 +4,7 @@ import "time"
 
 type ChartSpec struct {
 	ReleaseName     string
-	ChartName       string
+	ChartURL        string
 	Namespace       string
 	Values          map[string]any
 	Version         string
