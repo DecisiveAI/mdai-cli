@@ -31,11 +31,7 @@ Synopsis
                 
               🐙 MyDecisive.ai  
   
-    
 
-::
-
-  mdai [flags]
 
 Options
 ~~~~~~~
@@ -45,12 +41,10 @@ Options
   -h, --help                 help for mdai
       --kubeconfig string    Path to a kubeconfig
       --kubecontext string   Kubernetes context to use
-      --version              Print version information
 
 SEE ALSO
 ~~~~~~~~
 
-* `mdai demo <mdai_demo.rst>`_ 	 - install OpenTelemetry Demo
 * `mdai disable <mdai_disable.rst>`_ 	 - disable a module
 * `mdai enable <mdai_enable.rst>`_ 	 - enable a module
 * `mdai filter <mdai_filter.rst>`_ 	 - telemetry filtering

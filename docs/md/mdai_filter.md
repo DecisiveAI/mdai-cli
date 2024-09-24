@@ -22,7 +22,7 @@ telemetry filtering
 ### SEE ALSO
 
 * [mdai](mdai.md)	 - MyDecisive.ai CLI
-* [mdai filter add](mdai_filter_add.md)	 - add telemetry filter
+* [mdai filter add](mdai_filter_add.md)	 - add a telemetry filter
 * [mdai filter disable](mdai_filter_disable.md)	 - disable a telemetry filter
 * [mdai filter enable](mdai_filter_enable.md)	 - enable a telemetry filter
 * [mdai filter list](mdai_filter_list.md)	 - list telemetry filters

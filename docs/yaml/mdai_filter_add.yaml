@@ -1,5 +1,6 @@
 name: mdai filter add
-synopsis: add telemetry filter
+synopsis: add a telemetry filter
+description: add a telemetry filter
 usage: mdai filter add
 options:
     - name: description
