@@ -6,31 +6,40 @@ const (
 	NoDataString   = "--"
 )
 
-var (
-	SupportedModules = []string{"datalyzer"}
+func supportedModules() []string {
+	return []string{"datalyzer"}
+}
 
-	SupportedGetConfigTypes    = []string{"mdai", "otel"}
-	SupportedUpdateConfigTypes = []string{"otel"}
+func supportedGetConfigTypes() []string {
+	return []string{"mdai", "otel"}
+}
 
-	SupportedPhases = []string{"metrics", "logs", "traces"}
-	SupportedBlocks = []string{"receivers", "processors", "exporters"}
+func supportedUpdateConfigTypes() []string {
+	return []string{"otel"}
+}
 
-	mdaiHelmcharts = []string{"cert-manager", "prometheus", "opentelemetry-operator", "mydecisive-engine-operator", "mdai-console", "datalyzer"}
-	crds           = []string{
+func supportedPhases() []string {
+	return []string{"metrics", "logs", "traces"}
+}
+
+func supportedBlocks() []string {
+	return []string{"receivers", "processors", "exporters"}
+}
+
+func customResourceDefinitions() []string {
+	return []string{
 		"mydecisiveengines.mydecisive.ai",
 
 		"opentelemetrycollectors.opentelemetry.io",
 		"instrumentations.opentelemetry.io",
 		"opampbridges.opentelemetry.io",
-
-		"certificaterequests.cert-manager.io",
-		"certificates.cert-manager.io",
-		"challenges.acme.cert-manager.io",
-		"clusterissuers.cert-manager.io",
-		"issuers.cert-manager.io",
-		"orders.acme.cert-manager.io",
 	}
+}
 
-	pipelineFilterHeaders = []string{"NAME", "DESCRIPTION", "ENABLED", "MUTED PIPELINES"}
-	filterServiceHeaders  = []string{"NAME", "DESCRIPTION", "ENABLED", "FILTERED PIPELINES", "FILTERED TELEMETRY", "SERVICE PATTERN"}
-)
+func pipelineFilterHeaders() []string {
+	return []string{"NAME", "DESCRIPTION", "ENABLED", "MUTED PIPELINES"}
+}
+
+func filterServiceHeaders() []string {
+	return []string{"NAME", "DESCRIPTION", "ENABLED", "FILTERED PIPELINES", "FILTERED TELEMETRY", "SERVICE PATTERN"}
+}
