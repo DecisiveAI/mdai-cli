@@ -1,16 +1,19 @@
 package cmd
 
 import (
+	"context"
 	"embed"
+	"errors"
 	"fmt"
 	"os"
 
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
+	"github.com/charmbracelet/huh/spinner"
+	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/log"
 	mdaihelm "github.com/decisiveai/mdai-cli/internal/helm"
 	"github.com/decisiveai/mdai-cli/internal/operator"
 	mdaitypes "github.com/decisiveai/mdai-cli/internal/types"
-	"github.com/decisiveai/mdai-cli/internal/viewport"
 	"github.com/spf13/cobra"
 )
 
@@ -18,6 +21,7 @@ import (
 var embedFS embed.FS
 
 func NewInstallCommand() *cobra.Command {
+	flags := installFlags{}
 	cmd := &cobra.Command{
 		GroupID: "installation",
 		Use:     "install [--cluster-name CLUSTER-NAME] [--debug] [--quiet]",
@@ -30,9 +34,7 @@ func NewInstallCommand() *cobra.Command {
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			ctx := cmd.Context()
-			confirm, _ := cmd.Flags().GetBool("confirm")
-
-			if !confirm {
+			if !flags.confirm {
 				kubeconfig := ctx.Value(mdaitypes.Kubeconfig{}).(string)
 				kubecontext := ctx.Value(mdaitypes.Kubecontext{}).(string)
 				if err := huh.NewConfirm().
@@ -40,77 +42,24 @@ func NewInstallCommand() *cobra.Command {
 					Description(fmt.Sprintf("kubeconfig: %s\nkubecontext: %s\n", kubeconfig, kubecontext)).
 					Affirmative("Yes!").
 					Negative("No.").
-					Value(&confirm).Run(); err != nil {
+					Value(&flags.confirm).Run(); err != nil {
 					return fmt.Errorf("install failed: %w", err)
 				}
 			}
-			if !confirm {
-				return fmt.Errorf("aborting installation")
+			if !flags.confirm {
+				return errors.New("aborting installation")
 			}
-
-			channels := mdaitypes.NewChannels()
-			defer channels.Close()
-
-			debugMode, _ := cmd.Flags().GetBool("debug")
-			quietMode, _ := cmd.Flags().GetBool("quiet")
-
-			modes := mdaitypes.NewModes(debugMode, quietMode)
-
-			go func() {
-				tmpfile, err := os.CreateTemp(os.TempDir(), "mdai-cli")
-				if err != nil {
-					channels.Error(fmt.Errorf("failed to create temp dir: %w", err))
-					return
-				}
-				defer func() {
-					if err := os.Remove(tmpfile.Name()); err != nil {
-						channels.Error(fmt.Errorf("failed to remove temp file: %w", err))
-					}
-				}()
-				helmclient := mdaihelm.NewClient(
-					mdaihelm.WithContext(ctx),
-					mdaihelm.WithChannels(channels),
-					mdaihelm.WithRepositoryConfig(tmpfile.Name()),
-				)
-				channels.Task("adding helm repos")
-				if err := helmclient.AddRepos(); err != nil {
-					channels.Error(fmt.Errorf("failed to add helm repos: %w", err))
-					return
-				}
-				for _, helmchart := range mdaiHelmcharts {
-					channels.Task("installing helm chart " + helmchart)
-					if err := helmclient.InstallChart(helmchart); err != nil {
-						channels.Error(fmt.Errorf("failed to install helm chart %s: %w", helmchart, err))
-						return
-					}
-				}
-
-				manifest, _ := embedFS.ReadFile("templates/mdai-operator.yaml")
-				if err := operator.Install(ctx, manifest); err != nil {
-					channels.Error(fmt.Errorf("failed to apply mdai operator manifest: %w", err))
-					return
-				}
-
-				channels.Message("installation completed successfully")
-				channels.Done()
-			}()
-
-			p := tea.NewProgram(
-				viewport.InitialModel(
-					channels,
-					modes,
-				),
-			)
-			if _, err := p.Run(); err != nil {
-				return fmt.Errorf("failed to run program: %w", err)
+			logger := log.New(os.Stderr)
+			if flags.debug {
+				logger.SetLevel(log.DebugLevel)
 			}
-
-			return nil
+			ctx = log.WithContext(ctx, logger)
+			return mdaiInstall(ctx)
 		},
 	}
-	cmd.Flags().Bool("debug", false, "debug mode")
-	cmd.Flags().Bool("quiet", false, "quiet mode")
-	cmd.Flags().Bool("confirm", false, "confirm installation")
+	cmd.Flags().BoolVar(&flags.debug, "debug", false, "debug mode")
+	cmd.Flags().BoolVar(&flags.quiet, "quiet", false, "quiet mode")
+	cmd.Flags().BoolVar(&flags.confirm, "confirm", false, "confirm installation")
 
 	cmd.MarkFlagsMutuallyExclusive("debug", "quiet")
 
@@ -118,4 +67,38 @@ func NewInstallCommand() *cobra.Command {
 	cmd.SilenceUsage = true
 
 	return cmd
+}
+
+func mdaiInstall(ctx context.Context) error {
+	spinnerCtx, cancel := context.WithCancelCause(ctx)
+
+	go func() {
+		opts := []mdaihelm.ClientOption{mdaihelm.WithContext(ctx)}
+		helmclient := mdaihelm.NewClient(opts...)
+		cancel(helmclient.InstallChart("mdai-cluster"))
+	}()
+	if err := spinner.New().
+		Title("installing MDAI Cluster 🐙").
+		//	TitleStyle(lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#00020A", Dark: "#D3D3D3"})).
+		//		Style(lipgloss.NewStyle().PaddingLeft(1).Foreground(purple)).
+		// Action(func() { log.FromContext(ctx).Print("NOOP") }).
+		Context(spinnerCtx).
+		Run(); err != nil {
+		return fmt.Errorf("failed to install cluster: %w", err)
+	}
+
+	if spinnerCtx.Err() != nil && !errors.Is(context.Cause(spinnerCtx), context.Canceled) {
+		fmt.Println(lipgloss.NewStyle().PaddingLeft(1).Foreground(red).Render(DisabledString) + " installing MDAI Cluster 🐙")
+		return fmt.Errorf("failed to install cluster: %w", context.Cause(spinnerCtx))
+	}
+
+	fmt.Println(lipgloss.NewStyle().PaddingLeft(1).Foreground(green).Render(EnabledString) + " installing MDAI Cluster 🐙")
+
+	manifest, _ := embedFS.ReadFile("templates/mdai-operator.yaml")
+	if err := operator.Install(ctx, manifest); err != nil {
+		return fmt.Errorf("failed to apply mdai operator manifest: %w", err)
+	}
+
+	fmt.Println(" 🍻 You're ready to go")
+	return nil
 }

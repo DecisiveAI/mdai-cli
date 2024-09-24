@@ -27,9 +27,6 @@ var deployments = []deployment{
 	{name: "gateway-collector", namespace: "mdai"},
 	{name: "mydecisive-engine-operator-controller-manager", namespace: "mdai"},
 	{name: "opentelemetry-operator", namespace: "mdai"},
-	{name: "cert-manager", namespace: "cert-manager"},
-	{name: "cert-manager-cainjector", namespace: "cert-manager"},
-	{name: "cert-manager-webhook", namespace: "cert-manager"},
 }
 
 func NewStatusCommand() *cobra.Command {
@@ -47,7 +44,7 @@ func NewStatusCommand() *cobra.Command {
 			t := table.New().
 				BorderHeader(false).
 				Border(lipgloss.HiddenBorder()).
-				StyleFunc(func(row, col int) lipgloss.Style {
+				StyleFunc(func(row, _ int) lipgloss.Style {
 					switch {
 					case row == 0:
 						return HeaderStyle
@@ -57,7 +54,7 @@ func NewStatusCommand() *cobra.Command {
 						return OddRowStyle
 					}
 				}).
-				Headers("NAMESPACE", "RELEASE", "CHART", "VERSION", "APPVERSION", "FIRST DEPLOY", "LAST DEPLOY") // .
+				Headers("NAMESPACE", "RELEASE", "CHART", "VERSION", "APPVERSION", "FIRST DEPLOY", "LAST DEPLOY")
 			for _, rel := range releases {
 				t.Row(rel.Namespace, rel.Name, rel.Chart.Metadata.Name, rel.Chart.Metadata.Version, rel.Chart.Metadata.AppVersion, rel.Info.FirstDeployed.String(), rel.Info.LastDeployed.String())
 			}
