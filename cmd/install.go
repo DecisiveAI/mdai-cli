@@ -79,9 +79,8 @@ func mdaiInstall(ctx context.Context) error {
 	}()
 	if err := spinner.New().
 		Title("installing MDAI Cluster 🐙").
-		//	TitleStyle(lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#00020A", Dark: "#D3D3D3"})).
-		//		Style(lipgloss.NewStyle().PaddingLeft(1).Foreground(purple)).
-		// Action(func() { log.FromContext(ctx).Print("NOOP") }).
+		TitleStyle(lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#00020A", Dark: "#D3D3D3"})).
+		Style(lipgloss.NewStyle().PaddingLeft(1).Foreground(purple)).
 		Context(spinnerCtx).
 		Run(); err != nil {
 		return fmt.Errorf("failed to install cluster: %w", err)
