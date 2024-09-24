@@ -13,7 +13,7 @@ build: mdai
 mdai:
 	rm -f mdai
 	go mod vendor
-	CGO_ENABLED=0 go build -ldflags="-X 'github.com/decisiveai/mdai-cli/cmd.Version=`git describe --tags --abbrev=0`' -X 'github.com/decisiveai/mdai-cli/cmd.GitSha=`git rev-parse HEAD`' -X 'github.com/decisiveai/mdai-cli/cmd.BuildTime=`date`'" -o mdai main.go
+	CGO_ENABLED=0 go build -ldflags="-w -s -X 'github.com/decisiveai/mdai-cli/cmd.Version=`git describe --tags --abbrev=0`' -X 'github.com/decisiveai/mdai-cli/cmd.GitSha=`git rev-parse HEAD`' -X 'github.com/decisiveai/mdai-cli/cmd.BuildTime=`date`'" -o mdai main.go
 
 .PHONY: docker-build
 .SILENT: docker-build
