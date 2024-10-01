@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"slices"
 	"strings"
 
 	"github.com/decisiveai/mdai-cli/internal/operator"
@@ -10,35 +9,30 @@ import (
 )
 
 func NewEnableCommand() *cobra.Command {
+	flags := enableFlags{}
 	cmd := &cobra.Command{
 		GroupID: "configuration",
 		Use:     "enable -m|--module MODULE",
 		Short:   "enable a module",
 		Long:    `enable one of the supported modules`,
 		Example: `  mdai enable --module datalyzer`,
-		PreRunE: func(cmd *cobra.Command, _ []string) error {
-			module, _ := cmd.Flags().GetString("module")
-			if module != "" && !slices.Contains(SupportedModules, module) {
-				return fmt.Errorf(`module "%s" is not supported for enabling`, module)
-			}
-			return nil
-		},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			ctx := cmd.Context()
-			module, _ := cmd.Flags().GetString("module")
 
-			switch module {
+			switch flags.module {
 			case "datalyzer":
 				if err := operator.EnableDatalyzer(ctx); err != nil {
 					return err
 				}
+			default:
+				return fmt.Errorf(`module "%s" is not supported for enabling`, flags.module)
 			}
 
-			fmt.Printf("%s module enabled successfully.\n", module)
+			fmt.Printf("%s module enabled successfully.\n", flags.module)
 			return nil
 		},
 	}
-	cmd.Flags().String("module", "", "module to enable ["+strings.Join(SupportedModules, ", ")+"]")
+	cmd.Flags().StringVar(&flags.module, "module", "", "module to enable ["+strings.Join(supportedModules(), ", ")+"]")
 
 	_ = cmd.MarkFlagRequired("module")
 

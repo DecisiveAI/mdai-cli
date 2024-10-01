@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"slices"
 	"strings"
 
 	"github.com/decisiveai/mdai-cli/internal/operator"
@@ -10,35 +9,30 @@ import (
 )
 
 func NewDisableCommand() *cobra.Command {
+	flags := disableFlags{}
 	cmd := &cobra.Command{
 		GroupID: "configuration",
 		Use:     "disable -m|--module MODULE",
 		Short:   "disable a module",
 		Long:    `disable a module`,
 		Example: `  mdai disable --module datalyzer`,
-		PreRunE: func(cmd *cobra.Command, _ []string) error {
-			module, _ := cmd.Flags().GetString("module")
-			if module != "" && !slices.Contains(SupportedModules, module) {
-				return fmt.Errorf(`module "%s" is not supported for disabling`, module)
-			}
-			return nil
-		},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			ctx := cmd.Context()
-			module, _ := cmd.Flags().GetString("module")
 
-			switch module {
+			switch flags.module {
 			case "datalyzer":
 				if err := operator.DisableDatalyzer(ctx); err != nil {
 					return err
 				}
+			default:
+				return fmt.Errorf(`module "%s" is not supported for disabling`, flags.module)
 			}
 
-			fmt.Printf("%s module disabled successfully.\n", module)
+			fmt.Printf("%s module disabled successfully.\n", flags.module)
 			return nil
 		},
 	}
-	cmd.Flags().String("module", "", "module to disable ["+strings.Join(SupportedModules, ", ")+"]")
+	cmd.Flags().StringVar(&flags.module, "module", "", "module to disable ["+strings.Join(supportedModules(), ", ")+"]")
 
 	_ = cmd.MarkFlagRequired("module")
 

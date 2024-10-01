@@ -34,7 +34,7 @@ func CreateTelemetryFilter(ctx context.Context, options ...TelemetryFilterOption
 	for _, option := range options {
 		option(newTelemetryFilter)
 	}
-	var patchBytes []byte
+
 	helper, err := kubehelper.New(WithContext(ctx))
 	if err != nil {
 		return fmt.Errorf("failed to initialize kubehelper: %w", err)
@@ -75,6 +75,7 @@ func CreateTelemetryFilter(ctx context.Context, options ...TelemetryFilterOption
 		}
 	}
 
+	var patchBytes []byte
 	if patchBytes, err = json.Marshal(patch); err != nil {
 		return fmt.Errorf("failed to marshal patch: %w", err)
 	}
@@ -192,34 +193,36 @@ func toggleTelemetryFilter(ctx context.Context, options ...TelemetryFilterOption
 	}
 
 	for i, filter := range *telemetryFiltering.Filters {
-		if filter.Name == tf.filter.Name {
-			filter.Enabled = tf.filter.Enabled
-			if tf.remove {
-				patchBytes, err = json.Marshal(
-					[]mutePatch{
-						{
-							Op:   PatchOpRemove,
-							Path: fmt.Sprintf(MutedPipelinesJSONPath, i),
-						},
-					})
-			} else {
-				patchBytes, err = json.Marshal(
-					[]mutePatch{
-						{
-							Op:    PatchOpReplace,
-							Path:  fmt.Sprintf(MutedPipelinesJSONPath, i),
-							Value: filter,
-						},
-					})
-			}
-			if err != nil {
-				return fmt.Errorf("failed to marshal patch: %w", err)
-			}
-			break
+		if filter.Name != tf.filter.Name {
+			continue
 		}
+		filter.Enabled = tf.filter.Enabled
+		var patch []mutePatch
+
+		if tf.remove {
+			patch = []mutePatch{
+				{
+					Op:   PatchOpRemove,
+					Path: fmt.Sprintf(MutedPipelinesJSONPath, i),
+				},
+			}
+		} else {
+			patch = []mutePatch{
+				{
+					Op:    PatchOpReplace,
+					Path:  fmt.Sprintf(MutedPipelinesJSONPath, i),
+					Value: filter,
+				},
+			}
+		}
+		patchBytes, err = json.Marshal(patch)
+		if err != nil {
+			return fmt.Errorf("failed to marshal patch: %w", err)
+		}
+		break
 	}
 	if patchBytes == nil {
-		return fmt.Errorf("filter %s not found", tf.filter.Name)
+		return fmt.Errorf(`filter "%s" not found`, tf.filter.Name)
 	}
 
 	if err := helper.Patch(ctx, types.JSONPatchType, patchBytes); err != nil {

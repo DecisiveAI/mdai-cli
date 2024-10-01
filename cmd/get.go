@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"slices"
 	"strconv"
 	"strings"
 
@@ -11,6 +10,7 @@ import (
 )
 
 func NewGetCommand() *cobra.Command {
+	flags := getFlags{}
 	cmd := &cobra.Command{
 		GroupID: "configuration",
 		Use:     "get -c|--config MODULE-NAME",
@@ -18,17 +18,10 @@ func NewGetCommand() *cobra.Command {
 		Long:    "get mdai or otel collector configuration",
 		Example: `  mdai get --config mdai # get mdai configuration
   mdai get --config otel # get otel configuration`,
-		PreRunE: func(cmd *cobra.Command, _ []string) error {
-			configType, _ := cmd.Flags().GetString("config")
-			if configType != "" && !slices.Contains(SupportedGetConfigTypes, configType) {
-				return fmt.Errorf("config type %s is not supported", configType)
-			}
-			return nil
-		},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			ctx := cmd.Context()
-			configType, _ := cmd.Flags().GetString("config")
-			switch configType {
+
+			switch flags.configType {
 			case "mdai":
 				get, err := operator.GetOperator(ctx)
 				if err != nil {
@@ -44,12 +37,14 @@ func NewGetCommand() *cobra.Command {
 					return err
 				}
 				fmt.Println(get.Spec.TelemetryModule.Collectors[0].Spec.Config)
+			default:
+				return fmt.Errorf("config type %s is not supported", flags.configType)
 			}
 
 			return nil
 		},
 	}
-	cmd.Flags().StringP("config", "c", "", "configuration to get ["+strings.Join(SupportedGetConfigTypes, ", ")+"]")
+	cmd.Flags().StringVarP(&flags.configType, "config", "c", "", "configuration to get ["+strings.Join(supportedGetConfigTypes(), ", ")+"]")
 
 	_ = cmd.MarkFlagRequired("config")
 

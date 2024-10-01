@@ -11,11 +11,7 @@ options:
       usage: Path to a kubeconfig
     - name: kubecontext
       usage: Kubernetes context to use
-    - name: version
-      default_value: "false"
-      usage: Print version information
 see_also:
-    - mdai demo - install OpenTelemetry Demo
     - mdai disable - disable a module
     - mdai enable - enable a module
     - mdai filter - telemetry filtering

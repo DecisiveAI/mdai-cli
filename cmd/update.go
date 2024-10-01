@@ -14,6 +14,7 @@ import (
 )
 
 func NewUpdateCommand() *cobra.Command {
+	flags := updateFlags{}
 	cmd := &cobra.Command{
 		GroupID: "configuration",
 		Use:     "update [-f FILE] [--config CONFIG-TYPE] [--phase PHASE] [--block BLOCK]",
@@ -23,33 +24,25 @@ func NewUpdateCommand() *cobra.Command {
 	mdai update --config=otel                   # edit otel collector configuration in $EDITOR
 	mdai update --config=otel --phase=logs      # jump to logs block
 	mdai update --config=otel --block=receivers # jump to receivers block`,
-		PreRunE: func(cmd *cobra.Command, _ []string) error {
-			configP, _ := cmd.Flags().GetString("config")
-			phaseP, _ := cmd.Flags().GetString("phase")
-			blockP, _ := cmd.Flags().GetString("block")
-
+		PreRunE: func(_ *cobra.Command, _ []string) error {
 			switch {
-			case configP != "" && !slices.Contains(SupportedUpdateConfigTypes, configP):
-				return fmt.Errorf("invalid config type: %s", configP)
+			case flags.config != "" && !slices.Contains(supportedUpdateConfigTypes(), flags.config):
+				return fmt.Errorf("invalid config type: %s", flags.config)
 
-			case phaseP != "" && !slices.Contains(SupportedPhases, phaseP):
-				return fmt.Errorf("invalid phase: %s", phaseP)
+			case flags.phase != "" && !slices.Contains(supportedPhases(), flags.phase):
+				return fmt.Errorf("invalid phase: %s", flags.phase)
 
-			case blockP != "" && !slices.Contains(SupportedBlocks, blockP):
-				return fmt.Errorf("invalid block: %s", blockP)
+			case flags.block != "" && !slices.Contains(supportedBlocks(), flags.block):
+				return fmt.Errorf("invalid block: %s", flags.block)
 			}
 
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			ctx := cmd.Context()
-			fileP, _ := cmd.Flags().GetString("file")
-			configP, _ := cmd.Flags().GetString("config")
-			phaseP, _ := cmd.Flags().GetString("phase")
-			blockP, _ := cmd.Flags().GetString("block")
 
 			switch {
-			case configP != "":
+			case flags.config != "":
 				var otelConfig string
 
 				get, err := operator.GetOperator(ctx)
@@ -59,20 +52,20 @@ func NewUpdateCommand() *cobra.Command {
 				otelConfig = get.Spec.TelemetryModule.Collectors[0].Spec.Config
 				f, err := os.CreateTemp("", "otelconfig")
 				if err != nil {
-					return fmt.Errorf("error creating %s config temp file: %w", configP, err)
+					return fmt.Errorf("error creating %s config temp file: %w", flags.config, err)
 				}
 				if _, err := f.WriteString(otelConfig); err != nil {
-					return fmt.Errorf("error saving %s config temp file: %w", configP, err)
+					return fmt.Errorf("error saving %s config temp file: %w", flags.config, err)
 				}
 				if err := f.Close(); err != nil {
-					return fmt.Errorf("error closing %s config temp file: %w", configP, err)
+					return fmt.Errorf("error closing %s config temp file: %w", flags.config, err)
 				}
 
 				defer func() {
 					_ = os.Remove(f.Name())
 				}()
 
-				m := editor.NewModel(f.Name(), blockP, phaseP)
+				m := editor.NewModel(f.Name(), flags.block, flags.phase)
 				if _, err := tea.NewProgram(m).Run(); err != nil {
 					return err
 				}
@@ -91,7 +84,7 @@ func NewUpdateCommand() *cobra.Command {
 					return err
 				}
 				if !applyConfig {
-					fmt.Println(configP + " configuration not updated")
+					fmt.Println(flags.config + " configuration not updated")
 					return nil
 				}
 
@@ -99,26 +92,26 @@ func NewUpdateCommand() *cobra.Command {
 				if err := operator.UpdateOTELConfig(ctx, string(otelConfigBytes)); err != nil {
 					return fmt.Errorf("error updating otel collector configuration: %w", err)
 				}
-				fmt.Println(configP + " configuration updated")
+				fmt.Println(flags.config + " configuration updated")
 
-			case fileP != "":
-				otelConfigBytes, err := os.ReadFile(fileP)
+			case flags.file != "":
+				otelConfigBytes, err := os.ReadFile(flags.file)
 				if err != nil {
-					return fmt.Errorf(`error reading file "%s": %w`, fileP, err)
+					return fmt.Errorf(`error reading file "%s": %w`, flags.file, err)
 				}
 				if err := operator.UpdateOTELConfig(ctx, string(otelConfigBytes)); err != nil {
 					return fmt.Errorf("error updating otel collector configuration: %w", err)
 				}
-				fmt.Println(configP + " configuration updated")
+				fmt.Println(flags.config + " configuration updated")
 			}
 
 			return nil
 		},
 	}
-	cmd.Flags().StringP("file", "f", "", "file to update")
-	cmd.Flags().StringP("config", "c", "", "config type to update ["+strings.Join(SupportedUpdateConfigTypes, ", ")+"]")
-	cmd.Flags().String("block", "", "block to jump to ["+strings.Join(SupportedBlocks, ", ")+"]")
-	cmd.Flags().String("phase", "", "phase to jump to ["+strings.Join(SupportedPhases, ", ")+"]")
+	cmd.Flags().StringVarP(&flags.file, "file", "f", "", "file to update")
+	cmd.Flags().StringVarP(&flags.config, "config", "c", "", "config type to update ["+strings.Join(supportedUpdateConfigTypes(), ", ")+"]")
+	cmd.Flags().StringVar(&flags.block, "block", "", "block to jump to ["+strings.Join(supportedBlocks(), ", ")+"]")
+	cmd.Flags().StringVar(&flags.phase, "phase", "", "phase to jump to ["+strings.Join(supportedPhases(), ", ")+"]")
 
 	cmd.MarkFlagsMutuallyExclusive("file", "config")
 	cmd.MarkFlagsOneRequired("file", "config")

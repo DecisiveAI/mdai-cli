@@ -3,13 +3,13 @@
 mdai filter add
 ---------------
 
-add telemetry filter
+add a telemetry filter
 
 Synopsis
 ~~~~~~~~
 
 
-add telemetry filter
+add a telemetry filter
 
 ::
 

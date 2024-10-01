@@ -1,6 +1,10 @@
 ## mdai filter add
 
-add telemetry filter
+add a telemetry filter
+
+### Synopsis
+
+add a telemetry filter
 
 ```
 mdai filter add

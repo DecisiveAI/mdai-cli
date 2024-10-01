@@ -13,7 +13,7 @@ inherited_options:
       usage: Kubernetes context to use
 see_also:
     - mdai - MyDecisive.ai CLI
-    - mdai filter add - add telemetry filter
+    - mdai filter add - add a telemetry filter
     - mdai filter disable - disable a telemetry filter
     - mdai filter enable - enable a telemetry filter
     - mdai filter list - list telemetry filters

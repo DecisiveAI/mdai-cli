@@ -30,7 +30,7 @@ SEE ALSO
 ~~~~~~~~
 
 * `mdai <mdai.rst>`_ 	 - MyDecisive.ai CLI
-* `mdai filter add <mdai_filter_add.rst>`_ 	 - add telemetry filter
+* `mdai filter add <mdai_filter_add.rst>`_ 	 - add a telemetry filter
 * `mdai filter disable <mdai_filter_disable.rst>`_ 	 - disable a telemetry filter
 * `mdai filter enable <mdai_filter_enable.rst>`_ 	 - enable a telemetry filter
 * `mdai filter list <mdai_filter_list.rst>`_ 	 - list telemetry filters
