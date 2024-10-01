@@ -39,7 +39,8 @@ MyDecisive.ai CLI
 ### SEE ALSO
 
 * [mdai disable](mdai_disable.md)	 - disable a module
-* [mdai enable](mdai_enable.md)	 - enable a module
+* [mdai enable](mdai_enable.md)	 - enable a module 
+* [mdai dynamic_variables](mdai_dynamic_variables.md)	- manage dynamic variables
 * [mdai filter](mdai_filter.md)	 - telemetry filtering
 * [mdai get](mdai_get.md)	 - get a configuration
 * [mdai install](mdai_install.md)	 - install MyDecisive Cluster
