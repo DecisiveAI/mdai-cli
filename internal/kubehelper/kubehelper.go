@@ -216,6 +216,49 @@ func (helper *Helper) GetPodByLabel(ctx context.Context, namespace, labelSelecto
 	return helper.clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{LabelSelector: labelSelector})
 }
 
+func (helper *Helper) GetConfigMap(ctx context.Context, name string, namespace string) (*corev1.ConfigMap, error) {
+	cm, err := helper.clientset.CoreV1().ConfigMaps(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		cm.Name = name
+		cm.Namespace = namespace
+		return helper.clientset.CoreV1().ConfigMaps(namespace).Create(ctx, cm, metav1.CreateOptions{})
+	}
+	return cm, err
+}
+
+func (helper *Helper) CreateConfigMap(ctx context.Context, name string, namespace string, data map[string]string) (*corev1.ConfigMap, error) {
+	configMap := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Data: data,
+	}
+	configMap, err := helper.clientset.CoreV1().ConfigMaps(namespace).Create(ctx, configMap, metav1.CreateOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("error creating ConfigMap: %w", err)
+	}
+	return configMap, nil
+}
+
+func (helper *Helper) UpdateConfigMap(ctx context.Context, name string, namespace string, data map[string]string) (*corev1.ConfigMap, error) {
+	configMap, err := helper.GetConfigMap(ctx, name, namespace)
+	if err != nil {
+		return helper.CreateConfigMap(ctx, name, namespace, data)
+	}
+	if configMap.Data == nil {
+		configMap.Data = make(map[string]string)
+	}
+	for k, v := range data {
+		configMap.Data[k] = v
+	}
+	return helper.clientset.CoreV1().ConfigMaps(namespace).Update(ctx, configMap, metav1.UpdateOptions{})
+}
+
+func (helper *Helper) SetConfigMap(ctx context.Context, namespace string, configMap *corev1.ConfigMap) (*corev1.ConfigMap, error) {
+	return helper.clientset.CoreV1().ConfigMaps(namespace).Update(ctx, configMap, metav1.UpdateOptions{})
+}
+
 func getObject(manifest []byte) (*unstructured.Unstructured, error) {
 	var decodedObj map[string]interface{}
 	decoder := yamlutil.NewYAMLOrJSONDecoder(bytes.NewReader(manifest), 1024) //nolint: mnd
