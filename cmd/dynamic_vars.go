@@ -4,8 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
+	"github.com/decisiveai/mdai-cli/internal/kubehelper"
 	"github.com/spf13/cobra"
 )
 
@@ -29,32 +31,27 @@ func NewDynamicVariablesCommand() *cobra.Command {
 	return cmd
 }
 
-// Define DynamicVariables as a list of key-value pairs (map[string]string)
-type DynamicVariables []map[string]string
-
-func GetMockDynamicVars() DynamicVariables {
-	// Initialize DynamicVariables with some key-value pairs
-	vars := DynamicVariables{
-		{"key": "environment", "value": "production"},
-		{"key": "version", "value": "1.0.0"},
-		{"key": "region", "value": "us-west-1"},
-	}
-	return vars
-}
-
 func NewDynamicVariablesListCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "list dynamic variables",
 		Long:  `list dynamic variables`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			dynamicVars := GetMockDynamicVars()
+			ctx := cmd.Context()
+			helper, err := kubehelper.New(kubehelper.WithContext(ctx))
+			if err != nil {
+				return fmt.Errorf("failed to initialize kubehelper: %w", err)
+			}
 
 			var rows [][]string
 			headers := []string{"Key", "Value", "Status"}
 
-			for _, dynamicVar := range dynamicVars {
-				row := []string{dynamicVar["key"], dynamicVar["value"], "Enabled"}
+			configMap, err := helper.GetConfigMap(ctx, "dynamic-variables", "mdai")
+			if err != nil {
+				return fmt.Errorf("failed to fetch dynamic variables configmap: %w", err)
+			}
+			for k, v := range configMap.Data {
+				row := []string{k, v, "Enabled"}
 				rows = append(rows, row)
 			}
 
@@ -94,10 +91,9 @@ type dynamicVariableAddFlags struct {
 	value string
 }
 
-
 func (f dynamicVariableAddFlags) successString() string {
 	var sb strings.Builder
-	_, _ = fmt.Fprintf(&sb, `dynamic variable added successfully as: "%s" (%s).`, f.key, f.value)
+	_, _ = fmt.Fprintf(&sb, `dynamic variable added successfully, "%s"="%s".`, f.key, f.value)
 	_, _ = fmt.Fprintln(&sb)
 	return sb.String()
 }
@@ -118,6 +114,14 @@ func NewDynamicVariablesAddCommand() *cobra.Command {
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if cmd.Flags().NFlag() == 0 {
 				return errors.New(cmd.UsageString())
+			}
+			ctx := cmd.Context()
+			helper, err := kubehelper.New(kubehelper.WithContext(ctx))
+			if err != nil {
+				return fmt.Errorf("failed to initialize kubehelper: %w", err)
+			}
+			if _, err = helper.UpdateConfigMap(ctx, "dynamic-variables", "mdai", map[string]string{f.key: f.value}); err != nil {
+				return fmt.Errorf("failed to add dynamic variable: %w", err)
 			}
 
 			fmt.Println(f.successString())
@@ -142,6 +146,22 @@ func NewDynamicVariablesRemoveCommand() *cobra.Command {
 		Example: `  remove --key some_key`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			dynamicVariableKey, _ := cmd.Flags().GetString("key")
+			ctx := cmd.Context()
+			helper, err := kubehelper.New(kubehelper.WithContext(ctx))
+			if err != nil {
+				return fmt.Errorf("failed to initialize kubehelper: %w", err)
+			}
+			configMap, err := helper.GetConfigMap(ctx, "dynamic-variables", "mdai")
+			if err != nil {
+				return fmt.Errorf("failed to fetch dynamic variables configmap: %w", err)
+			}
+			if _, found := configMap.Data[dynamicVariableKey]; !found {
+				return fmt.Errorf("dynamic variable %s not found in configmap", dynamicVariableKey)
+			}
+			delete(configMap.Data, dynamicVariableKey)
+			if _, err = helper.SetConfigMap(ctx, "mdai", configMap); err != nil {
+				return fmt.Errorf("failed to remove dynamic variable: %w", err)
+			}
 
 			fmt.Printf(`"%s" dynamic variable removed successfully.`, dynamicVariableKey)
 			fmt.Println()
