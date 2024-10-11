@@ -51,7 +51,7 @@ func NewUninstallCommand() *cobra.Command {
 				logger.SetLevel(log.DebugLevel)
 			}
 			ctx = log.WithContext(ctx, logger)
-			return mdaiUninstall(ctx)
+			return mdaiUninstall(ctx, cmd)
 		},
 	}
 	cmd.Flags().BoolVar(&flags.debug, "debug", false, "debug mode")
@@ -63,7 +63,7 @@ func NewUninstallCommand() *cobra.Command {
 	return cmd
 }
 
-func mdaiUninstall(ctx context.Context) error {
+func mdaiUninstall(ctx context.Context, cmd *cobra.Command) error {
 	spinnerCtx, cancel := context.WithCancelCause(ctx)
 
 	go func() {
@@ -81,11 +81,11 @@ func mdaiUninstall(ctx context.Context) error {
 	}
 
 	if spinnerCtx.Err() != nil && !errors.Is(context.Cause(spinnerCtx), context.Canceled) {
-		fmt.Println(lipgloss.NewStyle().PaddingLeft(1).Foreground(red).Render(DisabledString) + " uninstalling MDAI Cluster 🐙")
+		fmt.Fprintln(cmd.OutOrStdout(), lipgloss.NewStyle().PaddingLeft(1).Foreground(red).Render(DisabledString)+" uninstalling MDAI Cluster 🐙")
 		return fmt.Errorf("failed to install cluster: %w", context.Cause(spinnerCtx))
 	}
 
-	fmt.Println(lipgloss.NewStyle().PaddingLeft(1).Foreground(green).Render(EnabledString) + " uninstalling MDAI Cluster 🐙")
+	fmt.Fprintln(cmd.OutOrStdout(), lipgloss.NewStyle().PaddingLeft(1).Foreground(green).Render(EnabledString)+" uninstalling MDAI Cluster 🐙")
 	helper, err := kubehelper.New(kubehelper.WithContext(ctx))
 	if err != nil {
 		return fmt.Errorf("failed to initialize kubehelper: %w", err)
@@ -93,11 +93,11 @@ func mdaiUninstall(ctx context.Context) error {
 
 	for _, crd := range customResourceDefinitions() {
 		if err = helper.DeleteCRD(ctx, crd); err != nil {
-			fmt.Println("\tCRD " + crd + " not found, skipping deletion.")
+			fmt.Fprintln(cmd.OutOrStdout(), "\tCRD "+crd+" not found, skipping deletion.")
 			continue
 		}
-		fmt.Println("\tCRD " + crd + " deleted successfully.")
+		fmt.Fprintln(cmd.OutOrStdout(), "\tCRD "+crd+" deleted successfully.")
 	}
-	fmt.Println(" 🙁 Sad to see you go.")
+	fmt.Fprintln(cmd.OutOrStdout(), " 🙁 Sad to see you go.")
 	return nil
 }

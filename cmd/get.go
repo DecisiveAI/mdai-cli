@@ -21,30 +21,30 @@ func NewGetCommand() *cobra.Command {
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			ctx := cmd.Context()
 
-			switch flags.configType {
+			switch flags.config {
 			case "mdai":
 				get, err := operator.GetOperator(ctx)
 				if err != nil {
 					return err
 				}
-				fmt.Printf("name           : %s\n", PurpleStyle.Render(get.Name))
-				fmt.Printf("namespace      : %s\n", PurpleStyle.Render(get.Namespace))
-				fmt.Printf("measure volumes: %v\n", PurpleStyle.Render(strconv.FormatBool(get.Spec.TelemetryModule.Collectors[0].MeasureVolumes)))
-				fmt.Printf("enabled        : %v\n", PurpleStyle.Render(strconv.FormatBool(get.Spec.TelemetryModule.Collectors[0].Enabled)))
+				fmt.Fprintf(cmd.OutOrStdout(), "name           : %s\n", PurpleStyle.Render(get.Name))
+				fmt.Fprintf(cmd.OutOrStdout(), "namespace      : %s\n", PurpleStyle.Render(get.Namespace))
+				fmt.Fprintf(cmd.OutOrStdout(), "measure volumes: %v\n", PurpleStyle.Render(strconv.FormatBool(get.Spec.TelemetryModule.Collectors[0].MeasureVolumes)))
+				fmt.Fprintf(cmd.OutOrStdout(), "enabled        : %v\n", PurpleStyle.Render(strconv.FormatBool(get.Spec.TelemetryModule.Collectors[0].Enabled)))
 			case "otel":
 				get, err := operator.GetOperator(ctx)
 				if err != nil {
 					return err
 				}
-				fmt.Println(get.Spec.TelemetryModule.Collectors[0].Spec.Config)
+				fmt.Fprintln(cmd.OutOrStdout(), get.Spec.TelemetryModule.Collectors[0].Spec.Config)
 			default:
-				return fmt.Errorf("config type %s is not supported", flags.configType)
+				return fmt.Errorf("config type %s is not supported", flags.config)
 			}
 
 			return nil
 		},
 	}
-	cmd.Flags().StringVarP(&flags.configType, "config", "c", "", "configuration to get ["+strings.Join(supportedGetConfigTypes(), ", ")+"]")
+	cmd.Flags().StringVarP(&flags.config, "config", "c", "", "configuration to get ["+strings.Join(supportedGetConfigTypes(), ", ")+"]")
 
 	_ = cmd.MarkFlagRequired("config")
 

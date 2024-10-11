@@ -27,8 +27,8 @@ opentelemetry-operator:
       enabled: true
   manager:
     collectorImage:
-      repository: otel/opentelemetry-collector-k8s
-      tag: 0.101.0
+      repository: otel/opentelemetry-collector-contrib
+      tag: 0.111.0
     leaderElection:
       enabled: false
     env:

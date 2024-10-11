@@ -28,7 +28,7 @@ func NewDisableCommand() *cobra.Command {
 				return fmt.Errorf(`module "%s" is not supported for disabling`, flags.module)
 			}
 
-			fmt.Printf("%s module disabled successfully.\n", flags.module)
+			fmt.Fprintf(cmd.OutOrStdout(), "%s module disabled successfully.\n", flags.module)
 			return nil
 		},
 	}

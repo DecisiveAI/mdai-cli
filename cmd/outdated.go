@@ -44,8 +44,8 @@ func NewOutdatedCommand() *cobra.Command {
 				}).
 				Headers("", "RELEASE", "CURRENT", "WANTED").
 				Rows(rows...)
-			fmt.Println(t)
-			fmt.Printf("kubeconfig: %s\nkubecontext: %s\n",
+			fmt.Fprintln(cmd.OutOrStdout(), t)
+			fmt.Fprintf(cmd.OutOrStdout(), "kubeconfig: %s\nkubecontext: %s\n",
 				PurpleStyle.Render(ctx.Value(mdaitypes.Kubeconfig{}).(string)),
 				PurpleStyle.Render(ctx.Value(mdaitypes.Kubecontext{}).(string)),
 			)

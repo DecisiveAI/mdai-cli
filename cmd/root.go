@@ -128,6 +128,7 @@ func addCommands(cmd *cobra.Command) {
 		NewStatusCommand(),
 		NewUninstallCommand(),
 		NewUpdateCommand(),
+		NewServeCommand(),
 	)
 }
 
