@@ -59,8 +59,8 @@ func NewStatusCommand() *cobra.Command {
 				t.Row(rel.Namespace, rel.Name, rel.Chart.Metadata.Name, rel.Chart.Metadata.Version, rel.Chart.Metadata.AppVersion, rel.Info.FirstDeployed.String(), rel.Info.LastDeployed.String())
 			}
 
-			fmt.Println(t)
-			fmt.Printf("kubeconfig: %s\nkubecontext: %s\n",
+			fmt.Fprintln(cmd.OutOrStdout(), t)
+			fmt.Fprintf(cmd.OutOrStdout(), "kubeconfig: %s\nkubecontext: %s\n",
 				PurpleStyle.Render(ctx.Value(mdaitypes.Kubeconfig{}).(string)),
 				PurpleStyle.Render(ctx.Value(mdaitypes.Kubecontext{}).(string)),
 			)
@@ -81,7 +81,7 @@ func NewStatusCommand() *cobra.Command {
 					release = d.Labels["helm.sh/chart"][:lastIndex]
 					version = d.Labels["helm.sh/chart"][lastIndex+1:]
 				}
-				fmt.Printf("Deployment: %s (%s) [%s]\n",
+				fmt.Fprintf(cmd.OutOrStdout(), "Deployment: %s (%s) [%s]\n",
 					LightPurpleStyle.Render(deployment.name),
 					PurpleStyle.Render(release),
 					PurpleStyle.Render(version),
@@ -92,13 +92,13 @@ func NewStatusCommand() *cobra.Command {
 					continue
 				}
 				for _, p := range pod.Items {
-					fmt.Printf("  Pod: %s\n", WhiteStyle.Render(p.Name))
+					fmt.Fprintf(cmd.OutOrStdout(), "  Pod: %s\n", WhiteStyle.Render(p.Name))
 					for _, containerStatus := range p.Status.ContainerStatuses {
 						image := containerStatus.Image
 						lastPullTime := containerStatus.State.Running.StartedAt.Time
-						fmt.Printf("    Container: %s\n", WhiteStyle.Render(containerStatus.Name))
-						fmt.Printf("      Image: %s\n", WhiteStyle.Render(image))
-						fmt.Printf("      Last Pull: %s\n", WhiteStyle.Render(lastPullTime.Format(time.RFC3339)))
+						fmt.Fprintf(cmd.OutOrStdout(), "    Container: %s\n", WhiteStyle.Render(containerStatus.Name))
+						fmt.Fprintf(cmd.OutOrStdout(), "      Image: %s\n", WhiteStyle.Render(image))
+						fmt.Fprintf(cmd.OutOrStdout(), "      Last Pull: %s\n", WhiteStyle.Render(lastPullTime.Format(time.RFC3339)))
 					}
 				}
 			}

@@ -54,7 +54,7 @@ func NewInstallCommand() *cobra.Command {
 				logger.SetLevel(log.DebugLevel)
 			}
 			ctx = log.WithContext(ctx, logger)
-			return mdaiInstall(ctx)
+			return mdaiInstall(ctx, cmd)
 		},
 	}
 	cmd.Flags().BoolVar(&flags.debug, "debug", false, "debug mode")
@@ -69,7 +69,7 @@ func NewInstallCommand() *cobra.Command {
 	return cmd
 }
 
-func mdaiInstall(ctx context.Context) error {
+func mdaiInstall(ctx context.Context, cmd *cobra.Command) error {
 	spinnerCtx, cancel := context.WithCancelCause(ctx)
 
 	go func() {
@@ -87,17 +87,17 @@ func mdaiInstall(ctx context.Context) error {
 	}
 
 	if spinnerCtx.Err() != nil && !errors.Is(context.Cause(spinnerCtx), context.Canceled) {
-		fmt.Println(lipgloss.NewStyle().PaddingLeft(1).Foreground(red).Render(DisabledString) + " installing MDAI Cluster 🐙")
+		fmt.Fprintln(cmd.OutOrStdout(), lipgloss.NewStyle().PaddingLeft(1).Foreground(red).Render(DisabledString)+" installing MDAI Cluster 🐙")
 		return fmt.Errorf("failed to install cluster: %w", context.Cause(spinnerCtx))
 	}
 
-	fmt.Println(lipgloss.NewStyle().PaddingLeft(1).Foreground(green).Render(EnabledString) + " installing MDAI Cluster 🐙")
+	fmt.Fprintln(cmd.OutOrStdout(), lipgloss.NewStyle().PaddingLeft(1).Foreground(green).Render(EnabledString)+" installing MDAI Cluster 🐙")
 
 	manifest, _ := embedFS.ReadFile("templates/mdai-operator.yaml")
 	if err := operator.Install(ctx, manifest); err != nil {
 		return fmt.Errorf("failed to apply mdai operator manifest: %w", err)
 	}
 
-	fmt.Println(" 🍻 You're ready to go")
+	fmt.Fprintln(cmd.OutOrStdout(), " 🍻 You're ready to go")
 	return nil
 }

@@ -63,7 +63,7 @@ func NewFilterListCommand() *cobra.Command {
 			}
 
 			if !hasTelemetryFilters(mdaiOperator) {
-				fmt.Println("No filters found.")
+				fmt.Fprintln(cmd.OutOrStdout(), "No filters found.")
 				return nil
 			}
 
@@ -104,10 +104,10 @@ func NewFilterListCommand() *cobra.Command {
 					}).
 					Headers(headers...).
 					Rows(rows...)
-				fmt.Println(filterTableOutput)
+				fmt.Fprintln(cmd.OutOrStdout(), filterTableOutput)
 			}
 
-			var pipelineFilterRows, filterServicerRows [][]string
+			var pipelineFilterRows, filterServiceRows [][]string
 
 			for _, filter := range *mdaiOperator.Spec.TelemetryModule.Collectors[0].TelemetryFiltering.Filters {
 				if flags.onlyService && filter.FilteredServices == nil {
@@ -132,7 +132,7 @@ func NewFilterListCommand() *cobra.Command {
 						joinOrNoData(filter.FilteredServices.TelemetryTypes),
 						filter.FilteredServices.ServiceNamePattern,
 					)
-					filterServicerRows = append(filterServicerRows, row)
+					filterServiceRows = append(filterServiceRows, row)
 				case false:
 					pipelineFilterRows = append(pipelineFilterRows, row)
 				}
@@ -143,7 +143,7 @@ func NewFilterListCommand() *cobra.Command {
 			}
 
 			if !flags.onlyPipeline {
-				printFilterTable(filterServiceHeaders(), filterServicerRows)
+				printFilterTable(filterServiceHeaders(), filterServiceRows)
 			}
 
 			return nil
@@ -187,7 +187,7 @@ func NewFilterAddCommand() *cobra.Command {
 				return fmt.Errorf("adding filter failed: %w", err)
 			}
 
-			fmt.Println(flags.successString())
+			fmt.Fprintln(cmd.OutOrStdout(), flags.successString())
 
 			return nil
 		},
@@ -217,15 +217,15 @@ func NewFilterDisableCommand() *cobra.Command {
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			ctx := cmd.Context()
 
-			if err := operator.DisableTelemetryFilter(ctx, WithName(flags.filterName)); err != nil {
+			if err := operator.DisableTelemetryFilter(ctx, WithName(flags.name)); err != nil {
 				return fmt.Errorf("disabling filter failed: %w", err)
 			}
-			fmt.Printf(`"%s" filter disabled successfully.`, flags.filterName)
-			fmt.Println()
+			fmt.Fprintf(cmd.OutOrStdout(), `"%s" filter disabled successfully.`, flags.name)
+			fmt.Fprintln(cmd.OutOrStdout())
 			return nil
 		},
 	}
-	cmd.Flags().StringVarP(&flags.filterName, "name", "n", "", "name of the filter")
+	cmd.Flags().StringVarP(&flags.name, "name", "n", "", "name of the filter")
 
 	_ = cmd.MarkFlagRequired("name")
 
@@ -245,15 +245,15 @@ func NewFilterEnableCommand() *cobra.Command {
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			ctx := cmd.Context()
 
-			if err := operator.EnableTelemetryFilter(ctx, WithName(flags.filterName)); err != nil {
+			if err := operator.EnableTelemetryFilter(ctx, WithName(flags.name)); err != nil {
 				return fmt.Errorf("enabling filter failed: %w", err)
 			}
-			fmt.Printf(`"%s" filter enabled successfully.`, flags.filterName)
-			fmt.Println()
+			fmt.Fprintf(cmd.OutOrStdout(), `"%s" filter enabled successfully.`, flags.name)
+			fmt.Fprintln(cmd.OutOrStdout())
 			return nil
 		},
 	}
-	cmd.Flags().StringVarP(&flags.filterName, "name", "n", "", "name of the filter")
+	cmd.Flags().StringVarP(&flags.name, "name", "n", "", "name of the filter")
 
 	_ = cmd.MarkFlagRequired("name")
 
@@ -273,15 +273,15 @@ func NewFilterRemoveCommand() *cobra.Command {
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			ctx := cmd.Context()
 
-			if err := operator.RemoveTelemetryFilter(ctx, WithName(flags.filterName)); err != nil {
+			if err := operator.RemoveTelemetryFilter(ctx, WithName(flags.name)); err != nil {
 				return fmt.Errorf("removing filter failed: %w", err)
 			}
-			fmt.Printf(`"%s" filter removed successfully.`, flags.filterName)
-			fmt.Println()
+			fmt.Fprintf(cmd.OutOrStdout(), `"%s" filter removed successfully.`, flags.name)
+			fmt.Fprintln(cmd.OutOrStdout())
 			return nil
 		},
 	}
-	cmd.Flags().StringVarP(&flags.filterName, "name", "n", "", "name of the filter")
+	cmd.Flags().StringVarP(&flags.name, "name", "n", "", "name of the filter")
 
 	_ = cmd.MarkFlagRequired("name")
 

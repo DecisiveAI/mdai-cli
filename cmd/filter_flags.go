@@ -21,15 +21,15 @@ type filterListFlags struct {
 }
 
 type filterDisableFlags struct {
-	filterName string
+	name string
 }
 
 type filterEnableFlags struct {
-	filterName string
+	name string
 }
 
 type filterRemoveFlags struct {
-	filterName string
+	name string
 }
 
 func (flags filterAddFlags) toTelemetryFilterOptions() []operator.TelemetryFilterOption {

@@ -84,7 +84,7 @@ func NewUpdateCommand() *cobra.Command {
 					return err
 				}
 				if !applyConfig {
-					fmt.Println(flags.config + " configuration not updated")
+					fmt.Fprintln(cmd.OutOrStdout(), flags.config+" configuration not updated")
 					return nil
 				}
 
@@ -92,7 +92,7 @@ func NewUpdateCommand() *cobra.Command {
 				if err := operator.UpdateOTELConfig(ctx, string(otelConfigBytes)); err != nil {
 					return fmt.Errorf("error updating otel collector configuration: %w", err)
 				}
-				fmt.Println(flags.config + " configuration updated")
+				fmt.Fprintln(cmd.OutOrStdout(), flags.config+" configuration updated")
 
 			case flags.file != "":
 				otelConfigBytes, err := os.ReadFile(flags.file)
@@ -102,7 +102,7 @@ func NewUpdateCommand() *cobra.Command {
 				if err := operator.UpdateOTELConfig(ctx, string(otelConfigBytes)); err != nil {
 					return fmt.Errorf("error updating otel collector configuration: %w", err)
 				}
-				fmt.Println(flags.config + " configuration updated")
+				fmt.Fprintln(cmd.OutOrStdout(), flags.config+" configuration updated")
 			}
 
 			return nil

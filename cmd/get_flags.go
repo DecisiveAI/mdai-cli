@@ -1,5 +1,5 @@
 package cmd
 
 type getFlags struct {
-	configType string
+	config string
 }
