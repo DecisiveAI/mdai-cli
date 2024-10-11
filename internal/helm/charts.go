@@ -17,7 +17,7 @@ var chartSpecs = map[string]mdaitypes.ChartSpec{
 		ReleaseName:     "mdai-cluster",
 		ChartURL:        "https://github.com/DecisiveAI/mdai-helm-charts/raw/gh-pages/%s-%s.tgz",
 		Namespace:       "mdai",
-		Version:         "0.0.2",
+		Version:         "0.0.3",
 		Values:          map[string]any{},
 		UpgradeCRDs:     true,
 		Wait:            true,
