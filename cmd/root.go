@@ -128,8 +128,9 @@ func addCommands(cmd *cobra.Command) {
 		NewStatusCommand(),
 		NewUninstallCommand(),
 		NewUpdateCommand(),
-		// THIS IS A FAKE COMMAND
+		// THESE ARE A FAKE COMMAND
 		NewDynamicVariablesCommand(),
+		NewTieredStorageCommand(),
 	)
 }
 
