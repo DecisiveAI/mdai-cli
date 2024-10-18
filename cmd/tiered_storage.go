@@ -1,10 +1,12 @@
 package cmd
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/charmbracelet/huh"
 	"strings"
+
+	"github.com/charmbracelet/huh"
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
@@ -23,14 +25,14 @@ import (
 */
 
 type TieredStorageOutputAddFlags struct {
-	key             string
-	tier            string
-	capacity        string
-	retentionPeriod string
-	format          string
-	description     string
-	pipelines       []string
-	location        string
+	Key             string   `json:"-"`
+	Tier            string   `json:"tier"`
+	Capacity        string   `json:"capacity"`
+	RetentionPeriod string   `json:"retention_period"`
+	Format          string   `json:"format"`
+	Description     string   `json:"description"`
+	Pipelines       []string `json:"pipelines"`
+	Location        string   `json:"location"`
 }
 
 type TieredStorageValues struct {
@@ -76,7 +78,21 @@ func NewTieredStorageListCommand() *cobra.Command {
 				return fmt.Errorf("failed to fetch tiered storages configmap: %w", err)
 			}
 			for k, t := range configMap.Data {
-				row := []string{k, t, "Enabled"}
+				f := TieredStorageOutputAddFlags{}
+				if err := json.Unmarshal([]byte(t), &f); err != nil {
+					return fmt.Errorf("error unmarshaling tiered storage: %w", err)
+				}
+				row := []string{
+					k,
+					f.Tier,
+					"Enabled",
+					f.Description,
+					strings.Join(f.Pipelines, ", "),
+					f.Capacity,
+					f.RetentionPeriod,
+					f.Format,
+					f.Location,
+				}
 				rows = append(rows, row)
 			}
 
@@ -112,9 +128,9 @@ func NewTieredStorageListCommand() *cobra.Command {
 
 func (f TieredStorageOutputAddFlags) successString() string {
 	var sb strings.Builder
-	_, _ = fmt.Fprintf(&sb, `tiered storage added successfully, "%s"`, f.key)
+	_, _ = fmt.Fprintf(&sb, `tiered storage added successfully, "%s"`, f.Key)
 	fmt.Printf("Key: %s\nTier: %s\nCapacity: %s\nRetention Period: %s\nFormat: %s\nDescription: %s\nPipelines: %v\nLocation: %s\n",
-		f.key, f.tier, f.capacity, f.retentionPeriod, f.format, f.description, f.pipelines, f.location)
+		f.Key, f.Tier, f.Capacity, f.RetentionPeriod, f.Format, f.Description, f.Pipelines, f.Location)
 	return sb.String()
 }
 
@@ -135,19 +151,19 @@ func NewTieredStorageAddCommand() *cobra.Command {
 				huh.NewGroup(
 					huh.NewInput().
 						Title("Name as key for storage tier (ex. some_tier)").
-						Value(&f.key).
+						Value(&f.Key).
 						Validate(func(str string) error {
 							if str == "" {
-								return errors.New("Key cannot be empty")
+								return errors.New("key cannot be empty")
 							}
 							return nil
 						}),
 					huh.NewInput().
 						Title("Tier of storage").
-						Value(&f.tier).
+						Value(&f.Tier).
 						Validate(func(str string) error {
 							if str == "" {
-								return errors.New("Tier cannot be empty")
+								return errors.New("tier cannot be empty")
 							}
 							return nil
 						}),
@@ -156,19 +172,19 @@ func NewTieredStorageAddCommand() *cobra.Command {
 				huh.NewGroup(
 					huh.NewInput().
 						Title("Capacity of storage tier").
-						Value(&f.capacity).
+						Value(&f.Capacity).
 						Validate(func(str string) error {
 							if str == "" {
-								return errors.New("Capacity cannot be empty")
+								return errors.New("capacity cannot be empty")
 							}
 							return nil
 						}),
 					huh.NewInput().
 						Title("Retention period of storage tier").
-						Value(&f.retentionPeriod).
+						Value(&f.RetentionPeriod).
 						Validate(func(str string) error {
 							if str == "" {
-								return errors.New("Retention period cannot be empty")
+								return errors.New("retention period cannot be empty")
 							}
 							return nil
 						}),
@@ -177,10 +193,10 @@ func NewTieredStorageAddCommand() *cobra.Command {
 				huh.NewGroup(
 					huh.NewInput().
 						Title("Format for storage tier (ex. iceberg)").
-						Value(&f.format).
+						Value(&f.Format).
 						Validate(func(str string) error {
 							if str == "" {
-								return errors.New("Format cannot be empty")
+								return errors.New("format cannot be empty")
 							}
 							return nil
 						}),
@@ -189,7 +205,7 @@ func NewTieredStorageAddCommand() *cobra.Command {
 				huh.NewGroup(
 					huh.NewText().
 						Title("Description (optional)").
-						Value(&f.description).
+						Value(&f.Description).
 						Validate(func(str string) error {
 							return nil
 						}),
@@ -204,13 +220,13 @@ func NewTieredStorageAddCommand() *cobra.Command {
 							huh.NewOption("Logs", "logs").Selected(true),
 						).
 						Limit(3).
-						Value(&f.pipelines),
+						Value(&f.Pipelines),
 					huh.NewInput().
 						Title("Location of storage tier").
-						Value(&f.location).
+						Value(&f.Location).
 						Validate(func(str string) error {
 							if str == "" {
-								return errors.New("Location cannot be empty")
+								return errors.New("location cannot be empty")
 							}
 							return nil
 						}),
@@ -228,13 +244,16 @@ func NewTieredStorageAddCommand() *cobra.Command {
 				return fmt.Errorf("failed to create kube helper: %w", err)
 			}
 
-			if _, err := helper.UpdateConfigMap(cmd.Context(), "tiered-storage", "mdai", map[string]string{"key": f.key, "tier": f.tier, "capacity": f.capacity, "retention-period": f.retentionPeriod, "format": f.format, "description": f.description, "pipelines": strings.Join(f.pipelines, ", "), "location": f.location}); err != nil {
+			jsonData, _ := json.Marshal(f)
+			if _, err := helper.UpdateConfigMap(cmd.Context(),
+				"tiered-storage", "mdai",
+				map[string]string{f.Key: string(jsonData)}); err != nil {
 				return fmt.Errorf("failed to add storage tier: %w", err)
 			}
 
 			fmt.Println(f.successString())
 			fmt.Printf("Key: %s\nTier: %s\nCapacity: %s\nRetention Period: %s\nFormat: %s\nDescription: %s\nPipelines: %v\nLocation: %s\n",
-				f.key, f.tier, f.capacity, f.retentionPeriod, f.format, f.description, f.pipelines, f.location)
+				f.Key, f.Tier, f.Capacity, f.RetentionPeriod, f.Format, f.Description, f.Pipelines, f.Location)
 
 			return nil
 		},
