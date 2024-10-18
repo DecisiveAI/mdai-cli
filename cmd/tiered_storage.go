@@ -141,17 +141,13 @@ func NewTieredStorageAddCommand() *cobra.Command {
 		Use:   "add",
 		Short: "add a tiered storage",
 		Long:  `add a tiered storage`,
-
-		/*PreRunE: func(cmd *cobra.Command, _ []string) error {
-			cmd.MarkFlagsRequiredTogether("key", "tier", "capacity", "retention-period", "format", "pipelines", "location")
-			return nil
-		},*/
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			form := huh.NewForm(
 				huh.NewGroup(
 					huh.NewInput().
-						Title("Name as key for storage tier (ex. some_tier)").
+						Title("Name as key for storage tier").
 						Value(&f.Key).
+						Placeholder("log_cold_storage").
 						Validate(func(str string) error {
 							if str == "" {
 								return errors.New("key cannot be empty")
@@ -161,6 +157,7 @@ func NewTieredStorageAddCommand() *cobra.Command {
 					huh.NewInput().
 						Title("Tier of storage").
 						Value(&f.Tier).
+						Placeholder("hot, cold, or glacial").
 						Validate(func(str string) error {
 							if str == "" {
 								return errors.New("tier cannot be empty")
@@ -173,6 +170,7 @@ func NewTieredStorageAddCommand() *cobra.Command {
 					huh.NewInput().
 						Title("Capacity of storage tier").
 						Value(&f.Capacity).
+						Placeholder("1000gb").
 						Validate(func(str string) error {
 							if str == "" {
 								return errors.New("capacity cannot be empty")
@@ -182,6 +180,7 @@ func NewTieredStorageAddCommand() *cobra.Command {
 					huh.NewInput().
 						Title("Retention period of storage tier").
 						Value(&f.RetentionPeriod).
+						Placeholder("30days").
 						Validate(func(str string) error {
 							if str == "" {
 								return errors.New("retention period cannot be empty")
@@ -192,21 +191,22 @@ func NewTieredStorageAddCommand() *cobra.Command {
 
 				huh.NewGroup(
 					huh.NewInput().
-						Title("Format for storage tier (ex. iceberg)").
+						Title("Format for storage tier").
 						Value(&f.Format).
+						Placeholder("iceberg").
 						Validate(func(str string) error {
 							if str == "" {
 								return errors.New("format cannot be empty")
 							}
 							return nil
 						}),
-				),
-
-				huh.NewGroup(
-					huh.NewText().
-						Title("Description (optional)").
-						Value(&f.Description).
+					huh.NewInput().
+						Title("Location of storage tier").
+						Value(&f.Location).
 						Validate(func(str string) error {
+							if str == "" {
+								return errors.New("location cannot be empty")
+							}
 							return nil
 						}),
 				),
@@ -221,13 +221,14 @@ func NewTieredStorageAddCommand() *cobra.Command {
 						).
 						Limit(3).
 						Value(&f.Pipelines),
+				),
+
+				huh.NewGroup(
 					huh.NewInput().
-						Title("Location of storage tier").
-						Value(&f.Location).
+						Title("Description (optional)").
+						Value(&f.Description).
+						Placeholder("This is tiered storage location that will go to S3").
 						Validate(func(str string) error {
-							if str == "" {
-								return errors.New("location cannot be empty")
-							}
 							return nil
 						}),
 				),
@@ -236,24 +237,23 @@ func NewTieredStorageAddCommand() *cobra.Command {
 			err := form.Run()
 			if err != nil {
 				fmt.Println("Storage tier failed due to", err)
-			}
+			} else {
 
-			ctx := cmd.Context()
-			helper, err := kubehelper.New(kubehelper.WithContext(ctx))
-			if err != nil {
-				return fmt.Errorf("failed to create kube helper: %w", err)
-			}
+				ctx := cmd.Context()
+				helper, err := kubehelper.New(kubehelper.WithContext(ctx))
+				if err != nil {
+					return fmt.Errorf("failed to create kube helper: %w", err)
+				}
 
-			jsonData, _ := json.Marshal(f)
-			if _, err := helper.UpdateConfigMap(cmd.Context(),
-				"tiered-storage", "mdai",
-				map[string]string{f.Key: string(jsonData)}); err != nil {
-				return fmt.Errorf("failed to add storage tier: %w", err)
-			}
+				jsonData, _ := json.Marshal(f)
+				if _, err := helper.UpdateConfigMap(cmd.Context(),
+					"tiered-storage", "mdai",
+					map[string]string{f.Key: string(jsonData)}); err != nil {
+					return fmt.Errorf("failed to add storage tier: %w", err)
+				}
 
-			fmt.Println(f.successString())
-			fmt.Printf("Key: %s\nTier: %s\nCapacity: %s\nRetention Period: %s\nFormat: %s\nDescription: %s\nPipelines: %v\nLocation: %s\n",
-				f.Key, f.Tier, f.Capacity, f.RetentionPeriod, f.Format, f.Description, f.Pipelines, f.Location)
+				fmt.Println(f.successString())
+			}
 
 			return nil
 		},
