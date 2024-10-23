@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/charmbracelet/lipgloss/table"
 	"github.com/decisiveai/mdai-cli/internal/forms"
 	"github.com/decisiveai/mdai-cli/internal/kubehelper"
+	"github.com/decisiveai/mdai-cli/internal/types"
 	"github.com/spf13/cobra"
 )
 
@@ -21,17 +23,6 @@ import (
 |   tier_2   |  cold  |   1TB    |     90 days      | parquet  | Backup cold storage      | logs         | /another/location    |
 |   tier_3   | glacial|   5TB    |    365 days      | ORC      | Archival storage         | metrics      | random/fileMCfileFace|
 */
-
-type TieredStorageOutputAddFlags struct {
-	Key             string   `json:"-"`
-	Tier            string   `json:"tier"`
-	Capacity        string   `json:"capacity"`
-	RetentionPeriod string   `json:"retention_period"`
-	Format          string   `json:"format"`
-	Description     string   `json:"description"`
-	Pipelines       []string `json:"pipelines"`
-	Location        string   `json:"location"`
-}
 
 type TieredStorageValues struct {
 }
@@ -76,7 +67,7 @@ func NewTieredStorageListCommand() *cobra.Command {
 				return fmt.Errorf("failed to fetch tiered storages configmap: %w", err)
 			}
 			for k, t := range configMap.Data {
-				f := TieredStorageOutputAddFlags{}
+				f := types.TieredStorageOutputAddFlags{}
 				if err := json.Unmarshal([]byte(t), &f); err != nil {
 					return fmt.Errorf("error unmarshaling tiered storage: %w", err)
 				}
@@ -124,24 +115,16 @@ func NewTieredStorageListCommand() *cobra.Command {
 	return cmd
 }
 
-func (f TieredStorageOutputAddFlags) successString() string {
-	var sb strings.Builder
-	_, _ = fmt.Fprintf(&sb, `tiered storage added successfully, "%s"`, f.Key)
-	fmt.Printf("Key: %s\nTier: %s\nCapacity: %s\nRetention Period: %s\nFormat: %s\nDescription: %s\nPipelines: %v\nLocation: %s\n",
-		f.Key, f.Tier, f.Capacity, f.RetentionPeriod, f.Format, f.Description, f.Pipelines, f.Location)
-	return sb.String()
-}
-
 func NewTieredStorageAddCommand() *cobra.Command {
-	f := TieredStorageOutputAddFlags{}
-
 	cmd := &cobra.Command{
 		Use:   "add",
 		Short: "add a tiered storage",
 		Long:  `add a tiered storage`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			forms.TieredStorageForm()
-
+			completed, f := forms.TieredStorageForm()
+			if !completed {
+				return errors.New("input cancelled")
+			}
 			ctx := cmd.Context()
 			helper, err := kubehelper.New(kubehelper.WithContext(ctx))
 			if err != nil {
@@ -155,7 +138,7 @@ func NewTieredStorageAddCommand() *cobra.Command {
 				return fmt.Errorf("failed to add storage tier: %w", err)
 			}
 
-			fmt.Println(f.successString())
+			fmt.Println(f.SuccessString())
 			return nil
 		},
 	}

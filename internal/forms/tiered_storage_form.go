@@ -3,13 +3,15 @@ package forms
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"os"
+	"slices"
 	"strings"
-	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/decisiveai/mdai-cli/internal/types"
 )
 
 const maxWidth = 80
@@ -61,22 +63,13 @@ func NewStyles(lg *lipgloss.Renderer) *Styles {
 }
 
 type Model struct {
-	lg          *lipgloss.Renderer
-	styles      *Styles
-	form        *huh.Form
-	width       int
-	focusedTier string
-}
-
-type TieredStorage struct {
-	Name            string   `json:"-"`
-	Tier            string   `json:"tier"`
-	Capacity        string   `json:"capacity"`
-	RetentionPeriod string   `json:"retention_period"`
-	Format          string   `json:"format"`
-	Description     string   `json:"description"`
-	Pipelines       []string `json:"pipelines"`
-	Location        string   `json:"location"`
+	lg            *lipgloss.Renderer
+	styles        *Styles
+	form          *huh.Form
+	width         int
+	focusedTier   string
+	exiting       bool
+	tieredStorage types.TieredStorageOutputAddFlags
 }
 
 var stores = map[string][]string{
@@ -96,19 +89,19 @@ var stores = map[string][]string{
 
 var tierNotes = map[string][]string{
 	"Hot": {
-		"Use Case: Frequently accessed data (real-time access).\n" +
-			"Performance: High-speed access.\n" +
-			"Cost: Higher cost per GB.",
+		`Use Case: Frequently accessed data (real-time access).
+			Performance: High-speed access.
+			Cost: Higher cost per GB.`,
 	},
 	"Cold": {
-		"Use Case: Infrequently accessed data, long-term storage with occasional retrieval\n" +
-			"Performance: Slower access compared to hot storage.\n" +
-			"Cost: Lower cost than hot storage.",
+		`Use Case: Infrequently accessed data, long-term storage with occasional retrieval
+			Performance: Slower access compared to hot storage.
+			Cost: Lower cost than hot storage.`,
 	},
 	"Glacial": {
-		"Use Case: Archival data with rare or almost no access, typically for compliance or historical purposes.\n" +
-			"Performance: Very slow access (hours or days to retrieve). \n" +
-			"Cost: Extremely low cost per GB, ideal for long-term retention.",
+		`Use Case: Archival data with rare or almost no access, typically for compliance or historical purposes.
+			Performance: Very slow access (hours or days to retrieve).
+			Cost: Extremely low cost per GB, ideal for long-term retention.`,
 	},
 }
 
@@ -116,52 +109,48 @@ func NewModel() Model {
 	m := Model{width: maxWidth}
 	m.lg = lipgloss.DefaultRenderer()
 	m.styles = NewStyles(m.lg)
-	var (
-		tier  string
-		store string
-	)
+	var store string
+
+	tiers := func() []string {
+		keys := slices.Collect(maps.Keys(stores))
+		result := make([]string, 0, len(keys))
+		for _, key := range keys {
+			result = append(result, key)
+		}
+		return result
+	}()
 
 	m.form = huh.NewForm(
 		huh.NewGroup(
 			huh.NewSelect[string]().
 				Key("tier").
-				Options(huh.NewOptions("Hot", "Cold", "Glacial")...).
-				Value(&tier).
+				Options(huh.NewOptions(tiers...)...).
+				Value(&m.tieredStorage.Tier).
 				Title("Choose your storage tier").
 				Description("This will determine where you data goes when it's filtered"),
 			huh.NewNote().DescriptionFunc(func() string {
-				s := strings.Join(tierNotes[tier], "\n")
+				s := strings.Join(tierNotes[m.tieredStorage.Tier], "\n")
 				return s
-			}, &tier),
+			}, m.tieredStorage.Tier),
 			huh.NewSelect[string]().
 				Key("store").
 				OptionsFunc(func() []huh.Option[string] {
-					s := stores[tier]
-					time.Sleep(500 * time.Millisecond)
+					s := stores[m.tieredStorage.Tier]
+					// time.Sleep(500 * time.Millisecond)
 					return huh.NewOptions(s...)
-				}, &tier).
+				}, &m.tieredStorage.Tier).
 				Value(&store).
 				Title("Choose one of your configured stores"),
 
-			//huh.NewInput().
-			//	Key("Tier").
-			//	Title("Tier of storage").
-			//	Value(&f.Tier).
-			//	Placeholder("hot, cold, or glacial").
-			//	Validate(func(str string) error {
-			//		if str == "" {
-			//			return errors.New("tier cannot be empty")
-			//		}
-			//		return nil
-			//	}),
 			huh.NewInput().
 				Key("name").
 				Title("Name for storage tier").
 				Description("Doesn't need to be fancy").
 				Placeholder("log_cold_storage").
+				Value(&m.tieredStorage.Key).
 				Validate(func(str string) error {
 					if str == "" {
-						return errors.New("Name cannot be empty")
+						return errors.New("name cannot be empty")
 					}
 					return nil
 				}),
@@ -202,57 +191,61 @@ func NewModel() Model {
 				Description("We want to make sure we setup the right time"),
 		),
 
-		//	huh.NewGroup(
-		//		huh.NewInput().
-		//			Title("Format for storage tier").
-		//			Value(&f.Format).
-		//			Placeholder("iceberg").
-		//			Validate(func(str string) error {
-		//				if str == "" {
-		//					return errors.New("format cannot be empty")
-		//				}
-		//				return nil
-		//			}),
-		//		huh.NewInput().
-		//			Title("Location of storage tier").
-		//			Value(&f.Location).
-		//			Validate(func(str string) error {
-		//				if str == "" {
-		//					return errors.New("location cannot be empty")
-		//				}
-		//				return nil
-		//			}),
-		//	),
-		//
-		//	huh.NewGroup(
-		//		huh.NewMultiSelect[string]().
-		//			Title("Pipelines").
-		//			Options(
-		//				huh.NewOption("traces", "traces"),
-		//				huh.NewOption("metrics", "metrics"),
-		//				huh.NewOption("Logs", "logs").Selected(true),
-		//			).
-		//			Limit(3).
-		//			Value(&f.Pipelines),
-		//	),
-		//
-		//	huh.NewGroup(
-		//		huh.NewInput().
-		//			Title("Description (optional)").
-		//			Value(&f.Description).
-		//			Placeholder("This is tiered storage location that will go to S3").
-		//			Validate(func(str string) error {
-		//				return nil
-		//			}),
-		//	),
-		//)
+		huh.NewGroup(
+			huh.NewInput().
+				Key("format").
+				Title("Format for storage tier").
+				Value(&m.tieredStorage.Format).
+				Placeholder("iceberg").
+				Validate(func(str string) error {
+					if str == "" {
+						return errors.New("format cannot be empty")
+					}
+					return nil
+				}),
+			huh.NewInput().
+				Key("location").
+				Title("Location of storage tier").
+				Value(&m.tieredStorage.Location).
+				Validate(func(str string) error {
+					if str == "" {
+						return errors.New("location cannot be empty")
+					}
+					return nil
+				}),
+		),
+
+		huh.NewGroup(
+			huh.NewMultiSelect[string]().
+				Key("pipelines").
+				Title("Pipelines").
+				Options(
+					huh.NewOption("traces", "traces"),
+					huh.NewOption("metrics", "metrics"),
+					huh.NewOption("Logs", "logs").Selected(true),
+				).
+				Limit(3).
+				Value(&m.tieredStorage.Pipelines),
+		),
+
+		huh.NewGroup(
+			huh.NewInput().
+				Key("description").
+				Title("Description (optional)").
+				Value(&m.tieredStorage.Description).
+				Placeholder("This is tiered storage location that will go to S3").
+				Validate(func(str string) error {
+					return nil
+				}),
+		),
+
 		huh.NewGroup(
 			huh.NewConfirm().
 				Key("done").
 				Title("Everything look good?").
 				Validate(func(v bool) error {
 					if !v {
-						return fmt.Errorf("Go back and fix issues")
+						return fmt.Errorf("go back and fix issues")
 					}
 					return nil
 				}).
@@ -269,13 +262,6 @@ func (m Model) Init() tea.Cmd {
 	return m.form.Init()
 }
 
-func min(x, y int) int {
-	if x > y {
-		return y
-	}
-	return x
-}
-
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
@@ -283,13 +269,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "esc", "ctrl+c", "q":
+			m.exiting = true
 			return m, tea.Quit
 		}
 	}
 
 	var cmds []tea.Cmd
 
-	form, cmd := m.form.Update(msg)
+	form, teacmd := m.form.Update(msg)
 	if f, ok := form.(*huh.Form); ok {
 		m.form = f
 
@@ -300,10 +287,19 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 
-		cmds = append(cmds, cmd)
+		cmds = append(cmds, teacmd)
 	}
 
 	if m.form.State == huh.StateCompleted {
+		m.tieredStorage.Tier = strings.ToLower(m.form.GetString("tier"))
+		m.tieredStorage.RetentionPeriod = m.form.GetString("duration") + " " + m.form.GetString("duration_type")
+		m.tieredStorage.Capacity = m.form.GetString("capacity") + " " + m.form.GetString("capacity_type")
+		m.tieredStorage.Key = m.form.GetString("name")
+		m.tieredStorage.Description = m.form.GetString("description")
+		m.tieredStorage.Format = m.form.GetString("format")
+		m.tieredStorage.Pipelines = m.form.Get("pipelines").([]string)
+		m.tieredStorage.Location = m.form.GetString("location")
+
 		cmds = append(cmds, tea.Quit)
 	}
 
@@ -320,7 +316,7 @@ func (m Model) View() string {
 		name = s.Highlight.Render(name)
 		tier = s.Highlight.Render(tier)
 		var b strings.Builder
-		fmt.Fprintf(&b, "Fantastic, we'll set up your %s storage tier!\n\n", name)
+		_, _ = fmt.Fprintf(&b, "Fantastic, we'll set up your %s storage tier!\n\n", name)
 		return s.Status.Margin(0, 1).Padding(1, 2).Width(48).Render(b.String()) + "\n\n"
 	default:
 		// Form (left side)
@@ -417,10 +413,11 @@ func (m Model) appErrorBoundaryView(text string) string {
 	)
 }
 
-func TieredStorageForm() {
-	_, err := tea.NewProgram(NewModel()).Run()
+func TieredStorageForm() (bool, types.TieredStorageOutputAddFlags) {
+	m, err := tea.NewProgram(NewModel()).Run()
 	if err != nil {
 		fmt.Println("Unable to create storage tier due to", err)
 		os.Exit(1)
 	}
+	return !m.(Model).exiting, m.(Model).tieredStorage
 }
