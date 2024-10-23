@@ -2,14 +2,12 @@ package cmd
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strings"
 
-	"github.com/charmbracelet/huh"
-
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
+	"github.com/decisiveai/mdai-cli/internal/forms"
 	"github.com/decisiveai/mdai-cli/internal/kubehelper"
 	"github.com/spf13/cobra"
 )
@@ -142,119 +140,22 @@ func NewTieredStorageAddCommand() *cobra.Command {
 		Short: "add a tiered storage",
 		Long:  `add a tiered storage`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			form := huh.NewForm(
-				huh.NewGroup(
-					huh.NewInput().
-						Title("Name as key for storage tier").
-						Value(&f.Key).
-						Placeholder("log_cold_storage").
-						Validate(func(str string) error {
-							if str == "" {
-								return errors.New("key cannot be empty")
-							}
-							return nil
-						}),
-					huh.NewInput().
-						Title("Tier of storage").
-						Value(&f.Tier).
-						Placeholder("hot, cold, or glacial").
-						Validate(func(str string) error {
-							if str == "" {
-								return errors.New("tier cannot be empty")
-							}
-							return nil
-						}),
-				),
+			forms.TieredStorageForm()
 
-				huh.NewGroup(
-					huh.NewInput().
-						Title("Capacity of storage tier").
-						Value(&f.Capacity).
-						Placeholder("1000gb").
-						Validate(func(str string) error {
-							if str == "" {
-								return errors.New("capacity cannot be empty")
-							}
-							return nil
-						}),
-					huh.NewInput().
-						Title("Retention period of storage tier").
-						Value(&f.RetentionPeriod).
-						Placeholder("30days").
-						Validate(func(str string) error {
-							if str == "" {
-								return errors.New("retention period cannot be empty")
-							}
-							return nil
-						}),
-				),
-
-				huh.NewGroup(
-					huh.NewInput().
-						Title("Format for storage tier").
-						Value(&f.Format).
-						Placeholder("iceberg").
-						Validate(func(str string) error {
-							if str == "" {
-								return errors.New("format cannot be empty")
-							}
-							return nil
-						}),
-					huh.NewInput().
-						Title("Location of storage tier").
-						Value(&f.Location).
-						Validate(func(str string) error {
-							if str == "" {
-								return errors.New("location cannot be empty")
-							}
-							return nil
-						}),
-				),
-
-				huh.NewGroup(
-					huh.NewMultiSelect[string]().
-						Title("Pipelines").
-						Options(
-							huh.NewOption("traces", "traces"),
-							huh.NewOption("metrics", "metrics"),
-							huh.NewOption("Logs", "logs").Selected(true),
-						).
-						Limit(3).
-						Value(&f.Pipelines),
-				),
-
-				huh.NewGroup(
-					huh.NewInput().
-						Title("Description (optional)").
-						Value(&f.Description).
-						Placeholder("This is tiered storage location that will go to S3").
-						Validate(func(str string) error {
-							return nil
-						}),
-				),
-			)
-
-			err := form.Run()
+			ctx := cmd.Context()
+			helper, err := kubehelper.New(kubehelper.WithContext(ctx))
 			if err != nil {
-				fmt.Println("Storage tier failed due to", err)
-			} else {
-
-				ctx := cmd.Context()
-				helper, err := kubehelper.New(kubehelper.WithContext(ctx))
-				if err != nil {
-					return fmt.Errorf("failed to create kube helper: %w", err)
-				}
-
-				jsonData, _ := json.Marshal(f)
-				if _, err := helper.UpdateConfigMap(cmd.Context(),
-					"tiered-storage", "mdai",
-					map[string]string{f.Key: string(jsonData)}); err != nil {
-					return fmt.Errorf("failed to add storage tier: %w", err)
-				}
-
-				fmt.Println(f.successString())
+				return fmt.Errorf("failed to create kube helper: %w", err)
 			}
 
+			jsonData, _ := json.Marshal(f)
+			if _, err := helper.UpdateConfigMap(cmd.Context(),
+				"tiered-storage", "mdai",
+				map[string]string{f.Key: string(jsonData)}); err != nil {
+				return fmt.Errorf("failed to add storage tier: %w", err)
+			}
+
+			fmt.Println(f.successString())
 			return nil
 		},
 	}
