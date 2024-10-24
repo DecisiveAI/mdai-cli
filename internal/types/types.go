@@ -11,20 +11,22 @@ type (
 )
 
 type TieredStorageOutputAddFlags struct {
-	Key             string   `json:"-"`
-	Tier            string   `json:"tier"`
-	Capacity        string   `json:"capacity"`
-	RetentionPeriod string   `json:"retention_period"`
-	Format          string   `json:"format"`
-	Description     string   `json:"description"`
-	Pipelines       []string `json:"pipelines"`
-	Location        string   `json:"location"`
+	Name         string   `json:"-"`
+	Tier         string   `json:"tier"`
+	Store        string   `json:"store"`
+	Capacity     string   `json:"capacity"`
+	CapacityType string   `json:"capacity_type"`
+	Duration     string   `json:"duration"`
+	DurationType string   `json:"duration_type"`
+	Format       string   `json:"format"`
+	Description  string   `json:"description"`
+	Pipelines    []string `json:"pipelines"`
 }
 
 func (f TieredStorageOutputAddFlags) SuccessString() string {
 	var sb strings.Builder
-	_, _ = fmt.Fprintf(&sb, `tiered storage added successfully, "%s"`, f.Key)
-	fmt.Printf("Key: %s\nTier: %s\nCapacity: %s\nRetention Period: %s\nFormat: %s\nDescription: %s\nPipelines: %v\nLocation: %s\n",
-		f.Key, f.Tier, f.Capacity, f.RetentionPeriod, f.Format, f.Description, f.Pipelines, f.Location)
+	_, _ = fmt.Fprintf(&sb, `tiered storage added successfully, "%s"`, f.Name)
+	fmt.Printf("Name: %s\nTier: %s\nStore: %s\nCapacity: %s %s\nDuration: %s %s\nFormat: %s\nDescription: %s\nPipelines: %v",
+		f.Name, f.Store, f.Tier, f.Capacity, f.CapacityType, f.Duration, f.DurationType, f.Format, f.Description, f.Pipelines)
 	return sb.String()
 }

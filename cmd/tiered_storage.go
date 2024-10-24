@@ -24,9 +24,6 @@ import (
 |   tier_3   | glacial|   5TB    |    365 days      | ORC      | Archival storage         | metrics      | random/fileMCfileFace|
 */
 
-type TieredStorageValues struct {
-}
-
 func NewTieredStorageCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		GroupID: "configuration",
@@ -59,7 +56,7 @@ func NewTieredStorageListCommand() *cobra.Command {
 				return fmt.Errorf("failed to initialize kubehelper: %w", err)
 			}
 
-			headers := []string{"Key", "Tier", "Status", "Description", "Pipelines", "Capacity", "Retention Period", "Format", "Location"}
+			headers := []string{"Name", "Tier", "Status", "Description", "Pipelines", "Capacity", "Duration", "Format", "Location"}
 			var rows [][]string
 
 			configMap, err := helper.GetConfigMap(ctx, "tiered-storage", "mdai")
@@ -77,10 +74,10 @@ func NewTieredStorageListCommand() *cobra.Command {
 					"Enabled",
 					f.Description,
 					strings.Join(f.Pipelines, ", "),
-					f.Capacity,
-					f.RetentionPeriod,
+					f.Capacity + " " + f.CapacityType,
+					f.Duration + " " + f.DurationType,
 					f.Format,
-					f.Location,
+					f.Store,
 				}
 				rows = append(rows, row)
 			}
@@ -95,8 +92,11 @@ func NewTieredStorageListCommand() *cobra.Command {
 					BorderHeader(false).
 					Border(lipgloss.HiddenBorder()).
 					StyleFunc(func(row, col int) lipgloss.Style {
-						if row == 0 {
+						if row == table.HeaderRow {
 							return HeaderStyle
+						}
+						if row%2 == 0 {
+							return OddRowStyle
 						}
 						return lipgloss.NewStyle()
 					}).
@@ -134,7 +134,7 @@ func NewTieredStorageAddCommand() *cobra.Command {
 			jsonData, _ := json.Marshal(f)
 			if _, err := helper.UpdateConfigMap(cmd.Context(),
 				"tiered-storage", "mdai",
-				map[string]string{f.Key: string(jsonData)}); err != nil {
+				map[string]string{f.Name: string(jsonData)}); err != nil {
 				return fmt.Errorf("failed to add storage tier: %w", err)
 			}
 
